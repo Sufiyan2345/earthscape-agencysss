@@ -23,6 +23,15 @@ def _is_safe_next(target):
     return not parsed.scheme and not parsed.netloc and target.startswith('/') and not target.startswith('//')
 
 
+def _is_role_destination(target, role):
+    """Prevent post-login redirects into a panel the authenticated role cannot use."""
+    if not _is_safe_next(target):
+        return False
+    path = urlsplit(target).path
+    prefix = '/admin' if role == 'admin' else '/analyst'
+    return path == prefix or path.startswith(prefix + '/')
+
+
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -69,7 +78,7 @@ def login():
         user.record_login()
 
         next_page = request.args.get('next')
-        if _is_safe_next(next_page):
+        if _is_role_destination(next_page, user.role):
             return redirect(next_page)
 
         if user.role == 'admin':

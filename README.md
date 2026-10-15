@@ -101,6 +101,8 @@ in the Vercel project before deployment:
   `INITIAL_ANALYSIS_USER_PASSWORD` — unique passwords used when seeding an
   empty database. Set them before the first deployment; default demo passwords
   are for local development only.
+- `ADMIN_REGISTRATION_CODE` — optional secret required when registering a new
+  admin account. Keep it private and share it only with authorized admins.
 
 The model scheduler and Kafka consumer are disabled on Vercel. NetCDF, HDF5,
 and GeoTIFF dataset parsers are optional dependencies and are not installed in

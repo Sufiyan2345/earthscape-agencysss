@@ -45,6 +45,7 @@ class Config:
         '' if os.environ.get('VERCEL') else 'mongodb://localhost:27017/earthscapeagency',
     )
     MONGO_DB = "earthscapeagency"
+    ADMIN_REGISTRATION_CODE = os.environ.get('ADMIN_REGISTRATION_CODE', '')
 
     ALLOWED_EXTENSIONS = {'csv', 'xlsx', 'xls', 'json', 'txt', 'tif', 'tiff', 'nc', 'hdf5', 'h5'}
 

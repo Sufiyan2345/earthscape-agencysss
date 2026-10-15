@@ -786,20 +786,27 @@
                     <label>Select Your Panel</label>
                     <div class="auth-roles">
                         <label class="auth-role">
-                            <input type="radio" name="role" value="admin">
+                            <input type="radio" name="role" value="admin" {% if selected_role == 'admin' %}checked{% endif %}>
                             <div>
                                 <div class="role-title"><i class="fas fa-user-shield"></i> Admin</div>
-                                <div class="role-sub">Full system control</div>
+                                <div class="role-sub">Requires an admin registration code</div>
                             </div>
                         </label>
-                        <label class="auth-role selected">
-                            <input type="radio" name="role" value="analyst" checked>
+                        <label class="auth-role {% if selected_role != 'admin' %}selected{% endif %}">
+                            <input type="radio" name="role" value="analyst" {% if selected_role != 'admin' %}checked{% endif %}>
                             <div>
                                 <div class="role-title"><i class="fas fa-chart-line"></i> Analyst</div>
                                 <div class="role-sub">Data &amp; analysis</div>
                             </div>
                         </label>
                     </div>
+                </div>
+
+                <div class="auth-field" id="adminRegistrationCodeField" hidden>
+                    <label for="admin_registration_code">Admin Registration Code</label>
+                    <input type="password" id="admin_registration_code" name="admin_registration_code"
+                           placeholder="Enter the code provided by your administrator" autocomplete="off">
+                    <i class="fas fa-user-shield auth-field-icon"></i>
                 </div>
 
                 <div class="auth-field">
@@ -891,13 +898,23 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     const roles = document.querySelectorAll('.auth-role input[type="radio"]');
+    const adminCodeField = document.getElementById("adminRegistrationCodeField");
+    const adminCode = document.getElementById("admin_registration_code");
+    function updateAdminCodeField() {
+        const selectedRole = document.querySelector('.auth-role input[name="role"]:checked');
+        const isAdmin = selectedRole && selectedRole.value === "admin";
+        if (adminCodeField) adminCodeField.hidden = !isAdmin;
+        if (adminCode) adminCode.required = isAdmin;
+    }
     roles.forEach(function (input) {
         input.addEventListener("change", function () {
             document.querySelectorAll(".auth-role").forEach(function (el) { el.classList.remove("selected"); });
             const parent = input.closest(".auth-role");
             if (parent) parent.classList.add("selected");
+            updateAdminCodeField();
         });
     });
+    updateAdminCodeField();
 
     const password = document.getElementById("password");
     const confirmPassword = document.getElementById("confirm_password");
@@ -964,5 +981,3 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 </body>
 </html>
-
-

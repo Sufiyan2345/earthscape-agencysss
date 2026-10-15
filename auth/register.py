@@ -1,4 +1,7 @@
+import hmac
+
 from flask import render_template, request, redirect, url_for, flash
+from flask import current_app
 from auth import auth_bp
 from models.user_model import User
 
@@ -12,12 +15,17 @@ def register():
         password = request.form.get('password', '')
         confirm_password = request.form.get('confirm_password', '')
         phone = request.form.get('phone', '')
-
-        # Public registration can create analyst accounts only. Admin roles
-        # are assigned by an authenticated administrator.
-        role = 'analyst'
+        requested_role = request.form.get('role', 'analyst').strip().lower()
+        role = requested_role if requested_role in ('admin', 'analyst') else 'analyst'
 
         errors = []
+        if requested_role not in ('admin', 'analyst'):
+            errors.append('Select a valid account role.')
+        if role == 'admin':
+            configured_code = current_app.config.get('ADMIN_REGISTRATION_CODE', '')
+            submitted_code = request.form.get('admin_registration_code', '')
+            if not configured_code or not hmac.compare_digest(submitted_code, configured_code):
+                errors.append('Admin registration requires a valid administrator registration code.')
         if not username or len(username) < 3:
             errors.append('Username must be at least 3 characters.')
         if not email or '@' not in email:
@@ -37,7 +45,7 @@ def register():
         if errors:
             for e in errors:
                 flash(e, 'danger')
-            return render_template('auth/register.html')
+            return render_template('auth/register.html', selected_role=role)
 
         try:
             User.create(
