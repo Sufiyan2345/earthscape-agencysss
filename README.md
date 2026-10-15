@@ -68,6 +68,13 @@ source venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 ```
 
+Optional NetCDF, HDF5, and GeoTIFF dataset parsers and the Kafka backend (not
+included in the size-constrained Vercel deployment) can be installed locally
+with:
+```bash
+pip install -r requirements-optional.txt
+```
+
 4. Train ML models (optional):
 ```bash
 python ml_models/train_model.py
@@ -95,7 +102,10 @@ in the Vercel project before deployment:
   empty database. Set them before the first deployment; default demo passwords
   are for local development only.
 
-The model scheduler is disabled on Vercel. Runtime uploads, datasets, and
+The model scheduler and Kafka consumer are disabled on Vercel. NetCDF, HDF5,
+and GeoTIFF dataset parsers are optional dependencies and are not installed in
+the Vercel build to stay below the function bundle limit; CSV, JSON, Excel, and
+other core app features remain available. Runtime uploads, datasets, and
 generated reports use `/tmp`, which is temporary serverless storage and is not
 shared between function instances. Use external object storage for files that
 must persist. Large uploads may also exceed Vercel's request limits.
