@@ -1,0 +1,293 @@
+{% extends "admin/base.html" %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="grid grid-4 mb-3">
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="fas fa-users"></i></div>
+        <div class="stat-info"><h4>Total Users</h4><div class="stat-value">{{ stats.total_users }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-database"></i></div>
+        <div class="stat-info"><h4>Total Datasets</h4><div class="stat-value">{{ stats.total_datasets }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-hdd"></i></div>
+        <div class="stat-info"><h4>HDFS Storage</h4><div class="stat-value">{{ stats.hdfs_storage }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple"><i class="fas fa-cogs"></i></div>
+        <div class="stat-info"><h4>MapReduce Jobs</h4><div class="stat-value">{{ stats.total_jobs }}</div></div>
+    </div>
+</div>
+<div class="grid grid-4 mb-3">
+    <div class="stat-card"><div class="stat-icon teal"><i class="fas fa-satellite-dish"></i></div><div class="stat-info"><h4>Realtime Records</h4><div class="stat-value">{{ stats.realtime_records }}</div></div></div>
+    <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-brain"></i></div><div class="stat-info"><h4>ML Models</h4><div class="stat-value">{{ stats.ml_models }}</div></div></div>
+    <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-bell"></i></div><div class="stat-info"><h4>Active Alerts</h4><div class="stat-value">{{ stats.unread_alerts }}</div></div></div>
+    <div class="stat-card"><div class="stat-icon red"><i class="fas fa-comments"></i></div><div class="stat-info"><h4>Pending Feedback</h4><div class="stat-value">{{ stats.open_feedback }}</div></div></div>
+</div>
+
+<!-- System-Level Charts -->
+<div class="grid grid-2 mb-3">
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-upload"></i> Dataset Upload Trend</h3></div>
+        <div class="card-body"><canvas id="dsUploadChart" height="200"></canvas></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-tasks"></i> Processing Jobs</h3></div>
+        <div class="card-body"><canvas id="jobsChart" height="200"></canvas></div>
+    </div>
+</div>
+<div class="grid grid-2 mb-3">
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-bell"></i> Alert Trend</h3></div>
+        <div class="card-body"><canvas id="alertTrendChart" height="200"></canvas></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-chart-pie"></i> Data Distribution</h3></div>
+        <div class="card-body"><canvas id="dataDistChart" height="200"></canvas></div>
+    </div>
+</div>
+<div class="grid grid-2 mb-3">
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-brain"></i> Prediction Statistics</h3></div>
+        <div class="card-body"><canvas id="predTrendChart" height="200"></canvas></div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-line"></i> Monthly Temperature Trends</h3>
+            <button class="btn btn-sm btn-outline" onclick="EarthScapeCharts.export('tempChart','temperature-trends.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body"><canvas id="tempChart" height="200"></canvas></div>
+    </div>
+</div>
+
+<!-- Humidity & Wind -->
+<div class="grid grid-2 mb-3">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-tint"></i> Humidity Trends</h3>
+            <button class="btn btn-sm btn-outline" onclick="EarthScapeCharts.export('humidityChart','humidity-trends.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body"><canvas id="humidityChart" height="200"></canvas></div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-wind"></i> Wind Speed Patterns</h3>
+            <button class="btn btn-sm btn-outline" onclick="EarthScapeCharts.export('windChart','wind-patterns.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body"><canvas id="windChart" height="200"></canvas></div>
+    </div>
+</div>
+
+<!-- CO2 & AQI -->
+<div class="grid grid-2 mb-3">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-smog"></i> CO2 Levels</h3>
+            <button class="btn btn-sm btn-outline" onclick="EarthScapeCharts.export('co2Chart','co2-levels.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body"><canvas id="co2Chart" height="200"></canvas></div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-heartbeat"></i> Air Quality Index</h3>
+            <button class="btn btn-sm btn-outline" onclick="EarthScapeCharts.export('aqiChart','aqi-chart.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body"><canvas id="aqiChart" height="200"></canvas></div>
+    </div>
+</div>
+
+<!-- Regional Comparison -->
+<div class="grid grid-2 mb-3">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-map-marked-alt"></i> Regional Temperature Comparison</h3>
+            <button class="btn btn-sm btn-outline" onclick="EarthScapeCharts.export('regionalChart','regional-temp.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body"><canvas id="regionalChart" height="200"></canvas></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-bell"></i> Recent Alerts</h3>
+            <a href="{{ url_for('admin.alerts') }}" class="btn btn-sm btn-outline">View All</a>
+        </div>
+        <div class="card-body">
+            {% for alert in recent_alerts %}
+            <div style="padding:12px 0;border-bottom:1px solid var(--gray-100);">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <span class="badge badge-{{ 'red' if alert.severity == 'high' else 'yellow' if alert.severity == 'medium' else 'gray' }}">{{ alert.severity }}</span>
+                        <strong style="margin-left:8px;">{{ alert.title }}</strong>
+                    </div>
+                    <small class="text-muted">{{ alert.created_at|fmtdate }}</small>
+                </div>
+                <p class="text-muted" style="font-size:13px;margin-top:4px;">{{ alert.message[:80] }}{% if alert.message|length > 80 %}...{% endif %}</p>
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:24px;color:var(--gray-400);"><i class="fas fa-bell-slash" style="font-size:24px;margin-bottom:8px;"></i><p>No recent alerts</p></div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% if recent_activities %}
+<div class="card mb-3">
+    <div class="card-header"><h3><i class="fas fa-history"></i> Recent Activity</h3></div>
+    <div class="card-body">
+        <table class="table">
+            <thead><tr><th>User</th><th>Action</th><th>Details</th><th>Time</th></tr></thead>
+            <tbody>
+                {% for act in recent_activities %}
+                <tr>
+                    <td>{{ act.user_id }}</td>
+                    <td><span class="badge badge-teal">{{ act.action }}</span></td>
+                    <td><small>{{ act.details[:60] if act.details else '' }}</small></td>
+                    <td><small>{{ act.created_at[:16] if act.created_at else '' }}</small></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if stats.data_quality and stats.data_quality.total_records > 0 %}
+<div class="card">
+    <div class="card-header"><h3><i class="fas fa-check-double"></i> Data Quality Overview</h3></div>
+    <div class="card-body">
+        <div class="grid grid-3" style="margin-bottom:16px;">
+            <div style="text-align:center;padding:12px;">
+                <h4 style="font-size:24px;color:var(--primary);">{{ stats.data_quality.overall_completeness_pct }}%</h4>
+                <p class="text-muted" style="font-size:13px;">Overall Completeness</p>
+            </div>
+            <div style="text-align:center;padding:12px;">
+                <h4 style="font-size:24px;color:var(--teal);">{{ stats.data_quality.total_records }}</h4>
+                <p class="text-muted" style="font-size:13px;">Total Records</p>
+            </div>
+            <div style="text-align:center;padding:12px;">
+                <h4 style="font-size:24px;color:var(--warning);">{{ stats.data_quality.total_missing_values }}</h4>
+                <p class="text-muted" style="font-size:13px;">Missing Values</p>
+            </div>
+        </div>
+        <table class="table">
+            <thead><tr><th>Field</th><th>Present</th><th>Missing</th><th>Completeness</th></tr></thead>
+            <tbody>
+                {% for f in stats.data_quality.fields %}
+                <tr>
+                    <td><code>{{ f.field }}</code></td>
+                    <td>{{ f.present }}</td>
+                    <td>{{ f.missing }}</td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div style="flex:1;background:var(--gray-100);border-radius:4px;height:6px;overflow:hidden;">
+                                <div data-quality-pct="{{ f.completeness_pct }}" class="dq-bar"></div>
+                            </div>
+                            <span style="font-size:12px;min-width:40px;">{{ f.completeness_pct }}%</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+<script id="dashData" type="application/json" data-labels="{{ chart_labels }}" data-temps="{{ chart_temps }}" data-rainfall="{{ chart_rainfall }}"
+ data-humidity="{{ chart_humidity }}" data-wind="{{ chart_wind }}" data-co2="{{ chart_co2 }}" data-aqi="{{ chart_aqi }}" data-regional="{{ regional }}" 
+ data-ds-trend="{{ ds_trend }}" data-job-status="{{ job_status_counts }}" data-alert-trend="{{ alert_trend }}" data-pred-trend="{{ prediction_trend }}" data-dist="{{ data_distribution }}"></script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}?v=20260813"></script>
+<script>
+(function() {
+    function initDashboardCharts() {
+        var el = document.getElementById('dashData');
+        if (!el) return;
+        var labels = JSON.parse(el.getAttribute('data-labels') || '[]');
+        var temps = JSON.parse(el.getAttribute('data-temps') || '[]');
+        var rainfall = JSON.parse(el.getAttribute('data-rainfall') || '[]');
+        var humidity = JSON.parse(el.getAttribute('data-humidity') || '[]');
+        var wind = JSON.parse(el.getAttribute('data-wind') || '[]');
+        var co2 = JSON.parse(el.getAttribute('data-co2') || '[]');
+        var aqi = JSON.parse(el.getAttribute('data-aqi') || '[]');
+        var regional = JSON.parse(el.getAttribute('data-regional') || '[]');
+        var dsTrend = JSON.parse(el.getAttribute('data-ds-trend') || '[]');
+        var jobStatus = JSON.parse(el.getAttribute('data-job-status') || '{}');
+        var alertTrend = JSON.parse(el.getAttribute('data-alert-trend') || '[]');
+        var predTrend = JSON.parse(el.getAttribute('data-pred-trend') || '[]');
+        var dataDist = JSON.parse(el.getAttribute('data-dist') || '[]');
+
+        if (dsTrend.length > 0) {
+            var dsLabels = dsTrend.map(function(d){return d.month;});
+            var dsCounts = dsTrend.map(function(d){return d.count;});
+            EarthScapeCharts.create('dsUploadChart', EarthScapeCharts.bar(dsLabels, [{ label: 'Datasets Uploaded', data: dsCounts, backgroundColor: 'rgba(13,148,136,0.7)',
+             borderColor: '#0d9488', borderWidth: 1, borderRadius: 6 }]));
+        } else {
+            EarthScapeCharts.message('dsUploadChart', 'No dataset uploads yet');
+        }
+        var jsLabels = Object.keys(jobStatus).map(function(k){return k.charAt(0).toUpperCase()+k.slice(1);});
+        var jsData = Object.values(jobStatus);
+        var jsTotal = jsData.reduce(function(a, b){ return a + b; }, 0);
+        if (jsTotal > 0) {
+            EarthScapeCharts.create('jobsChart', EarthScapeCharts.doughnut(jsLabels, jsData, ['#f59e0b','#3b82f6','#10b981','#ef4444']));
+        } else {
+            EarthScapeCharts.message('jobsChart', 'No processing jobs yet');
+        }
+        if (alertTrend.length > 0) {
+            var atLabels = alertTrend.map(function(d){return d.month;});
+            var atCounts = alertTrend.map(function(d){return d.count;});
+            EarthScapeCharts.create('alertTrendChart', EarthScapeCharts.bar(atLabels, [{ label: 'Alerts', data: atCounts, backgroundColor: 'rgba(249,115,22,0.7)', borderColor: '#f97316', borderWidth: 1, borderRadius: 6 }]));
+        } else {
+            EarthScapeCharts.message('alertTrendChart', 'No alerts recorded yet');
+        }
+        if (dataDist.length > 0) {
+            var ddLabels = dataDist.map(function(d){return d.source;});
+            var ddCounts = dataDist.map(function(d){return d.count;});
+            EarthScapeCharts.create('dataDistChart', EarthScapeCharts.doughnut(ddLabels, ddCounts, ['#0d9488','#3b82f6','#f59e0b','#ef4444','#8b5cf6']));
+        } else {
+            EarthScapeCharts.message('dataDistChart', 'No climate records yet');
+        }
+        if (predTrend.length > 0) {
+            var ptLabels = predTrend.map(function(d){return d.month;});
+            var ptCounts = predTrend.map(function(d){return d.count;});
+            EarthScapeCharts.create('predTrendChart', EarthScapeCharts.timeSeries(ptLabels, [{ label: 'Predictions', data: ptCounts, borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.1)', fill: true, tension: 0.4 }]));
+        } else {
+            EarthScapeCharts.message('predTrendChart', 'No predictions yet - run ML models first');
+        }
+
+        if (labels.length > 0) {
+            EarthScapeCharts.create('tempChart', EarthScapeCharts.timeSeries(labels, [{ label: 'Temperature (°C)', data: temps, borderColor: '#0d9488', backgroundColor: 'rgba(13,148,136,0.1)', fill: true, tension: 0.4 }]));
+            EarthScapeCharts.create('rainChart', EarthScapeCharts.bar(labels, [{ label: 'Rainfall (mm)', data: rainfall, backgroundColor: 'rgba(59,130,246,0.6)', borderColor: '#3b82f6', borderWidth: 1, borderRadius: 6 }]));
+            EarthScapeCharts.create('humidityChart', EarthScapeCharts.timeSeries(labels, [{ label: 'Humidity (%)', data: humidity, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4 }]));
+            EarthScapeCharts.create('windChart', EarthScapeCharts.timeSeries(labels, [{ label: 'Wind Speed (km/h)', data: wind, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: true, tension: 0.4 }]));
+            EarthScapeCharts.create('co2Chart', EarthScapeCharts.timeSeries(labels, [{ label: 'CO2 (ppm)', data: co2, borderColor: '#0891b2', backgroundColor: 'rgba(8,145,178,0.1)', fill: true, tension: 0.4 }]));
+            EarthScapeCharts.create('aqiChart', EarthScapeCharts.timeSeries(labels, [{ label: 'AQI', data: aqi, borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.1)', fill: true, tension: 0.4 }]));
+        } else {
+            ['tempChart', 'rainChart', 'humidityChart', 'windChart', 'co2Chart', 'aqiChart'].forEach(function(id) {
+                EarthScapeCharts.message(id, 'No climate data yet - upload a dataset first');
+            });
+        }
+
+        if (regional.length > 0) {
+            EarthScapeCharts.renderRegional('regionalChart', regional, 'avg_temp', 'bar');
+        } else {
+            EarthScapeCharts.message('regionalChart', 'No regional data available');
+        }
+
+        document.querySelectorAll('[data-quality-pct]').forEach(function(bar) {
+            var pct = parseFloat(bar.getAttribute('data-quality-pct')) || 0;
+            bar.style.width = pct + '%';
+            bar.style.background = pct > 90 ? 'var(--success)' : (pct > 60 ? 'var(--warning)' : 'var(--danger)');
+        });
+    }
+
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(initDashboardCharts, { timeout: 1000 });
+    } else {
+        setTimeout(initDashboardCharts, 50);
+    }
+})();
+</script>
+<style>.dq-bar{height:100%;border-radius:4px;}</style>
+{% endblock %}

@@ -1,0 +1,850 @@
+{% extends "public/base.html" %}
+
+{% block title %}
+Climate Alerts - EarthScape Climate
+{% endblock %}
+
+
+{% block extra_css %}
+<style>
+.es-alerts-wrapper {
+    background-color: #030712;
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+
+/* =========================
+   HERO SECTION
+========================= */
+
+.es-alerts-hero {
+    position: relative;
+    width: 100%;
+    min-height: 50vh;
+    padding: 120px 5% 80px;
+    text-align: center;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(3, 7, 18, 0.4) 0%,
+            rgba(3, 7, 18, 0.95) 100%
+        ),
+        url('https://www.spacex.com/assets/images/human-spaceflight/mars/mars_carousel2_card2_d.jpg')
+        center/cover no-repeat;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid rgba(140, 193, 233, 0.15);
+}
+
+.es-alerts-hero h1 {
+    position: relative;
+    z-index: 2;
+    font-family: 'Science Gothic', sans-serif;
+    font-size: clamp(2.6rem, 5vw, 4rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 14px;
+    color: #ffffff;
+    text-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
+}
+
+.es-alerts-hero p {
+    position: relative;
+    z-index: 2;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.7);
+    max-width: 650px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+.hero-bg-image {
+    position: absolute;
+    inset: 0;
+    background-position: center;
+    background-size: cover;
+    opacity: 0.25;
+    z-index: 1;
+    pointer-events: none;
+}
+
+
+/* =========================
+   REFRESH BADGE
+========================= */
+
+.es-alerts-refresh-badge {
+    position: relative;
+    z-index: 2;
+    margin-top: 20px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(8, 18, 32, 0.8);
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(140, 193, 233, 0.2);
+}
+
+.refresh-dot {
+    width: 8px;
+    height: 8px;
+    background: #2dd4bf;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 10px #2dd4bf;
+}
+
+
+/* =========================
+   SEVERITY SECTION
+========================= */
+
+.es-severity-section {
+    padding: 60px 5%;
+    background: linear-gradient(
+        180deg,
+        rgba(4, 11, 22, 0.8) 0%,
+        rgba(8, 18, 32, 0.95) 100%
+    );
+    border-bottom: 1px solid rgba(140, 193, 233, 0.15);
+}
+
+.es-severity-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 25px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.es-severity-card {
+    background: linear-gradient(
+        145deg,
+        rgba(8, 18, 32, 0.9),
+        rgba(4, 11, 22, 0.95)
+    );
+    border: 1px solid rgba(140, 193, 233, 0.15);
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    transition: 0.3s ease;
+}
+
+.es-severity-card:hover {
+    border-color: rgba(99, 102, 241, 0.5);
+    transform: translateY(-4px);
+}
+
+.es-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin: 0 auto 16px;
+}
+
+.es-stat-icon.red {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.es-stat-icon.orange {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.es-stat-icon.teal {
+    background: rgba(13, 148, 136, 0.15);
+    color: #2dd4bf;
+}
+
+.es-stat-icon.blue {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+}
+
+.es-severity-card h3 {
+    font-size: 2rem;
+    color: #ffffff;
+    margin-bottom: 6px;
+}
+
+.es-severity-card p {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+
+/* =========================
+   ALERT FEED
+========================= */
+
+.es-feed-container {
+    max-width: 950px;
+    margin: 0 auto;
+    padding: 80px 5%;
+}
+
+.es-feed-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.es-feed-icon {
+    width: 50px;
+    height: 50px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(140, 193, 233, 0.3);
+    color: #8cc1e9;
+}
+
+.es-feed-header h2 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+    color: #ffffff;
+    margin-bottom: 12px;
+}
+
+.es-feed-header p {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+
+/* =========================
+   ALERT CARD
+========================= */
+
+.es-alert-item {
+    display: flex;
+    gap: 20px;
+    padding: 24px;
+    margin-bottom: 18px;
+    border: 1px solid rgba(140, 193, 233, 0.15);
+    border-radius: 16px;
+    background: linear-gradient(
+        145deg,
+        rgba(8, 18, 32, 0.95),
+        rgba(4, 11, 22, 0.98)
+    );
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.es-alert-item.critical {
+    border-left: 5px solid #ef4444;
+}
+
+.es-alert-item.high {
+    border-left: 5px solid #f59e0b;
+}
+
+.es-alert-item.medium {
+    border-left: 5px solid #f59e0b;
+}
+
+.es-alert-item.low {
+    border-left: 5px solid #0055A0;
+}
+
+.es-alert-icon-box {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.es-alert-icon-box.critical {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.es-alert-icon-box.high {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.es-alert-icon-box.medium {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.es-alert-icon-box.low {
+    background: rgba(0, 85, 160, 0.15);
+    color: #60a5fa;
+}
+
+.es-alert-content {
+    flex: 1;
+}
+
+.es-alert-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.es-alert-title {
+    margin: 0;
+    font-family: 'Science Gothic', sans-serif;
+    font-size: 1.15rem;
+    color: #ffffff;
+}
+
+.es-badge-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.es-alert-msg {
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.6;
+    margin: 10px 0 14px;
+}
+
+.es-alert-meta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+
+/* =========================
+   SEVERITY BADGES
+========================= */
+
+.severity-badge {
+    color: #ffffff;
+    text-transform: uppercase;
+}
+
+.severity-critical {
+    background-color: #ef4444;
+}
+
+.severity-high {
+    background-color: #f59e0b;
+}
+
+.severity-medium {
+    background-color: #f59e0b;
+}
+
+.severity-low {
+    background-color: #0055A0;
+}
+
+.badge-green {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-red {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.es-empty-box {
+    text-align: center;
+    padding: 60px;
+    border: 1px dashed rgba(140, 193, 233, 0.3);
+    border-radius: 16px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+@media (max-width: 600px) {
+    .es-alert-item {
+        flex-direction: column;
+    }
+}
+
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="es-alerts-wrapper">
+
+    <section class="es-alerts-hero">
+
+        <div
+            class="hero-bg-image"
+            style="background-image: url('https://images.unsplash.com/photo-1547683905-f686c613a5a6?auto=format&fit=crop&w=1920&q=80');">
+        </div>
+
+        <div class="hero-content">
+
+            <h1>
+                <i class="fas fa-exclamation-triangle"></i>
+                Climate Alerts
+            </h1>
+
+            <p>
+                Public-relevant climate alerts and significant events
+                detected by our monitoring network.
+            </p>
+
+            <div class="es-alerts-refresh-badge">
+                <span class="refresh-dot"></span>
+                Auto-refreshing every 60 seconds
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section class="es-severity-section">
+
+        <div class="es-severity-row">
+
+            <div class="es-severity-card">
+                <div class="es-stat-icon red">
+                    <i class="fas fa-radiation"></i>
+                </div>
+                <h3 id="countCritical">
+                    {{ counts.critical }}
+                </h3>
+                <p>Critical</p>
+            </div>
+
+            <div class="es-severity-card">
+                <div class="es-stat-icon orange">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 id="countHigh">
+                    {{ counts.high }}
+                </h3>
+                <p>High</p>
+            </div>
+
+            <div class="es-severity-card">
+                <div class="es-stat-icon teal">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <h3 id="countMedium">
+                    {{ counts.medium }}
+                </h3>
+                <p>Medium</p>
+            </div>
+
+            <div class="es-severity-card">
+                <div class="es-stat-icon blue">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <h3 id="countLow">
+                    {{ counts.low }}
+                </h3>
+                <p>Low</p>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section class="es-feed-container">
+
+        <div class="es-feed-header">
+            <div class="es-feed-icon">
+                <i class="fas fa-list"></i>
+            </div>
+
+            <h2>Recent Alerts & Events</h2>
+
+            <p>
+                Stay informed about climate events in your region
+            </p>
+        </div>
+
+
+        <div id="alertFeed">
+
+            {% for a in alerts %}
+
+            <div class="es-alert-item {{ a.severity|default('low', true)|lower }}">
+
+                <div class="es-alert-icon-box {{ a.severity|default('low', true)|lower }}">
+
+                    {% if a.severity|lower == 'critical' %}
+                        <i class="fas fa-radiation"></i>
+
+                    {% elif a.severity|lower == 'high' %}
+                        <i class="fas fa-exclamation-triangle"></i>
+
+                    {% elif a.severity|lower == 'medium' %}
+                        <i class="fas fa-exclamation-circle"></i>
+
+                    {% else %}
+                        <i class="fas fa-info-circle"></i>
+                    {% endif %}
+
+                </div>
+
+
+                <div class="es-alert-content">
+
+                    <div class="es-alert-header-row">
+
+                        <h3 class="es-alert-title">
+                            {{ a.title }}
+                        </h3>
+
+
+                        <div class="es-badge-group">
+
+                            {% if a.severity|lower == 'critical' %}
+
+                                <span class="badge severity-badge severity-critical">
+                                    {{ a.severity }}
+                                </span>
+
+                            {% elif a.severity|lower == 'high' %}
+
+                                <span class="badge severity-badge severity-high">
+                                    {{ a.severity }}
+                                </span>
+
+                            {% elif a.severity|lower == 'medium' %}
+
+                                <span class="badge severity-badge severity-medium">
+                                    {{ a.severity }}
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge severity-badge severity-low">
+                                    {{ a.severity|default('low', true) }}
+                                </span>
+
+                            {% endif %}
+
+
+                            {% if a.is_resolved %}
+
+                                <span class="badge badge-green">
+                                    Resolved
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge badge-red">
+                                    Active
+                                </span>
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+
+                    <p class="es-alert-msg">
+                        {{ a.message }}
+                    </p>
+
+
+                    <div class="es-alert-meta">
+
+                        <span>
+                            <i class="fas fa-tag"></i>
+                            {{ a.category }}
+                        </span>
+
+
+                        {% if a.location %}
+
+                        <span>
+                            <i class="fas fa-map-marker-alt"></i>
+                            {{ a.location }}
+                        </span>
+
+                        {% endif %}
+
+
+                        <span>
+                            <i class="fas fa-clock"></i>
+
+                            {% if a.created_at %}
+                                {{ a.created_at|fmtdatetime }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            {% else %}
+
+            <div class="es-empty-box">
+
+                <i
+                    class="fas fa-check-circle"
+                    style="font-size: 40px; color: #34d399;">
+                </i>
+
+                <h3>No climate alerts at this time</h3>
+
+                <p>
+                    Conditions across the monitored network are normal.
+                </p>
+
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+    </section>
+
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script data-refresh-url="{{ url_for('public.public_alerts_data') }}">
+
+(function () {
+
+    var url = document.currentScript.getAttribute("data-refresh-url");
+
+    var sevColor = {
+        critical: "#ef4444",
+        high: "#f59e0b",
+        medium: "#f59e0b",
+        low: "#0055A0"
+    };
+
+    var sevIcon = {
+        critical: "fa-radiation",
+        high: "fa-exclamation-triangle",
+        medium: "fa-exclamation-circle",
+        low: "fa-info-circle"
+    };
+
+
+    function esc(value) {
+
+        var element = document.createElement("div");
+
+        element.textContent =
+            value === null || value === undefined
+                ? ""
+                : String(value);
+
+        return element.innerHTML;
+    }
+
+
+    function renderAlerts(alerts) {
+
+        var feed = document.getElementById("alertFeed");
+
+        if (!feed) {
+            return;
+        }
+
+
+        if (!Array.isArray(alerts) || alerts.length === 0) {
+
+            feed.innerHTML =
+                '<div class="es-empty-box">' +
+                '<i class="fas fa-check-circle" style="font-size:40px;color:#34d399;"></i>' +
+                '<h3>No climate alerts at this time</h3>' +
+                '<p>Conditions across the monitored network are normal.</p>' +
+                '</div>';
+
+            return;
+        }
+
+
+        feed.innerHTML = alerts.map(function (a) {
+
+            var severity = String(a.severity || "low").toLowerCase();
+
+            if (
+                severity !== "critical" &&
+                severity !== "high" &&
+                severity !== "medium" &&
+                severity !== "low"
+            ) {
+                severity = "low";
+            }
+            var color = sevColor[severity];
+            var icon = sevIcon[severity];
+            var status = a.is_resolved
+                ? '<span class="badge badge-green">Resolved</span>'
+                : '<span class="badge badge-red">Active</span>';
+
+            return (
+                '<div class="es-alert-item ' + severity + '">' +
+
+                    '<div class="es-alert-icon-box ' + severity + '">' +
+                        '<i class="fas ' + icon + '"></i>' +
+                    '</div>' +
+
+                    '<div class="es-alert-content">' +
+
+                        '<div class="es-alert-header-row">' +
+
+                            '<h3 class="es-alert-title">' +
+                                esc(a.title) +
+                            '</h3>' +
+
+                            '<div class="es-badge-group">' +
+
+                                '<span class="badge severity-badge severity-' +
+                                    severity +
+                                    '" style="background-color:' +
+                                    color +
+                                    ';">' +
+                                    esc(severity) +
+                                '</span>' +
+
+                                status +
+
+                            '</div>' +
+
+                        '</div>' +
+
+                        '<p class="es-alert-msg">' +
+                            esc(a.message) +
+                        '</p>' +
+
+                        '<div class="es-alert-meta">' +
+
+                            '<span>' +
+                                '<i class="fas fa-tag"></i> ' +
+                                esc(a.category) +
+                            '</span>' +
+
+                            (
+                                a.location
+                                    ? '<span>' +
+                                        '<i class="fas fa-map-marker-alt"></i> ' +
+                                        esc(a.location) +
+                                      '</span>'
+                                    : ''
+                            ) +
+
+                            '<span>' +
+                                '<i class="fas fa-clock"></i> ' +
+                                esc(
+                                    String(a.created_at || "")
+                                        .slice(0, 16)
+                                        .replace("T", " ")
+                                ) +
+                            '</span>' +
+
+                        '</div>' +
+
+                    '</div>' +
+
+                '</div>'
+            );
+
+        }).join("");
+
+    }
+
+
+    function renderCounts(counts) {
+
+        var severities = [
+            "critical",
+            "high",
+            "medium",
+            "low"
+        ];
+
+
+        severities.forEach(function (severity) {
+
+            var id =
+                "count" +
+                severity.charAt(0).toUpperCase() +
+                severity.slice(1);
+
+            var element = document.getElementById(id);
+
+            if (element) {
+                element.textContent =
+                    counts && counts[severity]
+                        ? counts[severity]
+                        : 0;
+            }
+
+        });
+
+    }
+
+
+    setInterval(function () {
+
+        fetch(url)
+
+            .then(function (response) {
+
+                if (!response.ok) {
+                    throw new Error("Failed to refresh alerts");
+                }
+
+                return response.json();
+
+            })
+
+            .then(function (data) {
+
+                renderAlerts(data.alerts || []);
+                renderCounts(data.counts || {});
+
+            })
+
+            .catch(function () {
+
+                /* Keep currently displayed data */
+
+            });
+
+    }, 60000);
+
+})();
+
+</script>
+
+{% endblock %}

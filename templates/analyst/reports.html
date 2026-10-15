@@ -1,0 +1,133 @@
+{% extends "analyst/base.html" %}
+{% block page_title %}Reports{% endblock %}
+{% block extra_css %}
+<style>
+.report-generator-card{position:relative;overflow:hidden;border:1px solid rgba(54,145,205,.34);background:linear-gradient(135deg,#061321 0%,#0a253b 48%,#02060b 100%);box-shadow:0 18px 42px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.05);}
+.report-generator-card:before{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,transparent 15%,rgba(87,210,195,.07) 50%,transparent 82%);}
+.report-generator-card .card-header{position:relative;min-height:68px;border-bottom:1px solid rgba(126,231,208,.18);background:linear-gradient(90deg,rgba(9,29,46,.9),rgba(8,21,34,.62));}
+.report-generator-card .card-header h3{display:flex;align-items:center;gap:10px;color:#f2fbff;letter-spacing:.01em;}
+.report-generator-card .card-header h3 i{color:#61d9d0;filter:drop-shadow(0 0 9px rgba(97,217,208,.72));}
+.report-generator-body{position:relative;padding:26px;}
+.report-generator-form{display:grid;grid-template-columns:1fr 1fr 1.35fr;gap:18px;align-items:end;}
+.report-field{min-width:0;}
+.report-field label{display:flex;align-items:center;gap:7px;margin:0 0 9px;color:#a8d9f4;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;}
+.report-field label i{color:#7ee7d0;font-size:12px;}
+.report-field .analyst-select-wrapper select.form-control,.report-field input.form-control{width:100%;min-height:44px;border:1px solid rgba(84,168,255,.3);border-radius:11px;background:linear-gradient(135deg,#0c2a41,#040d18);color:#f3fbff;font-size:13px;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 8px 18px rgba(0,0,0,.18);transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease;}
+.report-field .analyst-select-wrapper select.form-control:hover,.report-field input.form-control:hover{border-color:#57d2c3;transform:translateY(-1px);}
+.report-field .analyst-select-wrapper select.form-control:focus,.report-field input.form-control:focus{outline:none;border-color:#7ee7d0;box-shadow:0 0 0 3px rgba(126,231,208,.14),0 9px 20px rgba(0,0,0,.25);}
+.report-field .analyst-select-wrapper select.form-control{padding:0 42px 0 16px;appearance:none;-webkit-appearance:none;}
+.report-field .analyst-select-wrapper:after{right:15px;color:#7ee7d0;}
+.report-field .date-range-group{display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr);align-items:center;gap:8px;}
+.report-field .date-range-group input.form-control{padding:0 12px;}
+.report-field .date-range-separator{color:#7ee7d0;text-align:center;font-weight:800;}
+.report-submit{grid-column:1/-1;display:flex;justify-content:flex-start;margin-top:4px;}
+.report-submit .btn-gradient{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:46px;padding:0 24px;border:1px solid rgba(97,217,208,.44);border-radius:11px;background:linear-gradient(110deg,#07528d,#087f87 58%,#164f93);color:#fff;font-size:13px;font-weight:800;letter-spacing:.02em;box-shadow:0 10px 24px rgba(0,72,137,.42),0 0 18px rgba(34,184,196,.16),inset 0 1px 0 rgba(255,255,255,.16);transition:transform .18s ease,filter .18s ease,box-shadow .18s ease;}
+.report-submit .btn-gradient:hover{filter:brightness(1.14);transform:translateY(-2px);box-shadow:0 14px 30px rgba(0,121,157,.5),0 0 0 3px rgba(97,217,208,.12),0 0 24px rgba(34,184,196,.28);}
+.report-submit .btn-gradient:active{transform:translateY(0);}
+@media(max-width:800px){.report-generator-form{grid-template-columns:1fr 1fr;}.report-field:nth-child(3){grid-column:1/-1;}}
+@media(max-width:520px){.report-generator-body{padding:18px;}.report-generator-form{grid-template-columns:1fr;gap:14px;}.report-field:nth-child(3){grid-column:auto;}.report-field .date-range-group{grid-template-columns:1fr;gap:6px;}.report-field .date-range-separator{display:none;}.report-submit{grid-column:auto;}.report-submit .btn-gradient{width:100%;}}
+.report-generator-card{border-color:rgba(39,126,210,.42);background:linear-gradient(145deg,#07182a 0%,#0a2945 46%,#01050a 100%);}
+.report-generator-card:before{background:linear-gradient(105deg,transparent 15%,rgba(55,140,231,.1) 50%,transparent 82%);}
+.report-generator-card .card-header{background:linear-gradient(90deg,rgba(8,31,56,.96),rgba(2,10,20,.78));border-bottom-color:rgba(63,146,227,.28);}
+.report-generator-card .card-header h3 i,.report-field label i{color:#62b8ff;filter:drop-shadow(0 0 8px rgba(52,151,255,.75));}
+.report-field .analyst-select-wrapper select.form-control,.report-field input.form-control{border-color:rgba(39,126,210,.42);background:linear-gradient(145deg,#102e4d,#020913);}
+.report-field .analyst-select-wrapper select.form-control:focus,.report-field input.form-control:focus{border-color:#55b8ff;box-shadow:0 0 0 3px rgba(52,151,255,.16),0 9px 20px rgba(0,0,0,.35),0 0 18px rgba(32,126,226,.2);}
+.report-field .analyst-select-wrapper:after,.report-field .date-range-separator{color:#62b8ff;}
+.report-submit .btn-gradient{border-color:rgba(92,184,255,.6);background:linear-gradient(110deg,#0756a0,#126ed0 58%,#073e91);box-shadow:0 10px 24px rgba(0,63,145,.52),0 0 20px rgba(32,126,226,.28),inset 0 1px 0 rgba(255,255,255,.18);}
+.report-submit .btn-gradient:hover{box-shadow:0 14px 32px rgba(0,92,192,.62),0 0 0 3px rgba(92,184,255,.14),0 0 30px rgba(32,126,226,.42);}
+</style>
+{% endblock %}
+{% block content %}
+<div class="card report-generator-card">
+    <div class="card-header">
+        <h3><i class="fas fa-file-alt"></i> Generate Report</h3>
+    </div>
+    <div class="card-body report-generator-body">
+        <form method="POST" action="{{ url_for('analyst.generate_report') }}">
+            <div class="report-generator-form">
+                <div class="form-group report-field"><label><i class="fas fa-layer-group"></i> Report Type</label><div class="analyst-select-wrapper analyst-select-glass"><select name="report_type" class="form-control" required>
+                    <option value="climate_summary">Climate Summary</option>
+                    <option value="anomaly_report">Anomaly Report</option>
+                    <option value="trend_analysis">Trend Analysis</option>
+                    <option value="regional_analysis">Regional Analysis</option>
+                    <option value="prediction_report">Prediction Report</option>
+                </select></div></div>
+                <div class="form-group report-field"><label><i class="fas fa-globe-americas"></i> Region</label><div class="analyst-select-wrapper analyst-select-glass"><select name="region" class="form-control">
+                    <option value="all">All Regions</option>
+                    {% for r in regions %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+                </select></div></div>
+                <div class="form-group report-field"><label><i class="fas fa-calendar-alt"></i> Date Range</label>
+                    <div class="date-range-group">
+                        <input type="date" name="start_date" class="form-control" required>
+                        <span class="date-range-separator">—</span>
+                        <input type="date" name="end_date" class="form-control" required>
+                    </div>
+                </div>
+            </div>
+            <div class="report-submit"><button type="submit" class="btn btn-gradient"><i class="fas fa-file-alt"></i> Generate Report</button></div>
+        </form>
+    </div>
+</div>
+
+{% if report %}
+<!-- Report Detail (shown at top when View is clicked) -->
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-header">
+        <h3><i class="fas fa-file-alt"></i> Report #{{ report.id }}: {{ report.title }}</h3>
+        <div class="card-actions">
+            <a href="{{ url_for('analyst.download_report', report_id=report.id) }}" class="btn btn-sm btn-outline"><i class="fas fa-download"></i> Download</a>
+            <form method="POST" action="{{ url_for('analyst.delete_report', report_id=report.id) }}"
+             style="display:inline;" onsubmit="return confirm('Delete report #{{ report.id }}? This cannot be undone.');">
+                <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Delete</button>
+            </form>
+            <a href="{{ url_for('analyst.reports') }}" class="btn btn-sm btn-outline"><i class="fas fa-times"></i> Close</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+            <span class="badge badge-blue">{{ report.report_type|replace('_', ' ')|title }}</span>
+            <span class="badge badge-gray">{{ report.region|title }}</span>
+            <span class="badge badge-{{ 'green' if report.status == 'completed' else 'yellow' }}">{{ report.status|capitalize }}</span>
+        </div>
+        <div style="margin-bottom:16px;">
+            <h4>Summary</h4>
+            <pre style="padding:16px;background:var(--gray-50);border-radius:8px;white-space:pre-wrap;font-family:inherit;line-height:1.7;">
+                {{ report.summary or 'No summary available.' }}</pre>
+        </div>
+        <div>
+            <h4>Description</h4>
+            <div style="padding:16px;background:var(--gray-50);border-radius:8px;line-height:1.7;white-space:pre-wrap;">{{ report.description or 'No description provided.' }}</div>
+        </div>
+        <p style="font-size:13px;color:var(--gray-400);margin-top:16px;"><i class="fas fa-clock"></i> Generated: {{ report.generated_at }}</p>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header"><h3><i class="fas fa-list"></i> Generated Reports</h3></div>
+    <div class="card-body">
+        <table class="table">
+            <thead><tr><th>ID</th><th>Type</th><th>Region</th><th>Generated</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for report in reports %}
+                <tr>
+                    <td>#{{ report.id }}</td><td>{{ report.report_type|replace('_', ' ')|title }}</td>
+                    <td>{{ report.region|title }}</td><td>{{ report.generated_at }}</td>
+                    <td><span class="badge badge-{{ 'green' if report.status == 'completed' else 'yellow' }}">{{ report.status|capitalize }}</span></td>
+                    <td>
+                        <a href="{{ url_for('analyst.view_report', report_id=report.id) }}" class="btn btn-sm btn-outline" title="View"><i class="fas fa-eye"></i></a>
+                        <a href="{{ url_for('analyst.download_report', report_id=report.id) }}" class="btn btn-sm btn-outline" title="Download"><i class="fas fa-download"></i></a>
+                        <form method="POST" action="{{ url_for('analyst.delete_report', report_id=report.id) }}" style="display:inline;"
+                        onsubmit="return confirm('Delete report #{{ report.id }}? This cannot be undone.');">
+                            <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center">No reports generated yet</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

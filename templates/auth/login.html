@@ -1,0 +1,609 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - EarthScape Climate</title>
+    
+<link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='favicon.png') }}?v=20260830"> 
+<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}?v=20260830">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth-space.css') }}?v=20260815">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+            background: linear-gradient(135deg, #050a14 0%, #0a1628 45%, #081428 100%);
+            color: #ffffff;
+        }
+
+        .auth-split {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .auth-poster, .auth-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        .auth-shade {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(5, 10, 20, 0.438) 0%, rgba(10, 22, 40, 0.452) 100%);
+            z-index: 2;
+        }
+
+        .auth-grid {
+            position: relative;
+            z-index: 3;
+            width: 90%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        /* LEFT SIDE */
+        .auth-left {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            color: #ffffff;
+        }
+
+        .auth-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            color: #ffffff;
+            text-decoration: none;
+            margin-bottom: 30px;
+        }
+
+        .auth-headline h1 {
+            font-size: clamp(2.5rem, 4vw, 3.4rem);
+            font-weight: 800;
+            line-height: 1.05;
+            margin-bottom: 18px;
+            letter-spacing: -0.06em;
+            background: linear-gradient(135deg, #ffffff 0%, #dfeeff 30%, #8cc1e9 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 20px 60px rgba(92, 148, 255, 0.2);
+        }
+
+        .auth-headline p {
+            font-size: 1.05rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.7;
+            max-width: 500px;
+            margin-bottom: 28px;
+        }
+
+        .auth-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(120px, 1fr));
+            gap: 14px;
+            max-width: 540px;
+            margin-top: 14px;
+            margin-bottom: 22px;
+        }
+
+        .auth-stat {
+            position: relative;
+            background: rgba(9, 18, 32, 0.34);
+            border: 1px solid rgba(140, 193, 233, 0.25);
+            border-radius: 18px;
+            padding: 16px 14px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 16px 32px rgba(2, 8, 20, 0.2);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            overflow: hidden;
+        }
+
+        .auth-stat::before {
+            content: '';
+            position: absolute;
+            inset: auto -20% -40% auto;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(92, 148, 255, 0.5), transparent 65%);
+            opacity: 0.7;
+        }
+
+        .auth-stat .auth-stat-value {
+            position: relative;
+            z-index: 1;
+            display: block;
+            font-size: 1.9rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 4px;
+            letter-spacing: -0.05em;
+        }
+
+        .auth-stat .auth-stat-label {
+            position: relative;
+            z-index: 1;
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: rgba(204, 221, 245, 0.8);
+        }
+
+        /* AUTH TOP NAVBAR */
+        .auth-topnav {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .auth-topnav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .auth-topnav-brand .brand-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #0055A0, #12284B);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            box-shadow: 0 2px 8px rgba(0, 85, 160, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-topnav-brand .brand-icon::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent 40%, rgba(140, 193, 233, 0.3) 100%);
+            border-radius: 10px;
+        }
+
+        .auth-topnav-brand .brand-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.1;
+        }
+
+        .auth-topnav-brand .brand-name {
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            background: linear-gradient(135deg, #FFFFFF 0%, #8CC1E9 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .auth-topnav-brand .brand-tagline {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #8CC1E9;
+            opacity: 0.9;
+        }
+
+        .auth-topnav-back {
+            padding: 8px 18px;
+            border-radius: 999px;
+            background: rgba(18, 40, 75, 0.6);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(140, 193, 233, 0.25);
+            color: #8CC1E9;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .auth-topnav-back:hover {
+            background: rgba(0, 85, 160, 0.3);
+            border-color: rgba(0, 85, 160, 0.5);
+            color: #FFF8E7;
+        }
+
+        .auth-socials {
+            display: flex;
+            gap: 15px;
+        }
+
+        .auth-socials a {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(0, 85, 160, 0.2);
+            border: 1px solid rgba(140, 193, 233, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #8CC1E9;
+            text-decoration: none;
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+        }
+
+        .auth-socials a:hover {
+            background: rgba(0, 85, 160, 0.4);
+            border-color: #8CC1E9;
+            color: #FFF8E7;
+        }
+
+        /* RIGHT SIDE (Matching exact style from image) */
+        .auth-right {
+            background: rgba(9, 18, 32, 0.46);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(140, 193, 233, 0.24);
+            border-left: 1px solid rgba(140, 193, 233, 0.3);
+            border-radius: 0 28px 28px 0;
+            padding: 48px 56px;
+            width: 100%;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 0 1px rgba(92, 148, 255, 0.08);
+            max-height: 92vh;
+            overflow-y: auto;
+        }
+
+        .auth-right::-webkit-scrollbar {
+            width: 4px;
+        }
+        .auth-right::-webkit-scrollbar-thumb {
+            background: rgba(140, 193, 233, 0.35);
+            border-radius: 10px;
+        }
+
+        .auth-right h2 {
+            font-size: 2.2rem;
+            font-weight: 600;
+            margin-bottom: 25px;
+            color: #ffffff;
+        }
+
+        .auth-flash {
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            font-size: 0.9rem;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+        }
+
+        .auth-flash .ok {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.35);
+        }
+
+        .auth-field {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .auth-field label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: rgba(140, 193, 233, 0.9);
+            margin-bottom: 6px;
+        }
+
+        .auth-field input[type="text"],
+        .auth-field input[type="email"],
+        .auth-field input[type="password"] {
+            width: 100%;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid rgba(140, 193, 233, 0.35);
+            padding: 8px 30px 8px 0;
+            color: #ffffff;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .auth-field input::placeholder {
+            color: rgba(140, 193, 233, 0.5);
+        }
+
+        .auth-field input:focus {
+            border-color: #8CC1E9;
+        }
+
+        .auth-field-icon {
+            position: absolute;
+            right: 0;
+            bottom: 10px;
+            color: rgba(140, 193, 233, 0.7);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .auth-field:focus-within .auth-field-icon {
+            color: #8CC1E9;
+            transform: scale(1.1);
+        }
+
+        /* Checkbox */
+        .auth-check {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: rgba(140, 193, 233, 0.9);
+            margin: 20px 0;
+            cursor: pointer;
+        }
+
+        .auth-check input {
+            accent-color: #0055A0;
+            width: 15px;
+            height: 15px;
+        }
+
+        /* Actions */
+        .auth-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 25px;
+        }
+
+        .auth-btn {
+            background: transparent;
+            border: 1px solid rgba(140, 193, 233, 0.6);
+            color: #ffffff;
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .auth-btn:hover {
+            background: #0055A0;
+            color: #ffffff;
+            border-color: #0055A0;
+            box-shadow: 0 6px 20px rgba(0, 85, 160, 0.4);
+        }
+
+        .auth-alt {
+            font-size: 0.85rem;
+            color: rgba(140, 193, 233, 0.8);
+        }
+
+        .auth-alt a {
+            color: #8CC1E9;
+            text-decoration: underline;
+            font-weight: 500;
+            margin-left: 4px;
+        }
+
+        .auth-hint {
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: rgba(140, 193, 233, 0.6);
+            text-align: center;
+        }
+
+        @media (max-width: 900px) {
+            .auth-grid {
+                grid-template-columns: 1fr;
+                max-width: 500px;
+            }
+            .auth-left {
+                display: none;
+            }
+            .auth-right {
+                border-radius: 24px;
+                border-left: 1px solid rgba(140, 193, 233, 0.25);
+            }
+            .auth-topnav {
+                padding: 12px 20px;
+            }
+            .auth-topnav-back {
+                padding: 6px 14px;
+                font-size: 12px;
+            }
+            .auth-topnav-brand .brand-name {
+                font-size: 14px;
+            }
+            .auth-topnav-brand .brand-tagline {
+                font-size: 9px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="auth-split">
+    <!-- Space Background -->
+    <div class="auth-stars"></div>
+    
+   
+    
+    <!-- Planets -->
+    <div class="auth-planet auth-planet-1"></div>
+    <div class="auth-planet auth-planet-2"></div>
+    <div class="auth-planet auth-planet-3"></div>
+
+    <video class="auth-video" id="authVideo" autoplay muted loop playsinline preload="none" style="opacity:0.9;">
+        <source src="{{ url_for('static', filename='videos/nasa.mp4') }}" type="video/mp4">
+        Your browser does not support HTML5 video.
+    </video>
+    <div class="auth-shade" style="background: linear-gradient(135deg, rgba(5, 10, 20, 0.014) 0%, rgba(10, 22, 40, 0.048) 100%);"></div>
+
+    <!-- Top Navbar -->
+    <div class="auth-topnav">
+        <a href="{{ url_for('public.index') }}" class="auth-topnav-brand">
+            <div class="brand-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" style="position:relative;z-index:1;">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor"/>
+                    <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor"/>
+                </svg>
+            </div>
+            <div class="brand-text">
+                <span class="brand-name">EARTHSCAPE</span>
+                <span class="brand-tagline">Climate System</span>
+            </div>
+        </a>
+        <a href="{{ url_for('public.index') }}" class="auth-topnav-back">
+            <i class="fas fa-arrow-left" style="margin-right:6px;"></i> Back to Home
+        </a>
+    </div>
+
+    <div class="auth-grid">
+        <!-- LEFT SIDE -->
+        <div class="auth-left">
+            <a href="{{ url_for('public.index') }}" class="auth-brand">
+                <svg width="20" height="18" viewBox="0 0 20 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M10 1.2 19 16.8 H1 Z"/></svg>
+                EARTHSCAPE
+            </a>
+            <div class="auth-headline">
+                <h1>Welcome back to EarthScape.</h1>
+                <p>Monitor climate risk, analyze environmental signals, and access live satellite and weather intelligence from one secure climate platform built for teams who act on data.</p>
+            </div>
+
+            <div class="auth-metrics">
+                <div class="auth-stat">
+                    <span class="auth-stat-value">{{ auth_stats.sensors|num|int }}</span>
+                    <span class="auth-stat-label">Sensors</span>
+                </div>
+                <div class="auth-stat">
+                    <span class="auth-stat-value">{{ auth_stats.records|num|int }}</span>
+                    <span class="auth-stat-label">Records</span>
+                </div>
+                <div class="auth-stat">
+                    <span class="auth-stat-value">{{ auth_stats.uptime }}</span>
+                    <span class="auth-stat-label">Uptime</span>
+                </div>
+            </div>
+
+            <div class="auth-socials">
+                <a href="https://x.com/BillGates?lang=en" aria-label="X / Twitter"><i class="fab fa-x-twitter"></i></a>
+                <a href="https://www.facebook.com/BillGates/" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                <a href="https://www.instagram.com/thisisbillgates/?hl=en" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                <a href="https://www.linkedin.com/in/williamhgates/" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                <a href="https://www.youtube.com/@BBCNews" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDE -->
+        <div class="auth-right">
+            <h2><i class="fas fa-rocket"></i> Log In</h2>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="auth-flash">
+                        {% for category, message in messages %}
+                            <div class="{{ 'ok' if category == 'success' else '' }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('auth.login') }}">
+                <div class="auth-field">
+                    <label for="username">Username or Email</label>
+                    <input type="text" id="username" name="username" placeholder="Enter username or email" required>
+                    <i class="fas fa-user auth-field-icon"></i>
+                </div>
+
+                <div class="auth-field">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter password" required>
+                    <i class="fas fa-lock auth-field-icon"></i>
+                </div>
+
+                <label class="auth-check">
+                    <input type="checkbox" name="remember" id="remember">
+                    <span>Remember me</span>
+                </label>
+
+                <div class="auth-actions">
+                    <button type="submit" class="auth-btn">Login In <i class="fas fa-arrow-right"></i></button>
+                    <span class="auth-alt">Don't have an account? <a href="{{ url_for('auth.register') }}">Register</a></span>
+                </div>
+
+                <p class="auth-hint">Demo access: admin/admin123 or analyst/analyst123</p>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var v = document.getElementById('authVideo');
+    if (!v) return;
+    function hide() { v.style.display = 'none'; }
+    v.addEventListener('error', hide);
+    var sources = v.getElementsByTagName('source');
+    if (sources.length) sources[sources.length - 1].addEventListener('error', hide);
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(function () {
+            try { v.play().catch(function () {}); } catch (e) {}
+        }, { timeout: 2000 });
+    } else {
+        setTimeout(function () {
+            try { v.play().catch(function () {}); } catch (e) {}
+        }, 300);
+    }
+    })();
+</script>
+</body>
+</html>

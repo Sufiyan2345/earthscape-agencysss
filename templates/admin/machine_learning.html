@@ -1,0 +1,255 @@
+{% extends "admin/base.html" %}
+{% block page_title %}ML Model Monitoring{% endblock %}
+{% block content %}
+<style>
+    .untrained-count.danger { color: var(--danger); }
+    .untrained-count.ok     { color: var(--success); }
+</style>
+<!-- Monitoring stats -->
+<div class="grid grid-4" style="margin-bottom:24px;">
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="fas fa-brain"></i></div>
+        <div class="stat-info"><h3>{{ stats.trained }}/{{ stats.total_models }}</h3><p>Models Trained</p></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-bullseye"></i></div>
+        <div class="stat-info"><h3 id="validatedAccuracy">{{ stats.avg_accuracy }}%</h3><p>Avg Model Accuracy</p></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-play-circle"></i></div>
+        <div class="stat-info"><h3>{{ stats.total_runs }}</h3><p>Analysis Runs Recorded</p></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple"><i class="fas fa-code-branch"></i></div>
+        <div class="stat-info"><h3>{{ stats.version_count }}</h3><p>Model Versions</p></div>
+    </div>
+</div>
+
+<!-- Processing status summary -->
+<div class="card" style="margin-bottom:24px;">
+    <div class="card-header" style="background:var(--primary);color:#fff;">
+        <h3><i class="fas fa-satellite-dish"></i> Realtime Processing Status</h3>
+    </div>
+    <div class="card-body">
+        <div class="grid grid-4">
+            <div>
+                <p style="font-size:12px;color:var(--gray-400);margin-bottom:4px;">SYSTEM STATUS</p>
+                <span class="badge badge-{{ 'green' if stats.trained > 0 else 'red' }}" style="font-size:13px;">
+                    <i class="fas fa-{{ 'check-circle' if stats.trained > 0 else 'exclamation-circle' }}"></i>
+                    {{ 'Operational' if stats.trained > 0 else 'No Models Trained' }}
+                </span>
+            </div>
+            <div>
+                <p style="font-size:12px;color:var(--gray-400);margin-bottom:4px;">AVG CONFIDENCE</p>
+                <strong style="font-size:18px;">{{ stats.avg_confidence }}%</strong>
+            </div>
+            <div>
+                <p style="font-size:12px;color:var(--gray-400);margin-bottom:4px;">LAST ANALYSIS RUN</p>
+                <strong style="font-size:14px;">{{ stats.last_run }}</strong>
+            </div>
+            <div>
+                <p style="font-size:12px;color:var(--gray-400);margin-bottom:4px;">UNTRAINED MODELS</p>
+                <strong class="untrained-count {{ 'danger' if stats.untrained > 0 else 'ok' }}" style="font-size:18px;">{{ stats.untrained }}</strong>
+            </div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('admin.model_versions') }}" class="btn btn-secondary"><i class="fas fa-code-branch"></i> Training / Update History</a>
+            <a href="{{ url_for('admin.correlation_analysis') }}" class="btn btn-secondary"><i class="fas fa-project-diagram"></i> Correlation Analysis</a>
+            <form method="POST" action="{{ url_for('admin.retrain_models') }}" onsubmit="return confirm('Retrain all models from latest data?');">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-sync-alt"></i> Retrain All Models</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Model availability cards -->
+<h3 style="font-size:20px;font-weight:700;margin-bottom:16px;"><i class="fas fa-robot"></i> Model Availability &amp; Training Status</h3>
+<div class="grid grid-3" style="margin-bottom:24px;">
+    {% for model in models %}
+    <div class="card" style="margin-bottom:0;overflow:hidden;">
+        <div class="card-header" data-bgcolor="{{ model.color }}" style="color:#fff;padding:12px 16px;">
+            <h3 style="font-size:15px;margin:0;"><i class="fas {{ model.icon }}"></i> {{ model.name }}</h3>
+        </div>
+        <div class="card-body" style="padding:16px;">
+            <p style="font-size:13px;color:var(--gray-500);line-height:1.5;margin-bottom:12px;">{{ model.description }}</p>
+            <div style="margin-bottom:12px;">
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+                    <span>Availability:</span>
+                    <span class="badge badge-{{ 'green' if model.status == 'trained' else 'yellow' }}">
+                        <i class="fas fa-{{ 'check' if model.status == 'trained' else 'clock' }}"></i> {{ model.status|capitalize }}
+                    </span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+                    <span>Accuracy:</span>
+                    <span class="badge badge-teal">{{ model.accuracy }}%</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+                    <span>Version:</span>
+                    <span>v{{ model.version }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+                    <span>Last Trained:</span>
+                    <span>{{ model.last_trained }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+                    <span>Validation R²:</span>
+                    <span>{{ model.validation_r2 ~ '%' if model.validation_r2 is not none else 'Pending next retrain' }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;">
+                    <span>Analysis Runs:</span>
+                    <span>{{ stats.runs_by_model.get(model.id, 0) }}</span>
+                </div>
+            </div>
+            {% if model.status == 'trained' %}
+            <p style="font-size:12px;color:var(--gray-400);margin:0;"><i class="fas fa-info-circle"></i> Available for Analyst processing.</p>
+            {% else %}
+            <p style="font-size:12px;color:var(--warning);margin:0;"><i class="fas fa-exclamation-triangle"></i> Not trained yet — Analyst should retrain before use.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<!-- Charts row -->
+<div class="grid grid-2" style="margin-bottom:24px;">
+    <div class="card" style="margin-bottom:0;">
+        <div class="card-header"><h3><i class="fas fa-chart-bar"></i> Analysis Runs per Model</h3></div>
+        <div class="card-body"><div style="height:260px;"><canvas id="runsChart"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-bottom:0;">
+        <div class="card-header"><h3><i class="fas fa-chart-pie"></i> Model Accuracy Overview</h3></div>
+        <div class="card-body"><div style="height:260px;"><canvas id="accuracyChart"></canvas></div></div>
+    </div>
+</div>
+<!-- Prediction/analysis history (read-only monitor) -->
+<div class="card">
+    <div class="card-header"><h3><i class="fas fa-history"></i> Analysis Run History ({{ predictions|length }})</h3></div>
+    <div class="card-body">
+        <table class="table">
+            <thead><tr><th>ID</th><th>Model</th><th>Type</th><th>Confidence</th><th>Result</th><th>Date</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for p in predictions %}
+                <tr>
+                    <td>#{{ p.id }}</td>
+                    <td><strong>{{ p.model_name }}</strong></td>
+                    <td><span class="badge badge-teal">{{ p.model_type|replace('_', ' ')|title }}</span></td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <div style="width:60px;background:var(--gray-100);border-radius:4px;height:6px;"><div data-conf-bar="{{ p.confidence }}" 
+                                style="background:var(--primary);height:100%;border-radius:4px;width:0;"></div>
+                        </div>
+                            <span style="font-size:13px;">{{ p.confidence }}%</span>
+                        </div>
+                    </td>
+                    <td><small style="max-width:280px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                         title="{{ p.result_summary }}">{{ p.result_summary }}</small></td>
+                    <td><small>{{ p.timestamp|fmtdatetime }}</small></td>
+                    <td>
+                        <div style="display:flex;gap:4px;">
+                            <a href="{{ url_for('admin.view_prediction', pred_id=p.id) }}" class="btn btn-secondary btn-sm" title="View details"><i class="fas fa-eye"></i></a>
+                            <form method="POST" action="{{ url_for('admin.delete_prediction', pred_id=p.id) }}" onsubmit="return confirm('Delete prediction #{{ p.id }} from the history? This cannot be undone.');">
+                                <button type="submit" class="btn btn-danger btn-sm" title="Delete"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-center" style="padding:32px;color:var(--gray-400);">No analysis runs yet. Runs performed by Analysts will appear here.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Chart config consumed by the JS below via data attributes -->
+<div id="mlConfig" style="display:none;"
+     data-accuracy-url="{{ url_for('admin.model_accuracy') }}"
+     data-runs='{{ stats.runs_by_model|tojson }}'
+     data-acc='{{ models|map(attribute="accuracy")|list|tojson }}'
+     data-names='{{ models|map(attribute="name")|list|tojson }}'></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script>
+(function() {
+    // Apply dynamic header colors and confidence bars
+    document.querySelectorAll('[data-bgcolor]').forEach(function(el) {
+        el.style.background = el.getAttribute('data-bgcolor');
+    });
+    document.querySelectorAll('[data-conf-bar]').forEach(function(el) {
+        el.style.width = el.getAttribute('data-conf-bar') + '%';
+    });
+
+    var cfgEl = document.getElementById('mlConfig');
+    if (!cfgEl) return;
+
+    var runs = {}, accs = [], names = [];
+    try { runs = JSON.parse(cfgEl.getAttribute('data-runs') || '{}'); } catch (e) {}
+    try { accs = JSON.parse(cfgEl.getAttribute('data-acc') || '[]'); } catch (e) {}
+    try { names = JSON.parse(cfgEl.getAttribute('data-names') || '[]'); } catch (e) {}
+
+    // Live validated accuracy (prediction vs actual outcomes)
+    var accuracyUrl = cfgEl.getAttribute('data-accuracy-url') || '';
+    if (accuracyUrl) {
+        fetch(accuracyUrl).then(function(r) { return r.json(); }).then(function(data) {
+            var accEl = document.getElementById('validatedAccuracy');
+            if (accEl && data.avg_accuracy !== undefined && data.total_validated > 0) {
+                accEl.textContent = data.avg_accuracy + '%';
+            }
+        }).catch(function() {});
+    }
+
+    if (typeof Chart === 'undefined') return;
+
+    // Runs per model bar chart
+    var runKeys = Object.keys(runs);
+    var runsEl = document.getElementById('runsChart');
+    if (runsEl) {
+        new Chart(runsEl, {
+            type: 'bar',
+            data: {
+                labels: runKeys.map(function(k) { return k.replace('_', ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); }); }),
+                datasets: [{
+                    label: 'Runs',
+                    data: runKeys.map(function(k) { return runs[k]; }),
+                    backgroundColor: '#0d9488',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+    }
+
+    // Accuracy per model chart
+    var accEl2 = document.getElementById('accuracyChart');
+    if (accEl2 && names.length) {
+        new Chart(accEl2, {
+            type: 'bar',
+            data: {
+                labels: names.map(function(n) { return n.replace(' Model', ''); }),
+                datasets: [{
+                    label: 'Accuracy %',
+                    data: accs,
+                    backgroundColor: accs.map(function(a) {
+                        if (a >= 75) return '#10b981';
+                        if (a >= 50) return '#f59e0b';
+                        return '#ef4444';
+                    }),
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true, max: 100 } }
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

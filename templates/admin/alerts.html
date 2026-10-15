@@ -1,0 +1,238 @@
+{% extends "admin/base.html" %}
+{% block page_title %}Alert Management{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-bell"></i> Alerts ({{ alerts|length }})</h3>
+        <div class="card-actions">
+            <div class="analyst-select-wrapper analyst-select-glass" style="min-width:160px;">
+                <select class="form-control form-control-sm" onchange="if(this.value) window.location='?severity='+this.value; else window.location='?';">
+                    <option value="">All Severities</option>
+                    <option value="high" {{ 'selected' if severity_filter == 'high' }}>High</option>
+                    <option value="medium" {{ 'selected' if severity_filter == 'medium' }}>Medium</option>
+                    <option value="low" {{ 'selected' if severity_filter == 'low' }}>Low</option>
+                </select>
+            </div>
+            <form method="POST" action="{{ url_for('admin.read_all_alert') }}" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-outline"><i class="fas fa-check-double"></i> Mark All Read</button>
+            </form>
+            <form method="POST" action="{{ url_for('admin.check_alerts_now') }}" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-outline"><i class="fas fa-search"></i> Check Now</button>
+            </form>
+            <a href="{{ url_for('admin.alert_rules') }}" class="btn btn-sm btn-outline"><i class="fas fa-sliders-h"></i> Alert Rules</a>
+            <a href="{{ url_for('admin.alert_preferences') }}" class="btn btn-sm btn-outline"><i class="fas fa-cog"></i> Preferences</a>
+            <button class="btn btn-sm btn-primary" onclick="document.getElementById('createAlertModal').style.display='flex'"><i class="fas fa-plus"></i> Create Alert</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('admin.bulk_alert_action') }}" id="bulkForm">
+            <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">
+                <label style="font-size:13px;display:flex;align-items:center;gap:6px;">
+                    <input type="checkbox" id="selectAll" onchange="toggleAllAlerts(this)"> Select All
+                </label>
+                <button type="submit" name="action" value="resolve" class="btn btn-sm btn-outline" style="margin-left:auto;"><i class="fas fa-clipboard-check"></i> Resolve Selected</button>
+                <button type="submit" name="action" value="delete" class="btn btn-sm btn-danger" onclick="return confirm('Delete selected alerts?')"><i class="fas fa-trash"></i> Delete Selected</button>
+            </div>
+        </form>
+        {% for alert in alerts %}
+            <div class="alert alert-{{ 'danger' if alert.severity == 'high' else 'warning' if alert.severity == 'medium' else 'info' }} {{ 'alert-unread' if not alert.is_read else '' }}" style="margin-bottom:12px;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                    <div style="display:flex;gap:10px;flex:1;">
+                        <input type="checkbox" name="alert_ids" value="{{ alert.id }}" form="bulkForm" class="alert-checkbox" style="margin-top:4px;">
+                        <div style="flex:1;">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                                <span class="badge badge-{{ 'red' if alert.severity == 'high' else 'yellow' if alert.severity == 'medium' else 'gray' }}">{{ alert.severity|upper }}</span>
+                                <span class="badge badge-{{ 'green' if alert.category == 'weather' else 'blue' if alert.category == 'air_quality' else 'orange' }}">{{ alert.category|replace('_', ' ')|title }}</span>
+                                {% if not alert.is_read %}<span class="badge badge-teal">UNREAD</span>{% endif %}
+                                {% if alert.is_resolved %}<span class="badge badge-green">RESOLVED</span>{% endif %}
+                            </div>
+                            <strong>{{ alert.title }}</strong>
+                            <p style="margin:4px 0;font-size:14px;color:var(--gray-500);">{{ alert.message }}</p>
+                            <small class="text-muted"><i class="fas fa-clock"></i> {{ alert.created_at|fmtdatetime }}</small>
+                            {% if alert.location %}<small class="text-muted" style="margin-left:8px;"><i class="fas fa-map-marker-alt"></i> {{ alert.location }}</small>{% endif %}
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:4px;flex-shrink:0;">
+                        <a href="{{ url_for('admin.view_alert', alert_id=alert.id) }}" class="btn btn-sm btn-primary" title="View Details"><i class="fas fa-eye"></i></a>
+                        {% if not alert.is_read %}
+                        <form method="POST" action="{{ url_for('admin.read_alert', alert_id=alert.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-outline" title="Mark Read"><i class="fas fa-check"></i></button>
+                        </form>
+                        {% endif %}
+                        {% if not alert.is_resolved %}
+                        <form method="POST" action="{{ url_for('admin.resolve_alert', alert_id=alert.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-outline" title="Resolve"><i class="fas fa-clipboard-check"></i></button>
+                        </form>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('admin.delete_alert', alert_id=alert.id) }}" style="display:inline;" onsubmit="return confirm('Delete?')">
+                            <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state"><i class="fas fa-bell-slash"></i><h4>No alerts</h4><p>All systems are running smoothly.</p></div>
+            {% endfor %}
+    </div>
+</div>
+<!-- Create Alert Modal -->
+<div id="createAlertModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+    <div class="card" style="width:500px;margin:20px;">
+        <div class="card-header"><h3><i class="fas fa-plus"></i> Create Alert</h3><button class="btn btn-sm btn-outline" onclick="document.getElementById('createAlertModal').style.display='none'">
+            <i class="fas fa-times"></i></button></div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('admin.create_alert') }}">
+                <div class="modern-form-group">
+                    <label><i class="fas fa-tag"></i> Title *</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-heading input-icon"></i>
+                        <input type="text" name="title" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-comment"></i> Message *</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-align-left input-icon"></i>
+                        <textarea name="message" class="form-control" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="grid grid-2">
+                    <div class="modern-form-group">
+                        <label><i class="fas fa-exclamation-circle"></i> Severity</label>
+                        <div class="modern-input-wrap analyst-select-wrapper">
+                            <i class="fas fa-tachometer-alt input-icon"></i>
+                            <select name="severity" class="form-control"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
+                        </div>
+                    </div>
+                    <div class="modern-form-group">
+                        <label><i class="fas fa-folder"></i> Category</label>
+                        <div class="modern-input-wrap analyst-select-wrapper">
+                            <i class="fas fa-tag input-icon"></i>
+                            <select name="category" class="form-control"><option value="weather">Weather</option><option value="air_quality">Air Quality</option><option value="flood">Flood</option>
+                                <option value="fire">Fire</option><option value="system">System</option></select>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-bell"></i> Create Alert</button>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- Configure Alert Thresholds -->
+<div class="card" style="margin-top:16px;">
+    <div class="card-header">
+        <h3><i class="fas fa-sliders-h"></i> Configure Alert Thresholds</h3>
+        <div class="card-actions"><span class="badge badge-teal">{{ unread_count }} unread</span></div>
+    </div>
+    <div class="card-body">
+        <p style="margin-bottom:16px;color:var(--gray-500);font-size:14px;">
+            These thresholds drive automated alert generation. Readings beyond a threshold create alerts visible to both panels.
+        </p>
+        <form method="POST">
+            <input type="hidden" name="action" value="update_thresholds">
+            <div class="grid grid-4">
+                <div class="modern-form-group">
+                    <label><i class="fas fa-thermometer-half"></i> Max Temperature (°C)</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-temperature-high input-icon"></i>
+                        <input type="number" name="temperature_max" class="form-control" value="{{ thresholds.get('temperature_max', 45) }}" step="0.1">
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-snowflake"></i> Min Temperature (°C)</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-temperature-low input-icon"></i>
+                        <input type="number" name="temperature_min" class="form-control" value="{{ thresholds.get('temperature_min', -30) }}" step="0.1">
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-cloud-rain"></i> Max Rainfall (mm)</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-tint input-icon"></i>
+                        <input type="number" name="rainfall_max" class="form-control" value="{{ thresholds.get('rainfall_max', 200) }}" step="0.1">
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-wind"></i> Max Wind Speed (km/h)</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-wind input-icon"></i>
+                        <input type="number" name="wind_speed_max" class="form-control" value="{{ thresholds.get('wind_speed_max', 120) }}" step="0.1">
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-heartbeat"></i> Max AQI</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-lungs input-icon"></i>
+                        <input type="number" name="air_quality_max" class="form-control" value="{{ thresholds.get('air_quality_max', 300) }}" step="1">
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-tint"></i> Max Humidity (%)</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-water input-icon"></i>
+                        <input type="number" name="humidity_max" class="form-control" value="{{ thresholds.get('humidity_max', 95) }}" step="0.1">
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-smog"></i> Max CO2 (ppm)</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-cloud input-icon"></i>
+                        <input type="number" name="co2_max" class="form-control" value="{{ thresholds.get('co2_max', 500) }}" step="1">
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top:8px;"><i class="fas fa-save"></i> Save Thresholds</button>
+            <a href="{{ url_for('admin.alert_rules') }}" class="btn btn-outline" style="margin-left:8px;"><i class="fas fa-toggle-on"></i> Enable/Disable Rules</a>
+        </form>
+    </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+    <div class="card-header">
+        <h3><i class="fas fa-broadcast-tower"></i> Alert Delivery Settings</h3>
+        <div class="card-actions"><span class="badge badge-teal">Live alerting</span></div>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            <input type="hidden" name="action" value="update_delivery_settings">
+            <div class="grid grid-4">
+                <div class="modern-form-group">
+                    <label><i class="fas fa-envelope"></i> Email Alerts</label>
+                    <div class="modern-input-wrap">
+                        <input type="checkbox" name="alert_email_enabled" {% if delivery_config.get('email_enabled', True) %}checked{% endif %} style="width:18px;height:18px;">
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-bell"></i> In-App Alerts</label>
+                    <div class="modern-input-wrap">
+                        <input type="checkbox" name="alert_in_app_enabled" {% if delivery_config.get('in_app_enabled', True) %}checked{% endif %} style="width:18px;height:18px;">
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-sync-alt"></i> Real-Time Polling</label>
+                    <div class="modern-input-wrap">
+                        <input type="checkbox" name="alert_realtime_enabled" {% if delivery_config.get('realtime_enabled', True) %}checked{% endif %} style="width:18px;height:18px;">
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-clock"></i> Refresh Interval (ms)</label>
+                    <div class="modern-input-wrap">
+                        <input type="number" name="alert_refresh_interval" class="form-control" value="{{ delivery_config.get('refresh_interval', 30000) }}" min="15000" step="1000">
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top:12px;"><i class="fas fa-save"></i> Save Delivery Settings</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleAllAlerts(master) {
+    document.querySelectorAll('.alert-checkbox').forEach(function(cb) {
+        cb.checked = master.checked;
+    });
+}
+</script>
+{% endblock %}

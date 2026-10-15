@@ -1,0 +1,670 @@
+{% extends "public/base.html" %}
+{% block title %}About - EarthScape Climate System{% endblock %}
+
+{% block content %}
+
+<!-- Internal CSS scoped exclusively to the About page -->
+<style>
+.es-about-wrapper {
+    background-color: #040b165a;
+    color: #ffffff;
+    font-family: "Outfit", sans-serif;
+    overflow-x: hidden;
+}
+
+.es-hero {
+    position: relative;
+    width: 100%;
+    height: 85vh;
+    min-height: 600px;
+    background: #040b1654;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+/* Background Video Styling */
+.es-hero-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    filter: brightness(1.6);
+}
+
+.es-hero-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(90deg, rgba(4, 11, 22, 0.464) 0%, rgba(4,11,22,0.75) 50%, rgba(4,11,22,0.4) 100%), 
+                linear-gradient(180deg, rgba(4, 11, 22, 0.479) 0%, transparent 30%, rgba(4,11,22,0.9) 100%);
+}
+
+.es-vertical-label {
+    position: absolute;
+    left: 35px;
+    top: 50%;
+    transform: translateY(-50%) rotate(-90deg);
+    transform-origin: center;
+    display: none;
+    z-index: 2;
+}
+
+@media(min-width: 1200px) {
+    .es-vertical-label {
+        display: block;
+    }
+}
+
+.es-vertical-label span {
+    font-family: monospace;
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: rgba(140, 193, 233, 0.5);
+    text-transform: uppercase;
+}
+
+.es-container {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 5%;
+    box-sizing: border-box;
+}
+
+.es-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #8cc1e9;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.es-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 1px;
+    background: #8cc1e9;
+}
+
+.es-hero h1 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: clamp(2.6rem, 5vw, 4.6rem);
+    font-weight: 700;
+    line-height: 1.05;
+    color: #ffffff;
+    margin-bottom: 24px;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+}
+
+.es-hero h1 span {
+    color: #8cc1e9;
+    font-weight: 400;
+}
+
+.es-hero p {
+    font-size: 1.05rem;
+    color: rgba(255, 255, 255, 0.78);
+    line-height: 1.7;
+    margin-bottom: 36px;
+    max-width: 580px;
+    font-weight: 300;
+}
+
+.es-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 32px;
+    background: transparent;
+    color: #ffffff;
+    border: 1px solid rgba(140, 193, 233, 0.4);
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+}
+
+.es-btn-outline:hover {
+    border-color: #8cc1e9;
+    background: rgba(140, 193, 233, 0.05);
+}
+
+.es-services {
+    background: #040b16;
+    padding: 80px 0;
+    border-top: 1px solid rgba(140, 193, 233, 0.15);
+    border-bottom: 1px solid rgba(140, 193, 233, 0.15);
+}
+
+.es-services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+.es-service-card {
+    background: #081220;
+    border: 1px solid rgba(140, 193, 233, 0.15);
+    padding: 36px 28px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.3s ease;
+    border-radius: 2px;
+}
+
+.es-service-card:hover {
+    border-color: rgba(140, 193, 233, 0.4);
+    transform: translateY(-4px);
+}
+
+.es-service-icon {
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(140, 193, 233, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8cc1e9;
+    margin-bottom: 24px;
+    font-size: 16px;
+}
+
+.es-service-card h3 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 14px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.es-service-card p {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.88rem;
+    line-height: 1.6;
+    margin-bottom: 28px;
+    font-weight: 300;
+}
+
+.es-link-arrow {
+    color: #8cc1e9;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: gap 0.3s ease;
+}
+
+.es-link-arrow:hover {
+    gap: 12px;
+}
+
+.es-projects {
+    background: #040b16;
+    padding: 100px 0;
+}
+
+.es-projects-header {
+    max-width: 600px;
+    margin-bottom: 50px;
+}
+
+.es-projects-header h2 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: clamp(2rem, 3vw, 2.8rem);
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.15;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+}
+
+.es-projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+}
+
+.es-project-card {
+    cursor: pointer;
+}
+
+.es-project-img-wrap {
+    position: relative;
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    background: #081220;
+    border-radius: 2px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(140, 193, 233, 0.12);
+}
+
+.es-project-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.9);
+    transition: transform 0.6s ease;
+}
+
+.es-project-card:hover .es-project-bg {
+    transform: scale(1.05);
+}
+
+.es-project-gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 60%, rgba(4,11,22,0.9) 100%);
+}
+
+.es-project-card h3 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+}
+
+.es-project-tag {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #8cc1e9;
+}
+
+.es-studio-section {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    min-height: 550px;
+    border-top: 1px solid rgba(140, 193, 233, 0.12);
+}
+
+.es-studio-left {
+    position: relative;
+    background: #02060c57;
+    min-height: 450px;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    padding: 60px;
+    transition: transform 0.5s ease, filter 0.5s ease;
+}
+
+.es-studio-left:hover,
+.es-studio-visual:hover {
+    transform: translateY(-4px);
+    filter: saturate(1.2) brightness(1.08);
+}
+
+.es-hero-bg {
+    position: absolute;
+    inset: 0;
+    filter: brightness(0.85);
+    transform: scale(1.03);
+    animation: esHeroZoom 20s infinite alternate linear;
+}
+.es-studio-bg {
+    position: absolute;
+    inset: 0;
+    background: url('https://i.pinimg.com/1200x/1f/73/13/1f73132c71273ee496aeacfa62ffeefb.jpg') center/cover no-repeat;
+    opacity: 0.45;
+    filter: grayscale(100%) contrast(120%);
+    transition: transform 0.6s ease, filter 0.6s ease;
+}
+.es-studio-left:hover .es-studio-bg,
+.es-studio-visual:hover .es-studio-visual-bg {
+    transform: scale(1.06);
+    filter: grayscale(0%) contrast(115%) saturate(1.2);
+}
+.es-studio-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 40%, #02060c6f 100%);
+}
+
+.es-studio-author {
+    position: relative;
+    z-index: 2;
+    font-family: 'Science Gothic', sans-serif;
+    font-size: 1.4rem;
+    color: #8cc1e9;
+    letter-spacing: 2px;
+    font-style: italic;
+}
+
+.es-studio-right {
+    background: linear-gradient(135deg, #071224 0%, #040b16 100%);
+    padding: 60px 5% 50px;
+    display: flex;
+    align-items: center;
+    border-left: 1px solid rgba(140, 193, 233, 0.15);
+}
+
+.es-studio-right-inner {
+    width: 100%;
+    display: grid;
+    gap: 24px;
+}
+
+.es-studio-visuals {
+    display: grid;
+    grid-template-columns: 1fr 0.9fr;
+    gap: 18px;
+}
+
+.es-studio-visual {
+    position: relative;
+    min-height: 200px;
+    overflow: hidden;
+    border: 1px solid rgba(140, 193, 233, 0.18);
+    background: #071423;
+    box-shadow: 0 20px 35px rgba(0, 0, 0, 0.2);
+    transition: transform 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
+}
+
+.es-studio-visual:hover {
+    border-color: rgba(124, 219, 255, 0.6);
+    box-shadow: 0 24px 42px rgba(74, 165, 255, 0.2);
+}
+
+.es-studio-visual-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    filter: grayscale(100%) contrast(110%);
+    transition: transform 0.6s ease, filter 0.6s ease;
+}
+
+.es-studio-visual::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(3, 10, 18, 0.1), rgba(3, 10, 18, 0.7));
+}
+
+.es-studio-visual-caption {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    z-index: 1;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #dff0ff;
+    font-weight: 700;
+    padding: 8px 10px;
+    border: 1px solid rgba(140, 193, 233, 0.28);
+    background: rgba(7, 17, 28, 0.42);
+    backdrop-filter: blur(4px);
+}
+
+.es-studio-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.es-studio-right h2 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: clamp(1.8rem, 2.5vw, 2.4rem);
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.2;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+}
+
+.es-studio-right p {
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.95rem;
+    line-height: 1.7;
+    margin-bottom: 32px;
+    font-weight: 300;
+}
+
+@media (max-width: 900px) {
+    .es-studio-section {
+        grid-template-columns: 1fr;
+    }
+
+    .es-studio-right {
+        border-left: none;
+        border-top: 1px solid rgba(140, 193, 233, 0.15);
+    }
+}
+
+@media (max-width: 540px) {
+    .es-studio-visuals {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<div class="es-about-wrapper">
+
+    <!-- 1. TOP HERO SECTION WITH BACKGROUND VIDEO -->
+    <section class="es-hero">
+        <video autoplay muted loop playsinline class="es-hero-video">
+            <source src="{{ url_for('static', filename='videos/human.mp4') }}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        
+        <div class="es-hero-overlay"></div>
+        
+        <div class="es-vertical-label">
+            <span>EARTHSCAPE &bull; CLIMATE INTELLIGENCE</span>
+        </div>
+
+        <div class="es-container">
+            <div style="max-width: 780px;">
+                <div class="es-eyebrow">EARTHSCAPE CLIMATE SYSTEM</div>
+                
+                <h1>
+                   ABOUT US <span>PROTECTS</span> OUR PLANET
+                </h1>
+                
+                <p>
+                    We monitor, model, and forecast Earth systems—turning satellite 
+                    signals, ocean telemetry, and machine learning into climate action that saves lives.
+                </p>
+                
+                <div>
+                    <a href="{{ url_for('public.climate_insights') }}" class="es-btn-outline">
+                        EXPLORE INSIGHTS 
+                        <span style="font-size: 14px; transition: transform 0.3s ease;">&rarr;</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. SERVICES / EXPERTISE SECTION -->
+    <section class="es-services">
+        <div class="es-container">
+            <div class="es-services-grid">
+                
+                <!-- Card 1 -->
+                <div class="es-service-card">
+                    <div>
+                        <div class="es-service-icon">
+                            <i class="fas fa-satellite"></i>
+                        </div>
+                        <h3>Satellite Monitoring</h3>
+                        <p>Real-time earth observation from orbital and ground sensors.</p>
+                    </div>
+                    <a href="{{ url_for('public.climate_insights') }}" class="es-link-arrow">
+                        VIEW SERVICE &rarr;
+                    </a>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="es-service-card">
+                    <div>
+                        <div class="es-service-icon">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <h3>ML Forecasting</h3>
+                        <p>Predict temperature, floods, droughts, and air quality accurately.</p>
+                    </div>
+                    <a href="{{ url_for('public.climate_insights') }}" class="es-link-arrow">
+                        VIEW SERVICE &rarr;
+                    </a>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="es-service-card">
+                    <div>
+                        <div class="es-service-icon">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <h3>Big Data Architecture</h3>
+                        <p>Petabyte-scale Hadoop pipelines and MongoDB for climate analytics.</p>
+                    </div>
+                    <a href="{{ url_for('public.climate_insights') }}" class="es-link-arrow">
+                        VIEW SERVICE &rarr;
+                    </a>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="es-service-card">
+                    <div>
+                        <div class="es-service-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <h3>Climate Alerts & Action</h3>
+                        <p>Early warning systems delivered instantly to vulnerable populations.</p>
+                    </div>
+                    <a href="{{ url_for('public.climate_insights') }}" class="es-link-arrow">
+                        VIEW SERVICE &rarr;
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. FEATURED PROJECTS SECTION -->
+    <section class="es-projects">
+        <div class="es-container">
+            <div class="es-projects-header">
+                <div class="es-eyebrow">PORTFOLIO</div>
+                <h2>FEATURED PROJECTS</h2>
+                <p style="color: rgba(255,255,255,0.65); font-size: 0.95rem; line-height: 1.7; font-weight: 300;">
+                    A collection of thoughtfully designed earth data systems that blend advanced climate analytics with global environmental impact.
+                </p>
+            </div>
+
+           <!-- Projects Grid (3 Cards) -->
+            <div class="es-projects-grid">
+                
+                <!-- Project 1 -->
+                <div class="es-project-card">
+                    <div class="es-project-img-wrap">
+                        <div class="es-project-bg" style="background-image: url('https://images.pexels.com/photos/13387357/pexels-photo-13387357.jpeg');"></div>
+                        <div class="es-project-gradient"></div>
+                    </div>
+                    <h3>Global Ocean Buoy Telemetry</h3>
+                    <span class="es-project-tag">MARINE ANALYTICS</span>
+                </div>
+
+                <!-- Project 2 -->
+                <div class="es-project-card">
+                    <div class="es-project-img-wrap">
+                        <div class="es-project-bg" style="background-image: url('https://assets.lummi.ai/assets/QmfLCNmx77aU9zNDgHkExK3MNL1cH7ZjbfqX3MkGUMuuk6?auto=format&w=640');"></div>
+                        <div class="es-project-gradient"></div>
+                    </div>
+                    <h3>Urban Air Quality Grid</h3>
+                    <span class="es-project-tag">ATMOSPHERIC SENSORS</span>
+                </div>
+
+                <!-- Project 3 -->
+                <div class="es-project-card">
+                    <div class="es-project-img-wrap">
+                        <div class="es-project-bg" style="background-image: url('https://assets.science.nasa.gov/dynamicimage/assets/science/esd/eo/images/imagerecords/84000/84630/columbia_oli_2014183_front.jpg?w=600&h=400&fit=crop&crop=faces%2Cfocalpoint');"></div>
+                        <div class="es-project-gradient"></div>
+                    </div>
+                    <h3>Cryosphere Ice Sheet Tracker</h3>
+                    <span class="es-project-tag">POLAR MONITORING</span>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. DESIGNER / STUDIO INTRODUCTION SECTION -->
+    <section class="es-studio-section">
+        
+        <!-- Left Side: Editorial Portrait -->
+        <div class="es-studio-left">
+            <div class="es-studio-bg"></div>
+            <div class="es-studio-overlay"></div>
+            <div class="es-studio-author">
+                Dr. Marcus Vance
+            </div>
+        </div>
+
+        <!-- Right Side: Darkened Blue-Grey Gradient Contrast Panel -->
+        <div class="es-studio-right">
+            <div class="es-studio-right-inner">
+                <div class="es-studio-visuals">
+                    <div class="es-studio-visual">
+                        <div class="es-studio-visual-bg" style="background-image: url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80');"></div>
+                        <div class="es-studio-visual-caption">FIELD DATA</div>
+                    </div>
+                    <div class="es-studio-visual">
+                        <div class="es-studio-visual-bg" style="background-image: url('https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&w=900&q=80');"></div>
+                        <div class="es-studio-visual-caption">LIVE MONITOR</div>
+                    </div>
+                </div>
+                <div class="es-studio-copy">
+                    <div class="es-eyebrow">ABOUT THE STUDIO</div>
+                    
+                    <h2>
+                        MONITORING WITH PURPOSE.<br>FORECASTING FOR LIFE.
+                    </h2>
+                    
+                    <p>
+                        EarthScape Climate Agency unites scientists, data engineers, and environmental specialists to monitor the planet in real time. We process satellite imagery, 
+                        ocean signals, and meteorological sensors through advanced analytical pipelines to deliver actionable climate intelligence.
+                    </p>
+                    
+                    <div>
+                        <a href="{{ url_for('public.contact') }}" class="es-link-arrow">
+                            MORE ABOUT US &rarr;
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+</div>
+{% endblock %}

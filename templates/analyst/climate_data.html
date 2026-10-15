@@ -1,0 +1,379 @@
+{% extends "analyst/base.html" %}
+{# Defensive: fill any missing/null summary keys so a stale backend can never crash the page #}
+{% set _defaults = {'total_records': 0, 'avg_temp': 0, 'avg_rainfall': 0, 'avg_humidity': 0, 'avg_wind': 0, 'avg_pressure': 0, 'avg_co2': 0, 'avg_aqi': 0, 'avg_visibility': 0, 'avg_uv_index': 0, 'avg_soil_moisture': 0} %}
+{% set summary = _defaults.update(summary|default({})) or _defaults %}
+{% block page_title %}Climate Data{% endblock %}
+{% block extra_css %}
+<style>
+.climate-chart-controls{position:relative;display:grid;grid-template-columns:1.15fr .95fr 1.1fr 1.2fr;gap:16px;align-items:stretch;padding:18px!important;border:1px solid rgba(84,168,255,.2);border-radius:14px;background:linear-gradient(135deg,rgba(5,17,29,.96),rgba(10,32,50,.82));box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 12px 24px rgba(0,0,0,.18);}
+.climate-control-field{display:flex;min-width:0;flex-direction:column;justify-content:flex-start;}
+.climate-control-field>label{display:flex;align-items:center;gap:8px;margin:0 0 8px;color:#b5d8ec;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;}
+.climate-control-field>label i{color:#61d9d0;filter:drop-shadow(0 0 6px rgba(97,217,208,.52));}
+.climate-control-field .analyst-select-wrapper{min-width:0;}
+.climate-control-field select.form-control{width:100%;border-color:rgba(84,168,255,.32);border-radius:10px;background:linear-gradient(145deg,#102d49,#040c16);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 8px 16px rgba(0,0,0,.2);}
+.climate-control-field select[multiple].form-control{height:100px;min-height:100px;padding:8px 10px;line-height:1.35;}
+.climate-control-field select[multiple].form-control option{padding:5px 8px;border-radius:5px;}
+.climate-control-field select.form-control:focus{border-color:#61d9d0;box-shadow:0 0 0 3px rgba(97,217,208,.12),0 8px 18px rgba(0,0,0,.25);}
+.climate-variable-actions{display:flex;gap:7px;margin-top:8px;}
+.climate-variable-actions .btn{flex:1;min-height:32px;border-radius:8px;font-size:11px;}
+.climate-chart-action{display:flex;flex-direction:column;}
+.climate-chart-action .btn{width:100%;min-height:42px;margin-top:auto;border-color:rgba(97,217,208,.42);background:linear-gradient(110deg,#07528d,#087f87);box-shadow:0 8px 20px rgba(0,76,140,.35),0 0 16px rgba(34,184,196,.14);}
+.climate-chart-action .btn:hover{filter:brightness(1.13);transform:translateY(-2px);box-shadow:0 12px 26px rgba(0,121,157,.46),0 0 22px rgba(34,184,196,.25);}
+.climate-chart-hint{display:flex;align-items:center;gap:9px;margin:0;padding:12px;border-left:2px solid #61d9d0;color:#91afc1;font-size:12px;line-height:1.5;}
+.climate-chart-hint i{color:#61d9d0;font-size:15px;filter:drop-shadow(0 0 6px rgba(97,217,208,.5));}
+@media(max-width:1050px){.climate-chart-controls{grid-template-columns:1fr 1fr;}.climate-chart-hint{min-height:42px;}}
+@media(max-width:560px){.climate-chart-controls{grid-template-columns:1fr;padding:14px!important;}.climate-chart-hint{border-top:1px solid rgba(97,217,208,.25);border-left:0;padding:10px 0 0;}.climate-chart-action .btn{margin-top:0;}}
+</style>
+{% endblock %}
+{% block content %}
+<!-- Filter Bar -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h3><i class="fas fa-filter"></i> Filters</h3>
+        <div class="card-actions">
+            <a href="{{ url_for('analyst.climate_data') }}" class="btn btn-sm btn-outline"><i class="fas fa-undo"></i> Reset</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('analyst.climate_data') }}" id="climateFilterForm">
+            <div class="modern-filter-bar">
+                <div class="modern-filter-group">
+                    <label><i class="fas fa-database"></i> Dataset</label>
+                    <div class="modern-input-wrap analyst-select-wrapper">
+                        <i class="fas fa-layer-group input-icon"></i>
+                        <select name="dataset_id" class="form-control">
+                            <option value="">All Approved Datasets</option>
+                            {% for ds in datasets %}
+                            <option value="{{ ds.id }}" {{ 'selected' if selected_dataset == ds.id }}>{{ ds.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modern-filter-group">
+                    <label><i class="fas fa-map-marker-alt"></i> Location</label>
+                    <div class="modern-input-wrap analyst-select-wrapper">
+                        <i class="fas fa-globe-asia input-icon"></i>
+                        <select name="region" class="form-control">
+                            <option value="">All Locations</option>
+                            {% for r in regions %}
+                            <option value="{{ r }}" {{ 'selected' if selected_region == r }}>{{ r }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modern-filter-group">
+                    <label><i class="fas fa-calendar"></i> Year</label>
+                    <div class="modern-input-wrap analyst-select-wrapper">
+                        <i class="fas fa-clock input-icon"></i>
+                        <select name="year" class="form-control">
+                            <option value="">All Years</option>
+                            {% for y in years %}
+                            <option value="{{ y }}" {{ 'selected' if selected_year == y }}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modern-filter-group" style="flex:0 1 auto;min-width:auto;">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn-apply-modern" style="width:100%;justify-content:center;">
+                        <i class="fas fa-filter"></i>
+                        <span>Apply Filters</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+        {% if not datasets %}
+        <p style="margin-top:12px;color:var(--gray-500);font-size:13px;"><i class="fas fa-info-circle"></i> No approved datasets yet. Upload a dataset and wait for Admin approval.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="grid grid-4 mb-3">
+    <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-database"></i></div><div class="stat-info"><h3>{{ summary.total_records }}</h3><p>Records (filtered)</p></div></div>
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-thermometer-half"></i></div><div class="stat-info"><h3>{{ "%.1f"|format(summary.avg_temp) }}°C</h3><p>Avg Temperature</p></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-tint"></i></div><div class="stat-info"><h3>{{ "%.1f"|format(summary.avg_rainfall) }}mm</h3><p>Avg Rainfall</p></div></div>
+    <div class="stat-card"><div class="stat-icon teal"><i class="fas fa-tint"></i></div><div class="stat-info"><h3>{{ "%.1f"|format(summary.avg_humidity) }}%</h3><p>Avg Humidity</p></div></div>
+</div>
+<div class="grid grid-4 mb-3">
+    <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-wind"></i></div><div class="stat-info"><h3>{{ "%.1f"|format(summary.avg_wind) }} km/h</h3><p>Avg Wind Speed</p></div></div>
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-compress-arrows-alt"></i></div><div class="stat-info"><h3>{{ "%.1f"|format(summary.avg_pressure) }} hPa</h3><p>Avg Pressure</p></div></div>
+    <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-smog"></i></div><div class="stat-info"><h3>{{ "%.1f"|format(summary.avg_co2) }} ppm</h3><p>Avg CO2 Level</p></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-heartbeat"></i></div><div class="stat-info"><h3>{{ "%.1f"|format(summary.avg_aqi) }}</h3><p>Avg Air Quality</p></div></div>
+</div>
+<div class="grid grid-3 mb-3">
+    <div class="stat-card"><div class="stat-icon teal"><i class="fas fa-eye"></i></div><div class="stat-info"><h3>{{ "%.1f"|format(summary.avg_visibility) }} km</h3><p>Avg Visibility</p></div></div>
+    <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-sun"></i></div><div class="stat-info"><h3>{{ "%.1f"|format(summary.avg_uv_index) }}</h3><p>Avg UV Index</p></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-seedling"></i></div><div class="stat-info"><h3>{{ "%.1f"|format(summary.avg_soil_moisture) }}%</h3><p>Avg Soil Moisture</p></div></div>
+</div>
+
+<!-- Trend Chart -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h3><i class="fas fa-chart-area"></i> Monthly Trends (filtered data)</h3>
+        <div class="card-actions">
+            <button class="btn btn-sm btn-outline" id="exportChartBtn"><i class="fas fa-download"></i> Export PNG</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="grid grid-4 mb-3 climate-chart-controls">
+            <div class="form-group climate-control-field" style="margin-bottom:0;">
+                <label><i class="fas fa-sliders-h"></i> Variables</label>
+                <div class="analyst-select-wrapper analyst-select-glass">
+                    <select id="climVarSelect" class="form-control" multiple size="3">
+                        <option value="temperature" selected>Temperature</option>
+                        <option value="rainfall" selected>Rainfall</option>
+                        <option value="humidity">Humidity</option>
+                        <option value="wind_speed">Wind Speed</option>
+                        <option value="pressure">Pressure</option>
+                        <option value="co2_level">CO2 Level</option>
+                        <option value="air_quality_index">Air Quality</option>
+                        <option value="visibility">Visibility</option>
+                        <option value="uv_index">UV Index</option>
+                        <option value="soil_moisture">Soil Moisture</option>
+                    </select>
+                </div>
+                <div class="climate-variable-actions">
+                    <button type="button" class="btn btn-sm btn-outline" id="selectAllVarsBtn" style="flex:1;">Select All</button>
+                    <button type="button" class="btn btn-sm btn-outline" id="clearVarsBtn" style="flex:1;">Clear</button>
+                </div>
+            </div>
+            <div class="form-group climate-control-field" style="margin-bottom:0;">
+                <label><i class="fas fa-chart-line"></i> Chart Type</label>
+                <div class="analyst-select-wrapper analyst-select-glass">
+                    <select id="climChartType" class="form-control">
+                        <option value="line">Line Chart</option>
+                        <option value="area">Area Chart</option>
+                        <option value="stepped">Stepped Line</option>
+                        <option value="bar">Bar Chart</option>
+                        <option value="radar">Radar Chart</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group climate-control-field climate-chart-action" style="margin-bottom:0;">
+                <label><i class="fas fa-bolt"></i> Visualization</label>
+                <button class="btn btn-primary" id="updateChartBtn"><i class="fas fa-sync-alt"></i> Update Chart</button>
+            </div>
+            <div class="form-group climate-control-field" style="margin-bottom:0;">
+                <label><i class="fas fa-info-circle"></i> Chart Guide</label>
+                <p class="climate-chart-hint"><i class="fas fa-mouse-pointer"></i><span>Ctrl/Cmd+click to choose multiple variables. Different scales get their own Y axis automatically.</span></p>
+            </div>
+        </div>
+        <div style="height:300px;"><canvas id="climateChart"></canvas></div>
+    </div>
+</div>
+
+<!-- Records Table -->
+<div class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-table"></i> Climate Records ({{ pagination.total }})</h3>
+        <div class="data-bulk-actions"><span class="badge badge-gray" id="recordSelectionBadge">0 selected</span><button type="button" class="btn btn-sm btn-danger" id="openRecordDelete" disabled><i class="fas fa-trash-alt">
+
+        </i> Delete selected</button></div>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('analyst.delete_climate_records') }}" id="bulkRecordForm"><input type="hidden" name="dataset_id" value="{{ selected_dataset or '' }}">
+            <input type="hidden" name="region" value="{{ selected_region or '' }}"><input type="hidden" name="year" value="{{ selected_year or '' }}"></form>
+        <div class="data-bulk-bar"><label><input type="checkbox" id="selectAllRecords"> Select all records on this page</label><span id="recordSelectionText">Choose records to enable bulk actions.</span></div>
+        <div style="overflow-x:auto;">
+            <table class="table">
+                <thead><tr><th><span class="sr-only">Select</span></th><th>Date</th><th>Location</th><th>Temp (°C)</th><th>Rainfall (mm)</th><th>Humidity (%)</th><th>Pressure (hPa)</th><th>Wind (km/h)</th><th>CO2 (ppm)</th>
+                    <th>Actions</th></tr></thead>
+                <tbody>
+                    {% for d in data %}
+                    <tr data-id="{{ d.id|default(0) }}"
+                        data-date="{{ d.date or '' }}"
+                        data-station="{{ d.station_name or '' }}"
+                        data-temp="{{ d.temperature if d.temperature is not none else '' }}"
+                        data-rainfall="{{ d.rainfall if d.rainfall is not none else '' }}"
+                        data-humidity="{{ d.humidity if d.humidity is not none else '' }}"
+                        data-pressure="{{ d.pressure if d.pressure is not none else '' }}"
+                        data-wind="{{ d.wind_speed if d.wind_speed is not none else '' }}"
+                        data-co2="{{ d.co2_level if d.co2_level is not none else '' }}">
+                        <td class="record-select-cell"><input type="checkbox" class="record-check" name="record_ids" value="{{ d.id|default(0) }}" form="bulkRecordForm" aria-label="Select climate record {{ d.id|default(0) }}">
+                        </td>
+                        <td>{{ d.date or '-' }}</td>
+                        <td><i class="fas fa-map-marker-alt" style="color:var(--primary);margin-right:4px;"></i>{{ d.station_name or '-' }}</td>
+                        <td>{% set v = d.temperature|num %}{{ "%.1f"|format(v) if v is not none else '-' }}</td>
+                        <td>{% set v = d.rainfall|num %}{{ "%.1f"|format(v) if v is not none else '-' }}</td>
+                        <td>{% set v = d.humidity|num %}{{ "%.1f"|format(v) if v is not none else '-' }}</td>
+                        <td>{% set v = d.pressure|num %}{{ "%.1f"|format(v) if v is not none else '-' }}</td>
+                        <td>{% set v = d.wind_speed|num %}{{ "%.1f"|format(v) if v is not none else '-' }}</td>
+                        <td>{% set v = d.co2_level|num %}{{ "%.1f"|format(v) if v is not none else '-' }}</td>
+                        <td>
+                            <div style="display:flex;gap:4px;">
+                                <button class="btn btn-sm btn-outline edit-record-btn" data-id="{{ d.id|default(0) }}" title="Edit"><i class="fas fa-edit"></i></button>
+                                <form method="POST" action="{{ url_for('analyst.delete_climate_record', record_id=d.id|default(0)) }}" style="display:inline;" class="del-record-form">
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="10" class="text-center">No climate records match the current filters</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if pagination.pages > 1 %}
+        <div class="pagination" style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:16px;">
+            {% if pagination.has_prev %}
+            <a href="{{ url_for('analyst.climate_data', dataset_id=selected_dataset, region=selected_region, year=selected_year, page=pagination.prev_num) }}" 
+            class="btn btn-sm btn-outline"><i class="fas fa-chevron-left"></i> Prev</a>
+            {% endif %}
+            <span style="font-size:13px;color:var(--gray-500);">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+            {% if pagination.has_next %}
+            <a href="{{ url_for('analyst.climate_data', dataset_id=selected_dataset, region=selected_region, year=selected_year, page=pagination.next_num) }}" 
+            class="btn btn-sm btn-outline">Next <i class="fas fa-chevron-right"></i></a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="data-confirm-modal" id="recordDeleteModal" role="dialog" aria-modal="true"><div class="data-confirm-dialog"><div class="data-confirm-head"><div class="data-confirm-icon"><i class="fas fa-trash-alt"></i></div>
+<div><h3>Delete selected records?</h3><span>This action cannot be undone.</span></div></div><div class="data-confirm-body">Permanently remove <strong id="recordModalCount">0</strong> climate records from this dataset?</div>
+<div class="data-confirm-actions"><button type="button" class="btn btn-sm btn-outline" id="cancelRecordDelete">Cancel</button><button type="submit" form="bulkRecordForm" 
+    class="btn btn-sm btn-danger"><i class="fas fa-trash-alt"></i> Confirm delete</button></div></div></div>
+<style>
+.card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.card-header h3{min-width:0}.data-bulk-actions{margin-left:auto}.record-select-cell{width:42px;text-align:center}
+.table th:first-child,.table td:first-child{width:42px;padding-left:10px;padding-right:10px}.table th:last-child,.table td:last-child{white-space:nowrap;width:112px}
+.table td:last-child>div{justify-content:flex-start;white-space:nowrap}
+.data-bulk-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.data-bulk-bar{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:12px 14px;border:1px solid rgba(126,231,208,.22);
+    border-radius:8px;background:linear-gradient(120deg,rgba(7,19,31,.96),rgba(12,35,49,.86));color:var(--gray-500);font-size:12px}
+    .data-bulk-bar label{display:flex;align-items:center;gap:8px;color:var(--white);font-weight:600;cursor:pointer}.data-bulk-bar input{accent-color:#7ee7d0;width:16px;height:16px}
+    .data-bulk-actions button:disabled{opacity:.45;cursor:not-allowed}
+    .data-confirm-modal{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(2,8,14,.78);backdrop-filter:blur(8px)}
+    .data-confirm-modal.is-open{display:flex}
+    .data-confirm-dialog{width:min(440px,100%);overflow:hidden;border:1px solid rgba(126,231,208,.34);border-radius:12px;background:linear-gradient(145deg,#07131d,#0d2935);box-shadow:0 24px 80px rgba(0,0,0,.5)}
+    .data-confirm-head{display:flex;align-items:center;gap:12px;padding:20px;border-bottom:1px solid rgba(126,231,208,.16)}
+    .data-confirm-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:10px;background:rgba(251,113,133,.14);color:#fb7185;font-size:18px}.data-confirm-head h3{margin:0;color:#f5f9ff}
+    .data-confirm-head span,.data-confirm-body{color:#b7c9d4}.data-confirm-body{padding:20px;line-height:1.55}.data-confirm-actions{display:flex;justify-content:flex-end;gap:8px;padding:0 20px 20px}
+@media(max-width:720px){.card-header{align-items:flex-start}.data-bulk-actions{width:100%;margin-left:0}.data-bulk-actions button{flex:1}.data-bulk-bar{align-items:flex-start;flex-direction:column;gap:6px}.table{min-width:980px}}
+</style>
+
+<!-- Edit Record Modal -->
+<div id="editRecordModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+    <div class="card" style="width:520px;margin:20px;">
+        <div class="card-header">
+            <h3><i class="fas fa-edit"></i> Edit Climate Record</h3>
+            <button class="btn btn-sm btn-outline" id="closeEditModalBtn"><i class="fas fa-times"></i></button> 
+        </div>
+        <div class="card-body">
+            <form id="editRecordForm" method="POST">
+                <div class="grid grid-2">
+                    <div class="form-group"><label>Date</label><input type="text" name="date" id="editDate" class="form-control" placeholder="YYYY-MM-DD"></div>
+                    <div class="form-group"><label>Location / Station</label><input type="text" name="station_name" id="editStation" class="form-control"></div>
+                    <div class="form-group"><label>Temperature (°C)</label><input type="number" step="0.1" name="temperature" id="editTemp" class="form-control"></div>
+                    <div class="form-group"><label>Rainfall (mm)</label><input type="number" step="0.1" name="rainfall" id="editRainfall" class="form-control"></div>
+                    <div class="form-group"><label>Humidity (%)</label><input type="number" step="0.1" name="humidity" id="editHumidity" class="form-control"></div>
+                    <div class="form-group"><label>Pressure (hPa)</label><input type="number" step="0.1" name="pressure" id="editPressure" class="form-control"></div>
+                    <div class="form-group"><label>Wind Speed (km/h)</label><input type="number" step="0.1" name="wind_speed" id="editWind" class="form-control"></div>
+                    <div class="form-group"><label>CO2 Level (ppm)</label><input type="number" step="0.1" name="co2_level" id="editCo2" class="form-control"></div>
+                </div>
+                <input type="hidden" name="dataset_id" value="{{ selected_dataset if selected_dataset else '' }}">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="climateCfg" style="display:none;"
+     data-monthly='{{ monthly_trends|tojson }}'
+     data-update-base="{{ url_for('analyst.update_climate_record', record_id=0) }}"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}?v=20260813"></script>
+<script>
+var cfg = document.getElementById('climateCfg');
+var monthlyData = JSON.parse(cfg.getAttribute('data-monthly') || '{}');
+var updateBase = cfg.getAttribute('data-update-base') || '';
+
+function getSelectedVars() {
+    var sel = document.getElementById('climVarSelect');
+    var vars = [];
+    for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].selected) vars.push(sel.options[i].value);
+    }
+    return vars.length > 0 ? vars : ['temperature'];
+}
+
+function buildChart(chartType) {
+    // Multi-axis rendering with gap spanning is handled by the shared
+    // charts.js engine; variables with no recorded values are skipped with
+    // an explanatory message instead of drawing flat zero lines.
+    EarthScapeCharts.renderMonthly('climateChart', monthlyData, getSelectedVars(), chartType);
+}
+
+function editRecord(recordId) {
+    var row = document.querySelector('tr[data-id="' + recordId + '"]');
+    if (!row) return;
+    document.getElementById('editDate').value = row.getAttribute('data-date') || '';
+    document.getElementById('editStation').value = row.getAttribute('data-station') || '';
+    document.getElementById('editTemp').value = row.getAttribute('data-temp') || '';
+    document.getElementById('editRainfall').value = row.getAttribute('data-rainfall') || '';
+    document.getElementById('editHumidity').value = row.getAttribute('data-humidity') || '';
+    document.getElementById('editPressure').value = row.getAttribute('data-pressure') || '';
+    document.getElementById('editWind').value = row.getAttribute('data-wind') || '';
+    document.getElementById('editCo2').value = row.getAttribute('data-co2') || '';
+    var form = document.getElementById('editRecordForm');
+    form.action = updateBase.replace('/0/', '/' + recordId + '/');
+    document.getElementById('editRecordModal').style.display = 'flex';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var recordChecks = Array.prototype.slice.call(document.querySelectorAll('.record-check'));
+    var recordSelectAll = document.getElementById('selectAllRecords');
+    var recordModal = document.getElementById('recordDeleteModal');
+    function updateRecordSelection() { var count = recordChecks.filter(function(c) { return c.checked; }).length; document.getElementById('recordSelectionBadge').textContent = count + ' selected'; 
+    document.getElementById('recordSelectionText').textContent = count ? 'Ready to delete selected records.' : 'Choose records to enable bulk actions.'; 
+    document.getElementById('openRecordDelete').disabled = !count; recordSelectAll.checked = recordChecks.length > 0 && count === recordChecks.length; recordSelectAll.indeterminate = count > 0 && count < recordChecks.length; }
+    recordSelectAll.addEventListener('change', function() { recordChecks.forEach(function(c) { c.checked = recordSelectAll.checked; }); updateRecordSelection(); }); 
+    recordChecks.forEach(function(c) { c.addEventListener('change', updateRecordSelection); });
+    document.getElementById('openRecordDelete').addEventListener('click', function() 
+    { document.getElementById('recordModalCount').textContent = recordChecks.filter(function(c) { return c.checked; }).length; recordModal.classList.add('is-open'); });
+     document.getElementById('cancelRecordDelete').addEventListener('click', function() { recordModal.classList.remove('is-open'); }); 
+     recordModal.addEventListener('click', function(e) { if (e.target === recordModal) recordModal.classList.remove('is-open'); }); document.addEventListener('keydown', function(e) { if (e.key === 'Escape') 
+     recordModal.classList.remove('is-open'); }); updateRecordSelection();
+    buildChart('line');
+
+    document.getElementById('updateChartBtn').addEventListener('click', function() {
+        buildChart(document.getElementById('climChartType').value);
+    });
+    document.getElementById('selectAllVarsBtn').addEventListener('click', function() {
+        var sel = document.getElementById('climVarSelect');
+        for (var i = 0; i < sel.options.length; i++) { sel.options[i].selected = true; }
+        buildChart(document.getElementById('climChartType').value);
+    });
+    document.getElementById('clearVarsBtn').addEventListener('click', function() {
+        var sel = document.getElementById('climVarSelect');
+        for (var i = 0; i < sel.options.length; i++) { sel.options[i].selected = false; }
+        buildChart(document.getElementById('climChartType').value);
+    });
+    document.getElementById('exportChartBtn').addEventListener('click', function() {
+        EarthScapeCharts.export('climateChart', 'climate-data.png');
+    });
+    document.getElementById('closeEditModalBtn').addEventListener('click', function() {
+        document.getElementById('editRecordModal').style.display = 'none';
+    });
+
+    var editBtns = document.querySelectorAll('.edit-record-btn');
+    for (var i = 0; i < editBtns.length; i++) {
+        editBtns[i].addEventListener('click', function() {
+            editRecord(parseInt(this.getAttribute('data-id')));
+        });
+    }
+
+    var delForms = document.querySelectorAll('.del-record-form');
+    for (var i = 0; i < delForms.length; i++) {
+        delForms[i].addEventListener('submit', function(e) {
+            if (!confirm('Delete this climate record?')) e.preventDefault();
+        });
+    }
+});
+</script>
+{% endblock %}

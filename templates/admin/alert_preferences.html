@@ -1,0 +1,38 @@
+{% extends "admin/base.html" %}
+{% block page_title %}Notification Preferences{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header"><h3><i class="fas fa-bell"></i> Notification Preferences</h3></div>
+    <div class="card-body">
+        <p class="text-muted" style="margin-bottom:16px;">Choose which alerts you want to receive notifications for. Disabled categories will not trigger email or browser notifications.</p>
+        <form method="POST">
+            <table class="table">
+                <thead>
+                    <tr><th>Category</th><th>Severity</th><th>Enabled</th></tr>
+                </thead>
+                <tbody>
+                    {% set categories = ['temperature', 'rainfall', 'wind', 'air_quality', 'humidity', 'co2'] %}
+                    {% set severities = ['high', 'medium', 'low'] %}
+                    {% for cat in categories %}
+                    {% for sev in severities %}
+                    {% set key = cat ~ '_' ~ sev %}
+                    {% set pref = preferences.get(key, {'enabled': true}) %}
+                    <tr>
+                        <td><i class="fas fa-{{ 'thermometer-half' if cat == 'temperature' else 'cloud-rain' if cat == 'rainfall' else 'wind' if cat == 'wind' else 'smog' if cat == 'air_quality' else 'tint' if cat == 'humidity' else 'industry' }}"></i> {{ cat|replace('_', ' ')|title }}</td>
+                        <td><span class="badge badge-{{ 'red' if sev == 'high' else 'yellow' if sev == 'medium' else 'gray' }}">{{ sev|upper }}</span></td>
+                        <td>
+                            <label style="display:flex;align-items:center;gap:6px;">
+                                <input type="checkbox" name="pref_{{ key }}" {{ 'checked' if pref.enabled else '' }}>
+                                <span style="font-size:12px;color:var(--gray-500);">{{ 'On' if pref.enabled else 'Off' }}</span>
+                            </label>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Preferences</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

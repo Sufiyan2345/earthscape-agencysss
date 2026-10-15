@@ -1,0 +1,302 @@
+{% extends "analyst/base.html" %}
+{% block page_title %}Upload Dataset{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+    <!-- Upload Form -->
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-upload"></i> Upload New Dataset</h3></div>
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Dataset Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="Enter dataset name" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <div class="analyst-select-wrapper analyst-select-glass">
+                        <select name="category" class="form-control" required>
+                            <option value="">Select Category</option>
+                            <option value="weather">Weather Data</option>
+                            <option value="satellite">Satellite Imagery</option>
+                            <option value="sensors">Sensor Data</option>
+                            <option value="historical">Historical Records</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea name="description" class="form-control" rows="3" placeholder="Describe the dataset"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Data File</label>
+                    <div class="upload-zone" id="dropZone">
+                        <div class="upload-zone-icon">
+                            <i class="fas fa-cloud-upload-alt" id="uploadMainIcon"></i>
+                        </div>
+                        <h4>Drag & Drop Your Dataset</h4>
+                        <p>or click to browse from your computer</p>
+                        <small class="upload-zone-hint">
+                            Supported formats: CSV, JSON, XLSX, XLS, TXT, TIF, TIFF, NC, HDF5
+                        </small>
+                        <div class="upload-type-icons">
+                            <span class="upload-type-icon"><i class="fas fa-file-csv"></i> CSV</span>
+                            <span class="upload-type-icon"><i class="fas fa-file-code"></i> JSON</span>
+                            <span class="upload-type-icon"><i class="fas fa-file-excel"></i> XLSX</span>
+                            <span class="upload-type-icon"><i class="fas fa-file-image"></i> TIF</span>
+                            <span class="upload-type-icon"><i class="fas fa-globe"></i> NC</span>
+                            <span class="upload-type-icon"><i class="fas fa-database"></i> HDF5</span>
+                        </div>
+                        <input type="file" name="file" id="fileInput" accept=".csv,.json,.xlsx,.xls,.txt,.tif,.tiff,.nc,.hdf5" hidden>
+                    </div>
+                    <div id="fileName" style="display:none;">
+                        <div class="upload-file-info" id="fileInfoBox">
+                            <div class="upload-file-icon" id="fileTypeIcon"><i class="fas fa-file" id="fileTypeIconI"></i></div>
+                            <div class="upload-file-details">
+                                <div class="upload-file-name" id="fileNameText"></div>
+                                <div class="upload-file-meta" id="fileMetaText"></div>
+                            </div>
+                            <button type="button" class="upload-file-remove" id="removeFileBtn" title="Remove file"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-gradient"><i class="fas fa-upload"></i> Upload & Parse Dataset</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Recent Uploads -->
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-list"></i> Recent Uploads</h3></div>
+        <div class="card-body">
+            {% if format_counts %}
+            <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+                {% for fmt, count in format_counts.items() %}
+                <span class="badge badge-teal" style="font-size:12px;">{{ fmt|upper }}: {{ count }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if datasets[:10] %}
+            <div class="upload-dataset-table-wrap">
+                <table class="table upload-dataset-table">
+                    <thead>
+                        <tr>
+                            <th>Dataset</th>
+                            <th>Format</th>
+                            <th>Records</th>
+                            <th>Status</th>
+                            <th class="upload-dataset-actions-heading">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            {% for ds in datasets[:10] %}
+                    <tr>
+                        <td class="upload-dataset-name-cell">
+                            <span class="upload-dataset-file-icon">
+                                <i class="fas fa-{% if ds.file_type == 'csv' %}file-csv{% elif ds.file_type == 'json' %}file-code{% elif ds.file_type in ('xlsx', 'xls') %}file-excel{% elif ds.file_type in ('tif', 'tiff') %}file-image{% elif ds.file_type == 'nc' %}globe{% elif ds.file_type == 'hdf5' %}database{% else %}file{% endif %}"></i>
+                            </span>
+                            <span class="upload-dataset-name-content">
+                                <strong title="{{ ds.name }}">{{ ds.name }}</strong>
+                                <small>{{ format_file_size(ds.file_size) }}</small>
+                            </span>
+                        </td>
+                        <td><span class="upload-dataset-format">{{ ds.file_type|upper }}</span></td>
+                        <td class="upload-dataset-records">{{ ds.record_count or 0 }}</td>
+                        {% set ap = ds.approval_status or 'approved' %}
+                        <td>
+                            <span class="badge badge-{{ 'yellow' if ap == 'pending' else 'green' if ap == 'approved' else 'red' }}"
+                                  title="{% if ap == 'pending' %}Awaiting Admin review{% elif ap == 'rejected' %}Rejected: {{ ds.rejection_reason or 'no reason given' }}{% else %}Approved - available for processing{% endif %}">
+                                <i class="fas fa-{{ 'hourglass-half' if ap == 'pending' else 'check' if ap == 'approved' else 'times' }}"></i> {{ ap|capitalize }}
+                            </span>
+                        </td>
+                        <td class="upload-dataset-actions">
+                    <a href="{{ url_for('analyst.view_uploaded_data', dataset_id=ds.id) }}" class="btn btn-sm btn-outline" title="View data"><i class="fas fa-eye"></i></a>
+                    {% if ds.uploaded_by is not none and ds.uploaded_by|string == current_user.id|string %}
+                    <form method="POST" action="{{ url_for('analyst.delete_dataset', dataset_id=ds.id) }}" style="display:inline;" onsubmit="return confirm('Delete this dataset? This cannot be undone.')">
+                        <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button>
+                    </form>
+                    {% endif %}
+                        </td>
+                    </tr>
+            {% else %}
+                    <tr><td colspan="5" class="upload-dataset-empty"><i class="fas fa-inbox"></i><span>No uploads yet</span></td></tr>
+            {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Dataset Detail View (shown when viewing a specific dataset) -->
+{% if dataset is defined and dataset %}
+{% set ap = dataset.approval_status or 'approved' %}
+{% if ap == 'pending' %}
+<div class="alert alert-warning" style="margin-top:20px;"><i class="fas fa-hourglass-half"></i> This dataset is <strong>pending Admin approval</strong>. It will become available for processing once approved.</div>
+{% elif ap == 'rejected' %}
+<div class="alert alert-danger" style="margin-top:20px;"><i class="fas fa-times-circle"></i> This dataset was
+     <strong>rejected</strong> by the Admin{% if dataset.rejection_reason %}: {{ dataset.rejection_reason }}{% endif %}. It is not available for processing.</div>
+{% else %}
+<div class="alert alert-success" style="margin-top:20px;"><i class="fas fa-check-circle"></i> This dataset is <strong>approved</strong> and available for processing and analysis.</div>
+{% endif %}
+<div class="card" style="margin-top:20px;">
+    <div class="card-header"><h3><i class="fas fa-table"></i> Dataset: {{ dataset.name }}</h3></div>
+    <div class="card-body">
+        <div class="grid grid-4" style="margin-bottom:16px;">
+            <div style="text-align:center;padding:12px;background:var(--gray-50);border-radius:8px;">
+                <div style="font-size:24px;font-weight:700;color:var(--primary);">{{ dataset.record_count }}</div>
+                <div style="font-size:12px;color:var(--gray-500);">Records</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:var(--gray-50);border-radius:8px;">
+                <div style="font-size:24px;font-weight:700;color:var(--info);">{{ dataset.column_count }}</div>
+                <div style="font-size:12px;color:var(--gray-500);">Columns</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:var(--gray-50);border-radius:8px;">
+                <div style="font-size:24px;font-weight:700;color:var(--success);">{{ format_file_size(dataset.file_size) }}</div>
+                <div style="font-size:12px;color:var(--gray-500);">File Size</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:var(--gray-50);border-radius:8px;">
+                <div style="font-size:24px;font-weight:700;color:var(--warning);">{{ dataset.file_type|upper }}</div>
+                <div style="font-size:12px;color:var(--gray-500);">Format</div>
+            </div>
+        </div>
+        {% if validation is defined and validation %}
+        <div class="alert alert-info" style="margin-bottom:16px;">
+            <i class="fas fa-clipboard-check"></i>
+            Data quality: <strong>{{ validation.completeness_percent }}% complete</strong>,
+            {{ validation.invalid_records }} invalid values,
+            {{ validation.missing_total }} missing field values across the climate columns.
+        </div>
+        {% endif %}
+        {% if data %}
+        <div style="overflow-x:auto;">
+            <table class="table" style="font-size:13px;">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Station</th>
+                        <th>Temp</th>
+                        <th>Humidity</th>
+                        <th>Rainfall</th>
+                        <th>Wind</th>
+                        <th>Pressure</th>
+                        <th>CO2</th>
+                        <th>AQI</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data[:50] %}
+                    <tr>
+                        <td>{{ row.date }}</td>
+                        <td>{{ row.station_name or '-' }}</td>
+                        <td>{{ row.temperature or '-' }}</td>
+                        <td>{{ row.humidity or '-' }}</td>
+                        <td>{{ row.rainfall or '-' }}</td>
+                        <td>{{ row.wind_speed or '-' }}</td>
+                        <td>{{ row.pressure or '-' }}</td>
+                        <td>{{ row.co2_level or '-' }}</td>
+                        <td>{{ row.air_quality_index or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if data|length > 50 %}
+        <p style="text-align:center;color:var(--gray-400);margin-top:8px;">Showing 50 of {{ data|length }} records</p>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var dropZone = document.getElementById('dropZone');
+    var fileInput = document.getElementById('fileInput');
+    var fileNameDiv = document.getElementById('fileName');
+    var fileInfoBox = document.getElementById('fileInfoBox');
+    var fileNameText = document.getElementById('fileNameText');
+    var fileMetaText = document.getElementById('fileMetaText');
+    var fileTypeIcon = document.getElementById('fileTypeIcon');
+    var fileTypeIconI = document.getElementById('fileTypeIconI');
+    var removeFileBtn = document.getElementById('removeFileBtn');
+    var uploadMainIcon = document.getElementById('uploadMainIcon');
+
+    function getFileIconClass(ext) {
+        var map = {
+            'csv': 'fa-file-csv',
+            'json': 'fa-file-code',
+            'xlsx': 'fa-file-excel',
+            'xls': 'fa-file-excel',
+            'txt': 'fa-file-alt',
+            'tif': 'fa-file-image',
+            'tiff': 'fa-file-image',
+            'nc': 'fa-globe',
+            'hdf5': 'fa-database'
+        };
+        return map[ext.toLowerCase()] || 'fa-file';
+    }
+
+    function getFileIconColorClass(ext) {
+        var map = {
+            'csv': 'csv',
+            'json': 'json',
+            'xlsx': 'xlsx',
+            'xls': 'xls',
+            'txt': 'txt',
+            'tif': 'tif',
+            'tiff': 'tiff',
+            'nc': 'nc',
+            'hdf5': 'hdf5'
+        };
+        return map[ext.toLowerCase()] || 'txt';
+    }
+
+    function showFileInfo(file) {
+        fileNameDiv.style.display = 'block';
+        fileNameText.textContent = file.name;
+        var ext = file.name.split('.').pop();
+        var size = file.size < 1024*1024 ? (file.size/1024).toFixed(1) + ' KB' : (file.size/1024/1024).toFixed(1) + ' MB';
+        fileMetaText.textContent = ext.toUpperCase() + ' format \u2022 ' + size;
+        fileTypeIcon.className = 'upload-file-icon ' + getFileIconColorClass(ext);
+        fileTypeIconI.className = 'fas ' + getFileIconClass(ext);
+        if (uploadMainIcon) {
+            uploadMainIcon.className = 'fas ' + getFileIconClass(ext);
+        }
+    }
+
+    function clearFile() {
+        fileInput.value = '';
+        fileNameDiv.style.display = 'none';
+        if (uploadMainIcon) {
+            uploadMainIcon.className = 'fas fa-cloud-upload-alt';
+        }
+    }
+
+    if (removeFileBtn) {
+        removeFileBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            clearFile();
+        });
+    }
+
+    if (dropZone && fileInput) {
+        dropZone.addEventListener('click', function() { fileInput.click(); });
+        dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('dragover'); });
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                showFileInfo(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput.addEventListener('change', function() { if (fileInput.files.length) showFileInfo(fileInput.files[0]); });
+    }
+});
+</script>
+{% endblock %}

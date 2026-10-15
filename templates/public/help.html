@@ -1,0 +1,327 @@
+{% extends "public/base.html" %}
+{% block title %}Help Center - EarthScape Climate{% endblock %}
+
+{% block extra_css %}
+<!-- Professional Cyberpunk / Sci-Fi Dark UI Theme for Help Center -->
+<style>
+.es-help-wrapper {
+    background-color: #030712;
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Hero Section */
+.es-help-hero {
+    position: relative;
+    width: 100%;
+    min-height: 45vh;
+    padding: 120px 5% 80px 5%;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(3, 7, 18, 0.4) 0%, rgba(3, 7, 18, 0.95) 100%), 
+                url('https://www.spacex.com/assets/images/careers/Careers_slideshow5.jpg') center/cover no-repeat;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid rgba(140, 193, 233, 0.15);
+}
+
+.es-help-hero h1 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: clamp(2.6rem, 5vw, 4rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 14px;
+    color: #ffffff;
+    text-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
+    position: relative;
+    z-index: 2;
+}
+
+.es-help-hero p {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.7);
+    max-width: 650px;
+    margin: 0 auto;
+    line-height: 1.6;
+    font-weight: 300;
+    position: relative;
+    z-index: 2;
+}
+
+/* Main Container */
+.es-help-container {
+    max-width: 950px;
+    margin: 0 auto;
+    padding: 80px 5%;
+}
+
+/* Search Box Form */
+.es-help-search-form {
+    display: flex;
+    gap: 12px;
+    max-width: 700px;
+    margin: 0 auto 50px auto;
+    background: linear-gradient(145deg, rgba(8, 18, 32, 0.95) 0%, rgba(4, 11, 22, 0.98) 100%);
+    padding: 12px;
+    border: 1px solid rgba(140, 193, 233, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+}
+
+.es-help-search-form .form-control {
+    background: rgba(3, 7, 18, 0.7);
+    border: 1px solid rgba(140, 193, 233, 0.2);
+    color: #ffffff;
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.es-help-search-form .form-control:focus {
+    border-color: #2dd4bf;
+    box-shadow: 0 0 15px rgba(45, 212, 191, 0.25);
+    outline: none;
+}
+
+.es-help-search-form select.form-control {
+    cursor: pointer;
+}
+
+.es-help-search-form select.form-control option {
+    background: #081220;
+    color: #ffffff;
+}
+
+.es-help-search-btn {
+    background: linear-gradient(135deg, #6366f1 0%, #0d9488 100%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    padding: 0 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+}
+
+.es-help-search-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 25px rgba(45, 212, 191, 0.5);
+}
+
+/* FAQ Accordion List */
+.es-faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.es-faq-item {
+    background: linear-gradient(145deg, rgba(8, 18, 32, 0.9) 0%, rgba(4, 11, 22, 0.95) 100%);
+    border: 1px solid rgba(140, 193, 233, 0.15);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.es-faq-item:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 12px 30px rgba(99, 102, 241, 0.12);
+}
+
+.es-faq-question {
+    padding: 22px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-family: 'Science Gothic', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #ffffff;
+    user-select: none;
+    transition: background 0.3s ease;
+}
+
+.es-faq-question:hover {
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.es-faq-question i {
+    color: #8cc1e9;
+    font-size: 0.85rem;
+    transition: transform 0.3s ease;
+}
+
+.es-faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), padding 0.4s ease;
+    background: rgba(3, 7, 18, 0.4);
+    border-top: 1px solid rgba(140, 193, 233, 0.08);
+}
+
+.es-faq-answer-inner {
+    padding: 24px;
+    color: rgba(255, 255, 255, 0.75);
+    line-height: 1.7;
+    font-size: 0.92rem;
+    font-weight: 300;
+}
+
+/* Active state for accordion */
+.es-faq-item.active .es-faq-answer {
+    max-height: 500px;
+}
+
+.es-faq-item.active .es-faq-question i {
+    transform: rotate(180deg);
+    color: #2dd4bf;
+}
+
+.es-faq-item.active {
+    border-color: rgba(45, 212, 191, 0.5);
+}
+
+/* Contact Fallback Card */
+.es-help-contact-card {
+    text-align: center;
+    margin-top: 50px;
+    padding: 40px;
+    background: linear-gradient(145deg, rgba(8, 18, 32, 0.95) 0%, rgba(4, 11, 22, 0.98) 100%);
+    border: 1px solid rgba(140, 193, 233, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.es-help-contact-card h3 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: 1.5rem;
+    color: #ffffff;
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+.es-help-contact-card p {
+    color: rgba(255, 255, 255, 0.65);
+    margin-bottom: 20px;
+    font-size: 0.92rem;
+}
+
+.es-help-contact-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #6366f1 0%, #0d9488 100%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    padding: 12px 28px;
+    border-radius: 50px;
+    font-weight: 600;
+    text-decoration: none;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+}
+
+.es-help-contact-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px rgba(45, 212, 191, 0.6);
+    color: #ffffff;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="es-help-wrapper">
+
+    <!-- Hero Section -->
+    <section class="es-help-hero">
+        <div style="position: absolute; top:0; left:0; width:100%; height:100%; background:url('https://www.spacex.com/assets/images/careers/Careers_slideshow5.jpg')
+         center/cover no-repeat; opacity: 0.25; z-index: 1; pointer-events: none;"></div>
+        <div style="position: relative; z-index: 2;">
+            <h1><i class="fas fa-book-open"></i>Read Latest Articel</h1>
+            <p>Find answers to common questions about EarthScape Climate System</p>
+        </div>
+    </section>
+
+    <!-- Content Section -->
+    <section class="es-help-container">
+        
+        <!-- Search & Filter Form -->
+        <div>
+            <form method="GET" class="es-help-search-form">
+                <input type="text" name="search" class="form-control" placeholder="Search for articles..." value="{{ search_query or '' }}" style="flex:1;">
+                <select name="category" class="form-control" style="width:auto;">
+                    <option value="">All Topics</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.category }}" {{ 'selected' if category_filter == cat.category }}>{{ cat.category|replace('_', ' ')|title }} ({{ cat.count }})</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="es-help-search-btn"><i class="fas fa-search"></i></button>
+            </form>
+        </div>
+
+        <!-- FAQ List -->
+        <div class="es-faq-list">
+            {% for article in articles %}
+            <div class="es-faq-item">
+                <div class="es-faq-question">
+                    <span>{{ article.title }}</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="es-faq-answer">
+                    <div class="es-faq-answer-inner">
+                        {{ article.content[:500] }}{% if article.content|length > 500 %}...{% endif %}
+                        {% if article.tags %}
+                        <div style="margin-top:14px;font-size:12px;color:rgba(140,193,233,0.7);display:flex;align-items:center;gap:6px;">
+                            <i class="fas fa-tags" style="color:#2dd4bf;"></i> {{ article.tags }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:60px;background:linear-gradient(145deg, rgba(8, 18, 32, 0.9) 0%, rgba(4, 11, 22, 0.95) 100%);
+            border:1px dashed rgba(140,193,233,0.3);border-radius:16px;color:rgba(255,255,255,0.6);">
+                <i class="fas fa-search" style="font-size:42px;color:#2dd4bf;margin-bottom:14px;display:block;"></i>
+                <h3 style="color:#ffffff;margin-bottom:8px;font-family:'Science Gothic',sans-serif;">No articles found</h3>
+                <p>Try a different search term or browse all categories.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Contact Fallback Card -->
+        <div class="es-help-contact-card">
+            <h3>Still need help?</h3>
+            <p>Can't find what you're looking for? Contact our support team.</p>
+            <a href="{{ url_for('public.contact') }}" class="es-help-contact-btn"><i class="fas fa-envelope"></i> Contact Support</a>
+        </div>
+
+    </section>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.es-faq-question').forEach(function(q) {
+        q.addEventListener('click', function() {
+            var item = this.parentElement;
+            // Optional: Toggle active class smoothly
+            item.classList.toggle('active');
+        });
+    });
+});
+</script>
+{% endblock %}

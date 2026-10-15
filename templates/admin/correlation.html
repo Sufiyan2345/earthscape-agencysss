@@ -1,0 +1,228 @@
+{% extends "admin/base.html" %}
+{% block page_title %}Correlation Monitoring{% endblock %}
+{% block extra_css %}
+<style>
+.correlation-heatmap-card,.correlation-chart-card{border:1px solid rgba(79,186,222,.22);background:linear-gradient(145deg,rgba(14,34,56,.96),rgba(7,18,32,.98));box-shadow:0 18px 36px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.04);}
+.correlation-chart-card .card-header{border-bottom-color:rgba(79,186,222,.18);background:rgba(6,18,31,.46);}
+.correlation-chart-wrap{height:360px;padding:18px 18px 12px;border-radius:12px;background:radial-gradient(circle at 12% 10%,rgba(48,151,193,.12),transparent 35%),#091a2b;}
+.correlation-chart-wrap canvas{width:100%!important;height:100%!important;}
+@media(max-width:700px){.correlation-chart-wrap{height:430px;padding:12px 8px 8px;}}
+</style>
+{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+    <h2 style="font-size:22px;font-weight:700;margin:0;"><i class="fas fa-project-diagram"></i> Correlation Analysis Monitor</h2>
+    <div style="display:flex;gap:8px;">
+        <a href="{{ url_for('admin.machine_learning') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to ML</a>
+        <button class="btn btn-outline" id="btnRefresh"><i class="fas fa-sync-alt"></i> Refresh</button>
+    </div>
+</div>
+
+<!-- Processing status overview -->
+<div class="grid grid-4" style="margin-bottom:24px;">
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-layer-group"></i></div><div class="stat-info"><h3>{{ run_stats.total }}</h3><p>Total Runs</p></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3>{{ run_stats.completed }}</h3><p>Completed</p></div></div>
+    <div class="stat-card"><div class="stat-icon red"><i class="fas fa-times-circle"></i></div><div class="stat-info"><h3>{{ run_stats.failed }}</h3><p>Failed</p></div></div>
+    <div class="stat-card"><div class="stat-icon teal"><i class="fas fa-clock"></i></div>
+        <div class="stat-info"><h3>{{ latest_run.created_at|fmtdatetime if latest_run else '—' }}</h3><p>Last Successful Run</p></div></div>
+</div>
+
+<!-- Run history / processing status -->
+<div class="card" style="margin-bottom:24px;">
+    <div class="card-header"><h3><i class="fas fa-history"></i> Processing Status ({{ runs|length }} runs)</h3>
+        <div class="card-actions"><span class="badge badge-gray">Read-only — runs are performed by Analysts</span></div>
+    </div>
+    <div class="card-body">
+        <table class="table">
+            <thead>
+                <tr><th>Run</th><th>Status</th><th>Variables</th><th>Records</th><th>Significant Pairs</th><th>Strongest Correlation</th><th>Run By</th><th>When</th></tr>
+            </thead>
+            <tbody>
+                {% for run in runs %}
+                <tr>
+                    <td><strong>#{{ run.id }}</strong></td>
+                    <td>
+                        {% if run.status == 'completed' %}
+                        <span class="badge badge-green"><i class="fas fa-check-circle"></i> Completed</span>
+                        {% else %}
+                        <span class="badge badge-red" title="{{ run.error or '' }}"><i class="fas fa-times-circle"></i> Failed</span>
+                        {% endif %}
+                    </td>
+                    <td><small>{{ run.variables|join(', ') if run.variables else '—' }}</small></td>
+                    <td>{{ run.total_records }}</td>
+                    <td>{{ run.significant_pairs }}</td>
+                    <td>
+                        {% if run.strongest_pair %}
+                        <small>{{ run.strongest_pair.pair }} ({{ run.strongest_pair.correlation }})</small>
+                        {% else %}<small>—</small>{% endif %}
+                    </td>
+                    <td>{{ run.run_by_name }}</td>
+                    <td><small>{{ run.created_at[:16].replace('T', ' ') }}</small></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" style="text-align:center;color:var(--gray-400);padding:24px;">No correlation runs recorded yet — analysts have not performed any analysis.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Results of the latest completed run -->
+<div class="grid grid-3" style="margin-bottom:24px;">
+    <div class="stat-card"><div class="stat-icon teal"><i class="fas fa-database"></i></div><div class="stat-info"><h3 id="totalRecords">--</h3><p>Records Analyzed</p></div></div>
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-link"></i></div><div class="stat-info"><h3 id="significantPairs">--</h3><p>Significant Pairs</p></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-arrow-up"></i></div><div class="stat-info"><h3 id="strongestCorr">--</h3><p>Strongest Correlation</p></div></div>
+</div>
+
+<div class="card" style="margin-bottom:24px;">
+    <div class="card-header"><h3><i class="fas fa-list"></i> Latest Results — Pairwise Correlations</h3>
+        <div class="card-actions"><span id="resultSource" class="badge badge-gray"></span></div>
+    </div>
+    <div class="card-body">
+        <div id="loadingMsg" style="text-align:center;padding:40px;color:var(--gray-500);"><i class="fas fa-spinner fa-spin"></i> Loading correlation results...</div>
+        <table class="table" id="corrTable" style="display:none;">
+            <thead>
+                <tr><th>Variable 1</th><th>Variable 2</th><th>Correlation</th><th>Strength</th><th>Direction</th><th>P-Value</th><th>Significant</th><th>Interpretation</th></tr>
+            </thead>
+            <tbody id="corrBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Correlation heatmap -->
+<div class="card correlation-heatmap-card" style="margin-bottom:24px;">
+    <div class="card-header"><h3><i class="fas fa-th"></i> Correlation Heatmap</h3></div>
+    <div class="card-body">
+        <div class="correlation-heatmap-wrap"><canvas id="heatmapCanvas"></canvas></div>
+        <div class="correlation-heatmap-legend"><span>-1</span><i></i><span>0</span><i></i><span>+1</span></div>
+    </div>
+</div>
+
+<!-- Top correlations chart -->
+<div class="card correlation-chart-card">
+    <div class="card-header"><h3><i class="fas fa-chart-bar"></i> Strongest Correlations</h3></div>
+    <div class="card-body">
+        <div class="correlation-chart-wrap"><canvas id="topCorrChart"></canvas></div>
+    </div>
+</div>
+
+<script id="corrData" type="application/json" data-url="{{ url_for('admin.correlation_data') }}"></script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script>
+(function() {
+    var dataEl = document.getElementById('corrData');
+    var url = dataEl.getAttribute('data-url') || '';
+
+    function loadCorrelations() {
+        document.getElementById('loadingMsg').style.display = 'block';
+        document.getElementById('corrTable').style.display = 'none';
+
+        fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+            document.getElementById('loadingMsg').style.display = 'none';
+            if (data.error) {
+                document.getElementById('loadingMsg').textContent = data.error;
+                document.getElementById('loadingMsg').style.display = 'block';
+                return;
+            }
+            var src = document.getElementById('resultSource');
+            if (data.source === 'run') {
+                src.textContent = 'Run #' + data.run_id + ' — ' + (data.run_by_name || 'Analyst') + ' — ' + (data.generated_at || '').slice(0, 16).replace('T', ' ');
+            } else {
+                src.textContent = 'Live computation (no analyst runs yet)';
+            }
+            renderPairwise(data.pairwise_correlations || []);
+            renderHeatmap(data.correlation_matrix || {});
+            renderTopChart(data.pairwise_correlations || []);
+            document.getElementById('totalRecords').textContent = data.total_records || 0;
+        }).catch(function(err) {
+            document.getElementById('loadingMsg').textContent = 'Error loading correlations: ' + err.message;
+        });
+    }
+
+    function renderPairwise(pairs) {
+        var sig = pairs.filter(function(p) { return p.significant; }).length;
+        document.getElementById('significantPairs').textContent = sig;
+        if (pairs.length > 0) {
+            var strongest = pairs.reduce(function(a, b) { return Math.abs(a.correlation) > Math.abs(b.correlation) ? a : b; });
+            document.getElementById('strongestCorr').textContent = strongest.correlation.toFixed(3);
+        }
+        var body = document.getElementById('corrBody');
+        body.innerHTML = '';
+        pairs.forEach(function(p) {
+            var tr = document.createElement('tr');
+            var strengthColor = p.strength === 'very strong' ? 'var(--red)' : p.strength === 'strong' ? 'var(--orange)' : p.strength === 'moderate' ? 'var(--yellow)' : 'var(--gray-500)';
+            tr.innerHTML = '<td><strong>' + p.variable_1 + '</strong></td>' +
+                '<td><strong>' + p.variable_2 + '</strong></td>' +
+                '<td><span style="font-weight:700;color:' + strengthColor + '">' + p.correlation.toFixed(4) + '</span></td>' +
+                '<td><span class="badge badge-' + (p.strength.indexOf('strong') >= 0 ? 'danger' : p.strength === 'moderate' ? 'warning' : 'secondary') + '">' + p.strength + '</span></td>' +
+                '<td>' + p.direction + '</td>' +
+                '<td>' + p.p_value.toFixed(4) + '</td>' +
+                '<td>' + (p.significant ? '<span class="badge badge-success">Yes</span>' : '<span class="badge badge-secondary">No</span>') + '</td>' +
+                '<td><small>' + (p.interpretation || '') + '</small></td>';
+            body.appendChild(tr);
+        });
+        document.getElementById('corrTable').style.display = 'table';
+    }
+
+    function renderHeatmap(matrix) {
+        var vars_ = matrix.variables || [];
+        var mat = matrix.matrix || [];
+        if (vars_.length === 0) return;
+        var canvas = document.getElementById('heatmapCanvas');
+        var ctx = canvas.getContext('2d');
+        var cellSize = 68;
+        var labelWidth = 118;
+        var gap = 5;
+        var w = labelWidth + vars_.length * cellSize + 20;
+        var h = labelWidth + vars_.length * cellSize + 20;
+        canvas.width = w; canvas.height = h;
+        ctx.fillStyle = '#07131e'; ctx.fillRect(0, 0, w, h);
+        ctx.font = '600 11px Inter, sans-serif';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#a9c4d4';
+        vars_.forEach(function(v, i) {
+            ctx.save(); ctx.translate(labelWidth + i * cellSize + cellSize / 2, labelWidth - 18);
+            ctx.rotate(-Math.PI / 4); ctx.textAlign = 'left'; ctx.fillText(v, 0, 0); ctx.restore();
+        });
+        vars_.forEach(function(v, i) {
+            ctx.fillStyle = '#b9d0dc'; ctx.textAlign = 'left';
+            ctx.fillText(v, 8, labelWidth + i * cellSize + cellSize / 2);
+            vars_.forEach(function(v2, j) {
+                var val = Math.max(-1, Math.min(1, Number(mat[i] ? mat[i][j] : 0)));
+                var x = labelWidth + j * cellSize + gap / 2;
+                var y = labelWidth + i * cellSize + gap / 2;
+                var intensity = Math.abs(val);
+                var red = val < 0 ? Math.round(46 + intensity * 92) : Math.round(25 + (1 - intensity) * 20);
+                var green = val < 0 ? Math.round(74 + (1 - intensity) * 28) : Math.round(72 + intensity * 120);
+                var blue = val < 0 ? Math.round(125 + intensity * 95) : Math.round(72 + (1 - intensity) * 45);
+                ctx.fillStyle = 'rgb(' + red + ',' + green + ',' + blue + ')';
+                ctx.fillRect(x, y, cellSize - gap, cellSize - gap);
+                ctx.fillStyle = intensity > 0.45 ? '#fff' : '#cbe0e8'; ctx.textAlign = 'center';
+                ctx.fillText(val.toFixed(2), x + (cellSize - gap) / 2, y + (cellSize - gap) / 2);
+            });
+        });
+    }
+
+    function renderTopChart(pairs) {
+        if (typeof Chart === 'undefined' || pairs.length === 0) return;
+        var top = pairs.slice(0, 10);
+        var labels = top.map(function(p) { return p.variable_1 + ' \u2194 ' + p.variable_2; });
+        var values = top.map(function(p) { return p.correlation; });
+        var colors = values.map(function(v) { return v >= 0 ? '#39c6b4' : '#f0718f'; });
+        var chartCanvas = document.getElementById('topCorrChart');
+        if (window.topCorrelationChart) window.topCorrelationChart.destroy();
+        window.topCorrelationChart = new Chart(chartCanvas, {
+            type: 'bar',
+            data: { labels: labels, datasets: [{ label: 'Correlation', data: values, backgroundColor: colors, borderColor: colors, borderWidth: 1, borderRadius: 7, borderSkipped: false, barThickness: 22 }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: { duration: 500 }, interaction: { mode: 'nearest', intersect: false }, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#071522', borderColor: 'rgba(126,231,208,.45)', borderWidth: 1, titleColor: '#f4fbff', bodyColor: '#cce5ee', padding: 10, callbacks: { label: function(item) { return ' Correlation: ' + Number(item.raw).toFixed(3); } } } }, scales: { x: { min: -1, max: 1, border: { display: false }, grid: { color: function(context) { return context.tick.value === 0 ? 'rgba(244,251,255,.7)' : 'rgba(142,182,202,.12)'; }, lineWidth: function(context) { return context.tick.value === 0 ? 2 : 1; } }, ticks: { color: '#9bb8c8', callback: function(value) { return Number(value).toFixed(1); } } }, y: { border: { display: false }, grid: { display: false }, ticks: { color: '#c8dce5', font: { size: 11, weight: '600' } } } } }
+        });
+    }
+
+    document.getElementById('btnRefresh').addEventListener('click', loadCorrelations);
+    loadCorrelations();
+})();
+</script>
+{% endblock %}

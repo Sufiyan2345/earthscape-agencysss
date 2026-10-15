@@ -1,0 +1,46 @@
+# HDFS Commands Reference
+# =======================
+
+# Create directories
+hdfs dfs -mkdir /climate_data
+hdfs dfs -mkdir /climate_data/weather
+hdfs dfs -mkdir /climate_data/satellite
+hdfs dfs -mkdir /climate_data/sensors
+hdfs dfs -mkdir /climate_data/historical
+hdfs dfs -mkdir /output
+hdfs dfs -mkdir /output/temperature_analysis
+hdfs dfs -mkdir /output/rainfall_pattern
+hdfs dfs -mkdir /output/anomaly_detection
+hdfs dfs -mkdir /output/correlation_analysis
+hdfs dfs -mkdir /output/trend_prediction
+
+# Upload local files to HDFS
+hdfs dfs -put /local/data/weather_2024.csv /climate_data/weather/
+hdfs dfs -put /local/data/satellite_imagery.json /climate_data/satellite/
+hdfs dfs -put /local/data/sensor_readings.csv /climate_data/sensors/
+
+# List files
+hdfs dfs -ls /climate_data/
+hdfs dfs -ls -R /climate_data/
+
+# Read file content
+hdfs dfs -cat /climate_data/weather/weather_2024.csv
+
+# Copy from HDFS to local
+hdfs dfs -get /output/temperature_analysis/part-00000 /local/results/
+
+# Remove files
+hdfs dfs -rm /climate_data/old_data.csv
+hdfs dfs -rm -r /climate_data/deprecated/
+
+# Check disk usage
+hdfs dfs -du -h /climate_data/
+hdfs dfs -df -h /
+
+# File operations
+hdfs dfs -mv /climate_data/temp.csv /climate_data/weather/temp.csv
+hdfs dfs -cp /climate_data/weather/data.csv /climate_data/backup/
+
+# Change permissions
+hdfs dfs -chmod 755 /climate_data
+hdfs dfs -chown analyst:analysts /climate_data/weather/

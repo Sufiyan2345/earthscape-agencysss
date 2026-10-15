@@ -1,0 +1,252 @@
+{% extends "analyst/base.html" %}
+{% block page_title %}Machine Learning Analysis{% endblock %}
+{% block extra_css %}
+<style>
+.ml-page{color:#dcecf5;}
+.ml-page>.card,.ml-page .model-card{border:1px solid rgba(54,145,205,.27);background:linear-gradient(145deg,rgba(10,30,49,.97),rgba(2,8,15,.99));box-shadow:0 16px 34px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.04);}
+.ml-page .card-header{border-bottom:1px solid rgba(82,177,218,.2);background:linear-gradient(90deg,rgba(7,30,50,.92),rgba(3,12,22,.7));}
+.ml-page .card-header h3,.ml-page>h3{color:#f1fbff;}
+.ml-page .card-header h3 i,.ml-page>h3 i{color:#61d9d0;filter:drop-shadow(0 0 8px rgba(97,217,208,.62));}
+.ml-page .model-card .card-header{background:linear-gradient(110deg,#07528d,#087f87)!important;}
+.ml-page .btn-primary{border-color:rgba(97,217,208,.4);background:linear-gradient(110deg,#07528d,#087f87);box-shadow:0 8px 20px rgba(0,76,140,.35),0 0 15px rgba(34,184,196,.14);}
+.ml-page .btn-primary:hover{filter:brightness(1.14);box-shadow:0 12px 26px rgba(0,121,157,.46),0 0 22px rgba(34,184,196,.25);transform:translateY(-2px);}
+.ml-page .btn-secondary:hover,.ml-page .btn-outline:hover{border-color:#61d9d0;color:#eafffb;box-shadow:0 0 16px rgba(97,217,208,.16);}
+.ml-page #confidenceChart{max-height:300px;}
+</style>
+{% endblock %}
+{% block content %}
+<div class="ml-page">
+<!-- Stats row -->
+<div class="grid grid-4" style="margin-bottom:24px;">
+    <div class="stat-card"><div class="stat-icon teal"><i class="fas fa-brain"></i></div><div class="stat-info"><h3>{{ models|length }}</h3><p>Available Models</p></div></div>
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-history"></i></div><div class="stat-info"><h3>{{ predictions|length }}</h3><p>My Analysis Runs</p></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-database"></i></div><div class="stat-info"><h3>{{ datasets|length }}</h3><p>Approved Datasets</p></div></div>
+    <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-bullseye"></i></div><div class="stat-info"><h3 id="modelAccuracy">--</h3><p>Avg Accuracy</p></div></div>
+</div>
+
+<!-- Retrain all models -->
+<div class="card" style="margin-bottom:24px;">
+    <div class="card-header" style="background:var(--primary);color:#fff;">
+        <h3><i class="fas fa-sync-alt"></i> Model Management</h3>
+    </div>
+    <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+            <strong>Retrain all models</strong> from the latest climate data. Models are trained on real database records and versioned automatically.
+        </div>
+        <div style="display:flex;gap:8px;">
+            <a href="{{ url_for('analyst.model_versions') }}" class="btn btn-secondary"><i class="fas fa-code-branch"></i> Version History</a>
+            <a href="{{ url_for('analyst.correlation_analysis') }}" class="btn btn-secondary"><i class="fas fa-project-diagram"></i> Correlations</a>
+            <form method="POST" action="{{ url_for('analyst.retrain_models') }}" onsubmit="return confirm('Retrain all models from latest data?');">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-sync-alt"></i> Retrain All</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Model cards -->
+<h3 style="font-size:20px;font-weight:700;margin-bottom:16px;"><i class="fas fa-robot"></i> Available Models</h3>
+<div class="grid grid-3" style="margin-bottom:24px;">
+    {% for model in models %}
+    <div class="card model-card" style="margin-bottom:0;overflow:hidden;">
+        <div class="card-header" data-bgcolor="{{ model.color }}" style="color:#fff;padding:12px 16px;">
+            <h3 style="font-size:15px;margin:0;"><i class="fas {{ model.icon }}"></i> {{ model.name }}</h3>
+        </div>
+        <div class="card-body" style="padding:16px;">
+            <p style="font-size:13px;color:var(--gray-500);line-height:1.5;margin-bottom:12px;">{{ model.description }}</p>
+            <div style="margin-bottom:12px;">
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+                    <span>Accuracy:</span>
+                    <span class="badge badge-teal">{{ model.accuracy }}%</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+                    <span>Status:</span>
+                    <span class="badge badge-{{ 'green' if model.status == 'trained' else 'yellow' }}">{{ model.status|capitalize }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+                    <span>Version:</span>
+                    <span>v{{ model.version }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;">
+                    <span>Last Trained:</span>
+                    <span>{{ model.last_trained }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+                    <span>Validation R²:</span>
+                    <span>{{ model.validation_r2 ~ '%' if model.validation_r2 is not none else 'Pending next retrain' }}</span>
+                </div>
+            </div>
+            <form method="POST" action="{{ url_for('analyst.ml_predict') }}">
+                <input type="hidden" name="model_type" value="{{ model.id }}">
+                <div class="form-group" style="margin-bottom:8px;">
+                    <label style="font-size:12px;">Dataset (optional)</label>
+                    <div class="analyst-select-wrapper analyst-select-glass">
+                        <select name="dataset_id" class="form-control" style="font-size:13px;">
+                            <option value="">All Datasets</option>
+                            {% for ds in datasets %}<option value="{{ ds.id }}">{{ ds.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom:8px;">
+                    <label style="font-size:12px;">Parameters</label>
+                    <input type="text" name="input_data" class="form-control" placeholder="{{ model.input_hint }}" style="font-size:13px;">
+                </div>
+                <div style="display:flex;gap:6px;">
+                    <button type="submit" class="btn btn-primary" style="flex:1;font-size:13px;"><i class="fas fa-play"></i> Run Analysis</button>
+                </div>
+            </form>
+            {% if model.retrainable %}
+            <form method="POST" action="{{ url_for('analyst.retrain_single_model', model_type=model.id) }}" style="margin-top:6px;">
+                <button type="submit" class="btn btn-secondary" style="width:100%;font-size:13px;" title="Retrain this model on the latest data"><i class="fas fa-sync-alt"></i>
+                     Retrain Model</button>
+            </form>
+            {% else %}
+            <p style="font-size:11px;color:var(--gray-400);margin:6px 0 0;"><i class="fas fa-info-circle"></i> Runs directly on live data — no training required.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Prediction history -->
+{% if predictions %}
+<div class="card" style="margin-bottom:24px;">
+    <div class="card-header"><h3><i class="fas fa-history"></i> Prediction History</h3></div>
+    <div class="card-body">
+        <table class="table">
+            <thead><tr><th>ID</th><th>Model</th><th>Input</th><th>Result</th><th>Confidence</th><th>Timestamp</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for p in predictions %}
+                <tr>
+                    <td>#{{ p.id }}</td>
+                    <td><strong>{{ p.model_name }}</strong></td>
+                    <td><small>{{ p.input }}</small></td>
+                    <td><small style="max-width:250px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                         title="{{ p.result_summary }}">{{ p.result_summary }}</small></td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <div style="width:50px;background:var(--gray-100);border-radius:4px;height:6px;"><div data-conf-bar="{{ p.confidence }}"
+                                 style="background:var(--primary);height:100%;border-radius:4px;width:0;"></div></div>
+                            <span style="font-size:13px;">{{ p.confidence }}%</span>
+                        </div>
+                    </td>
+                    <td><small>{{ p.timestamp|fmtdatetime }}</small></td>
+                    <td>
+                        <div style="display:flex;gap:4px;">
+                            <a href="{{ url_for('analyst.view_ml_prediction', pred_id=p.id) }}" class="btn btn-secondary btn-sm" title="View details"><i class="fas fa-eye"></i></a>
+                            <form method="POST" action="{{ url_for('analyst.delete_ml_prediction', pred_id=p.id) }}"
+                             onsubmit="return confirm('Delete prediction #{{ p.id }}? This cannot be undone.');">
+                                <button type="submit" class="btn btn-danger btn-sm" title="Delete"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Prediction chart -->
+<div class="card">
+    <div class="card-header"><h3><i class="fas fa-chart-bar"></i> Prediction Confidence Distribution</h3></div>
+    <div class="card-body">
+        <canvas id="confidenceChart" height="100"></canvas>
+    </div>
+</div>
+
+<!-- Hidden data for JS -->
+ </div>
+<script id="mlData" type="application/json" data-accuracy-url="{{ url_for('analyst.model_accuracy') }}" data-predictions='{{ predictions|tojson }}'></script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script>
+(function() {
+    document.querySelectorAll('[data-bgcolor]').forEach(function(el) {
+        el.style.background = el.getAttribute('data-bgcolor');
+    });
+    document.querySelectorAll('[data-conf-bar]').forEach(function(el) {
+        el.style.width = el.getAttribute('data-conf-bar') + '%';
+    });
+
+    var mlEl = document.getElementById('mlData');
+    if (!mlEl) return;
+
+    var accuracyUrl = mlEl.getAttribute('data-accuracy-url') || '';
+
+    fetch(accuracyUrl).then(function(r) { return r.json(); }).then(function(data) {
+        var accEl = document.getElementById('modelAccuracy');
+        if (accEl && data.avg_accuracy !== undefined) {
+            accEl.textContent = data.avg_accuracy + '%';
+        }
+    }).catch(function() {});
+
+    var predsRaw = mlEl.getAttribute('data-predictions') || '[]';
+    var preds;
+    try { preds = JSON.parse(predsRaw); } catch(e) { preds = []; }
+
+    var chartCanvas = document.getElementById('confidenceChart');
+    if (!chartCanvas) return;
+
+    if (preds.length > 0 && typeof Chart !== 'undefined') {
+        var buckets = {'90-100%': 0, '80-90%': 0, '70-80%': 0, '60-70%': 0, '50-60%': 0, '<50%': 0};
+        preds.forEach(function(p) {
+            var c = Number(p.confidence || 0);
+            if (c >= 90) buckets['90-100%']++;
+            else if (c >= 80) buckets['80-90%']++;
+            else if (c >= 70) buckets['70-80%']++;
+            else if (c >= 60) buckets['60-70%']++;
+            else if (c >= 50) buckets['50-60%']++;
+            else buckets['<50%']++;
+        });
+        var ctx = chartCanvas.getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(buckets),
+                datasets: [{
+                    label: 'Predictions',
+                    data: Object.values(buckets),
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            }
+        });
+        return;
+    }
+
+    if (typeof Chart !== 'undefined') {
+        new Chart(chartCanvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['No Data'],
+                datasets: [{
+                    label: 'Predictions',
+                    data: [1],
+                    backgroundColor: 'rgba(148, 163, 184, 0.35)',
+                    borderColor: 'rgba(148, 163, 184, 0.8)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                scales: { y: { beginAtZero: true, ticks: { display: false } }, x: { ticks: { color: '#94a3b8' } } }
+            }
+        });
+    } else {
+        chartCanvas.getContext('2d').fillText('No prediction data yet', chartCanvas.width / 2, chartCanvas.height / 2);
+    }
+})();
+</script>
+{% endblock %}

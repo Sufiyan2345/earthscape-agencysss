@@ -1,0 +1,183 @@
+{% extends "admin/base.html" %}
+{% block page_title %}Prediction Forecast Visualization{% endblock %}
+{% block content %}
+<div class="grid grid-4 mb-3">
+    <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-brain"></i></div><div class="stat-info"><h4>Total Predictions</h4><div class="stat-value">{{ predictions|length }}</div></div></div>
+    <div class="stat-card"><div class="stat-icon teal"><i class="fas fa-chart-line"></i></div><div class="stat-info"><h4>Historical Periods</h4><div class="stat-value">{{ monthly|length }}</div></div></div>
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-database"></i></div><div class="stat-info"><h4>Data Source</h4><div class="stat-value" style="font-size:16px;">Real Climate Data</div></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h4>Model Status</h4><div class="stat-value" style="font-size:16px;color:var(--success);">Active</div></div></div>
+</div>
+
+<!-- Forecast Overlay Chart -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h3><i class="fas fa-chart-line"></i> Historical Data vs ML Predictions</h3>
+        <div class="card-actions">
+            <span class="badge badge-gray">Admin monitor — forecasts run by Analysts, updates live with data</span>
+            <button class="btn btn-sm btn-outline" onclick="EarthScapeCharts.export('forecastChart','forecast-overlay.png')"><i class="fas fa-download"></i> Export PNG</button>
+        </div>
+    </div>
+    <div class="card-body"><div style="height:350px;"><canvas id="forecastChart"></canvas></div></div>
+</div>
+
+<!-- Prediction Breakdown -->
+<div class="grid grid-2 mb-3">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-thermometer-half"></i> Temperature Predictions</h3>
+            <button class="btn btn-sm btn-outline" onclick="EarthScapeCharts.export('tempPredChart','temp-predictions.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body"><div style="height:250px;"><canvas id="tempPredChart"></canvas></div></div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-tint"></i> Rainfall Predictions</h3>
+            <button class="btn btn-sm btn-outline" onclick="EarthScapeCharts.export('rainPredChart','rain-predictions.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body"><div style="height:250px;"><canvas id="rainPredChart"></canvas></div></div>
+    </div>
+</div>
+
+<!-- Confidence Distribution -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h3><i class="fas fa-chart-bar"></i> Prediction Confidence Distribution</h3>
+        <button class="btn btn-sm btn-outline" onclick="EarthScapeCharts.export('confidenceChart','confidence-dist.png')"><i class="fas fa-download"></i></button>
+    </div>
+    <div class="card-body"><div style="height:250px;"><canvas id="confidenceChart"></canvas></div></div>
+</div>
+
+<!-- Predictions Table -->
+<div class="card">
+    <div class="card-header"><h3><i class="fas fa-list"></i> Prediction History</h3></div>
+    <div class="card-body">
+        <table class="table">
+            <thead><tr><th>ID</th><th>Model</th><th>Type</th><th>Confidence</th><th>Result</th><th>Date</th></tr></thead>
+            <tbody>
+                {% for p in predictions %}
+                <tr>
+                    <td>#{{ p.id }}</td>
+                    <td><span class="badge badge-teal">{{ p.model_name }}</span></td>
+                    <td>{{ p.model_type }}</td>
+                    <td>
+                        <div class="conf-bar-wrap">
+                            <div class="conf-bar-track"><div data-conf-pct="{{ (p.confidence * 100)|int if p.confidence else 0 }}" class="conf-bar-fill"></div></div>
+                            <span class="conf-label">{{ "%.1f"|format(p.confidence * 100) if p.confidence else 'N/A' }}%</span>
+                        </div>
+                    </td>
+                    <td><small>{{ p.prediction_result[:80] if p.prediction_result else 'N/A' }}{% if p.prediction_result and p.prediction_result|length > 80 %}...{% endif %}</small></td>
+                    <td><small>{{ p.created_at|fmtdatetime if p.created_at else 'N/A' }}</small></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center">No predictions yet. Run ML models first.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script id="forecastCfg" type="application/json" data-url="{{ url_for('admin.analytics_forecast_data') }}"></script>
+<style>
+.conf-bar-wrap{display:flex;align-items:center;gap:8px;}
+.conf-bar-track{flex:1;background:var(--gray-100);border-radius:4px;height:6px;min-width:60px;}
+.conf-bar-fill{height:100%;background:var(--success);border-radius:4px;}
+.conf-label{font-size:12px;}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}?v=20260813"></script>
+<script>
+var cfgEl = document.getElementById('forecastCfg');
+var forecastUrl = cfgEl.getAttribute('data-url');
+
+document.addEventListener('DOMContentLoaded', function() {
+    fetch(forecastUrl)
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            var historical = resp.historical || [];
+            var predictions = resp.predictions || [];
+            var live = resp.live_forecast || [];
+
+            // Main forecast overlay
+            EarthScapeCharts.renderForecast('forecastChart', historical, predictions, live);
+
+            // Temperature predictions bar
+            var tempPreds = EarthScapeCharts.forecastTemps(predictions, live);
+            if (tempPreds.length > 0) {
+                EarthScapeCharts.create('tempPredChart', {
+                    type: 'bar',
+                    data: {
+                        labels: tempPreds.map(function(t) { return t.label; }),
+                        datasets: [{
+                            label: 'Predicted Temp (°C)',
+                            data: tempPreds.map(function(t) { return t.value; }),
+                            backgroundColor: tempPreds.map(function(t) { return t.confidence > 0.7 ? 'rgba(13,148,136,0.7)' : 'rgba(245,158,11,0.7)'; }),
+                            borderRadius: 6
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            } else {
+                EarthScapeCharts.message('tempPredChart', 'No temperature predictions yet — add climate data or run the Temperature Prediction model');
+            }
+
+            // Rainfall predictions bar
+            var rainPreds = EarthScapeCharts.forecastRains(predictions, live);
+            if (rainPreds.length > 0) {
+                EarthScapeCharts.create('rainPredChart', {
+                    type: 'bar',
+                    data: {
+                        labels: rainPreds.map(function(t) { return t.label; }),
+                        datasets: [{
+                            label: 'Predicted Rainfall (mm)',
+                            data: rainPreds.map(function(t) { return t.value; }),
+                            backgroundColor: 'rgba(59,130,246,0.7)',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            } else {
+                EarthScapeCharts.message('rainPredChart', 'No rainfall predictions yet — add climate data or run the Rainfall Prediction model');
+            }
+
+            // Confidence distribution
+            var buckets = { '0-20%': 0, '20-40%': 0, '40-60%': 0, '60-80%': 0, '80-100%': 0 };
+            predictions.forEach(function(p) {
+                var c = (p.confidence || 0) * 100;
+                if (c < 20) buckets['0-20%']++;
+                else if (c < 40) buckets['20-40%']++;
+                else if (c < 60) buckets['40-60%']++;
+                else if (c < 80) buckets['60-80%']++;
+                else buckets['80-100%']++;
+            });
+            EarthScapeCharts.create('confidenceChart', {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(buckets),
+                    datasets: [{
+                        label: 'Predictions',
+                        data: Object.values(buckets),
+                        backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#0d9488', '#10b981'],
+                        borderRadius: 6
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+        })
+        .catch(function() {
+            EarthScapeCharts.message('forecastChart', 'Failed to load forecast data');
+            EarthScapeCharts.message('tempPredChart', 'Failed to load forecast data');
+            EarthScapeCharts.message('rainPredChart', 'Failed to load forecast data');
+            EarthScapeCharts.message('confidenceChart', 'Failed to load forecast data');
+        });
+    // Apply confidence bar widths from data attributes
+    document.querySelectorAll('[data-conf-pct]').forEach(function(el) {
+        var pct = parseFloat(el.getAttribute('data-conf-pct')) || 0;
+        el.style.width = pct + '%';
+    });
+});
+</script>
+{% endblock %}

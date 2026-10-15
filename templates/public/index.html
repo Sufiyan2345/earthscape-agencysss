@@ -1,0 +1,1995 @@
+{% extends "public/base.html" %}
+{% block title %}EarthScape Climate System - Home{% endblock %}
+
+{% block extra_css %}
+<!-- Professional Cyberpunk / Sci-Fi Dark UI Theme for Homepage - Full-Width CTA & Adjusted Hero Overlay -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Inter+Tight:wght@300;400;500&display=swap');
+
+.es-home-wrapper {
+    background-color: #030712;
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.es-home-wrapper h1,
+.es-home-wrapper h2,
+.es-home-wrapper h3 {
+    text-transform: uppercase;
+}
+
+/* Climate hero: editorial typography over the unchanged video background */
+.es-hero-section {
+    position: relative;
+    width: 100%;
+    min-height: 95vh;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 132px clamp(24px, 8vw, 150px) 92px;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(140, 193, 233, 0.15);
+}
+
+.es-hero-video-bg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    transform: translate(-50%, -50%);
+    object-fit: cover;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.es-hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(2, 8, 20, 0.94) 0%, rgba(4, 14, 31, 0.72) 44%, rgba(3, 7, 18, 0.18) 100%);
+    z-index: 2;
+    pointer-events: none;
+}
+
+.es-hero-content {
+    position: relative;
+    z-index: 3;
+    width: min(100%, 1180px);
+    margin: 0;
+    animation: es-hero-reveal .8s cubic-bezier(.2,.75,.25,1) both;
+}
+
+.es-hero-index-rail {
+    position: absolute;
+    z-index: 4;
+    top: 50%;
+    right: clamp(22px, 4vw, 70px);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    transform: translateY(-50%);
+}
+
+.es-hero-index-rail::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 8px;
+    width: 1px;
+    background: rgba(148, 213, 255, .25);
+}
+
+.es-hero-index {
+    position: relative;
+    z-index: 1;
+    width: 44px;
+    padding: 5px 0;
+    border: 0;
+    background: transparent;
+    color: rgba(226, 232, 240, .48);
+    font: 600 14px var(--public-font-data);
+    cursor: pointer;
+    transition: color .3s ease, transform .3s ease;
+}
+
+.es-hero-index:hover,
+.es-hero-index.active { color: #67e8f9; transform: translateX(-3px); }
+.es-hero-index.active { font-size: 24px; font-weight: 700; }
+.es-hero-index.active::after { content: ''; position: absolute; right: -1px; top: 50%; width: 13px; height: 3px; background: #67e8f9; box-shadow: 0 0 12px #67e8f9; }
+
+.es-hero-copy-changing { animation: es-copy-change .45s ease both; }
+@keyframes es-copy-change { from { opacity: .15; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+@keyframes es-hero-reveal {
+    from { opacity: 0; transform: translate3d(-34px, 0, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+.es-hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 18px;
+    color: #67e8f9;
+    font: 700 0.7rem/1 var(--public-font-data);
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+}
+
+.es-hero-content h1 {
+    font-family: var(--public-font-display);
+    font-size: clamp(2.5rem, 4.2vw, 4.35rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    margin-bottom: 15px;
+    color: #ffffff;
+    text-shadow: 0 0 34px rgba(84, 168, 255, 0.3);
+    line-height: 1.08;
+    max-width: min(100%, 1120px);
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.es-hero-content h1 span.highlight-teal {
+    color: #67e8f9;
+    display: inline;
+}
+
+.es-hero-topic {
+    min-height: 25px;
+    margin: 0 0 19px;
+    color: #67e8f9;
+    font: 600 1rem/1.5 var(--public-font-body);
+    letter-spacing: .01em;
+    transition: opacity .35s ease, transform .35s ease;
+}
+
+.es-hero-topic.is-changing { opacity: 0; transform: translateY(4px); }
+
+.es-feature-video-section {
+    position: relative;
+    width: 100%;
+    padding: clamp(24px, 4vw, 56px) 0;
+    overflow: hidden;
+    background: #030712;
+}
+
+.es-feature-video-frame {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    width: 100%;
+    aspect-ratio: 21 / 9;
+    background: #02060b;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 10%, #000 90%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 10%, #000 90%, transparent 100%);
+}
+
+.es-feature-video-frame::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(135deg, rgba(126, 231, 208, .08), transparent 32%, rgba(2, 8, 18, .16));
+}
+
+.es-feature-video-frame video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #02060b;
+}
+
+/* Hero Buttons */
+.es-hero-buttons {
+    display: flex;
+    gap: 16px;
+    justify-content: flex-start;
+    margin: 30px 0 34px;
+    flex-wrap: wrap;
+}
+
+.es-btn-primary {
+    background: linear-gradient(135deg, #1478c9, #0e7490);
+    border: 1px solid rgba(103, 232, 249, 0.6);
+    color: #ffffff;
+    padding: 14px 28px;
+    border-radius: 6px;
+    font-weight: 600;
+    text-decoration: none;
+    text-transform: none;
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 10px 24px rgba(5, 91, 151, 0.38);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.es-btn-primary:hover {
+    background: linear-gradient(135deg, #258fe2, #1099a4);
+    transform: translateY(-2px);
+    box-shadow: 0 0 28px rgba(56, 189, 248, 0.52);
+    color: #ffffff;
+}
+
+.es-btn-secondary {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    padding: 14px 28px;
+    border-radius: 6px;
+    font-weight: 600;
+    text-decoration: none;
+    text-transform: none;
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    backdrop-filter: blur(10px);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.es-btn-secondary:hover {
+    border-color: #2dd4bf;
+    background: rgba(45, 212, 191, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(45, 212, 191, 0.2);
+    color: #ffffff;
+}
+
+/* Hero Stats Bar */
+.es-hero-stats {
+    display: flex;
+    gap: 30px;
+    margin-top: 40px;
+    flex-wrap: wrap;
+}
+
+.es-hero-stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.es-hero-stat .stat-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.es-hero-stat .stat-label {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Sections General Styling */
+.es-section {
+    padding: 90px 5%;
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+.es-section.alt-bg {
+    background: linear-gradient(180deg, rgba(8, 18, 32, 0.4) 0%, rgba(3, 7, 18, 0.8) 100%);
+    max-width: 100%;
+    padding: 90px 5%;
+}
+
+.es-section-header {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 60px auto;
+}
+
+.es-section-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(13, 148, 136, 0.2) 100%);
+    border: 1px solid rgba(45, 212, 191, 0.3);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #2dd4bf;
+    margin: 0 auto 20px auto;
+    box-shadow: 0 0 20px rgba(45, 212, 191, 0.15);
+}
+
+.es-section-header h2 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 12px;
+    line-height: 1.2;
+}
+
+.es-section-header p {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+/* Feature Grid */
+.es-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 30px;
+}
+
+.es-feature-card {
+    background: linear-gradient(145deg, rgba(8, 18, 32, 0.85) 0%, rgba(4, 11, 22, 0.95) 100%);
+    border: 1px solid rgba(140, 193, 233, 0.15);
+    border-radius: 20px;
+    padding: 35px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.es-feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at top right, rgba(45, 212, 191, 0.1), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+
+.es-feature-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(45, 212, 191, 0.5);
+    box-shadow: 0 20px 40px rgba(45, 212, 191, 0.15), 0 0 20px rgba(99, 102, 241, 0.1);
+}
+
+.es-feature-card:hover::before {
+    opacity: 1;
+}
+
+.es-feature-icon {
+    width: 54px;
+    height: 54px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(13, 148, 136, 0.15));
+    border: 1px solid rgba(140, 193, 233, 0.2);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #2dd4bf;
+    font-size: 1.25rem;
+    margin-bottom: 24px;
+    transition: all 0.3s ease;
+}
+
+.es-feature-card:hover .es-feature-icon {
+    background: linear-gradient(135deg, #6366f1 0%, #0d9488 100%);
+    color: #ffffff;
+    box-shadow: 0 0 20px rgba(45, 212, 191, 0.4);
+    transform: scale(1.05);
+}
+
+.es-feature-card h3 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 12px;
+}
+
+.es-feature-card p {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.93rem;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.es-feature-link {
+    color: #2dd4bf;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: gap 0.3s ease;
+}
+
+.es-feature-link:hover {
+    gap: 10px;
+    color: #ffffff;
+}
+
+/* Stats Row Cards */
+.es-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 24px;
+}
+
+.es-stat-card {
+    background: linear-gradient(145deg, rgba(8, 18, 32, 0.9) 0%, rgba(4, 11, 22, 0.95) 100%);
+    border: 1px solid rgba(140, 193, 233, 0.15);
+    border-radius: 18px;
+    padding: 30px;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.es-stat-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 15px 35px rgba(99, 102, 241, 0.15);
+}
+
+.es-stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px auto;
+    font-size: 1.2rem;
+}
+
+.es-stat-icon.teal { background: rgba(45, 212, 191, 0.15); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.3); }
+.es-stat-icon.blue { background: rgba(99, 102, 241, 0.15); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.3); }
+.es-stat-icon.green { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+.es-stat-icon.orange { background: rgba(249, 115, 22, 0.15); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.3); }
+
+.es-stat-card h3 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 6px;
+}
+
+.es-stat-card p {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Climate Gallery Component */
+.es-climate-gallery-section {
+    position: relative;
+    width: 100%;
+    min-height: 650px;
+    background-size: cover;
+    background-position: center;
+    transition: background-image 0.6s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 80px 5% 50px 5%;
+    overflow: hidden;
+    gap: 32px;
+    border-top: 1px solid rgba(140, 193, 233, 0.2);
+    border-bottom: 1px solid rgba(140, 193, 233, 0.2);
+}
+
+.es-climate-gallery-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(3, 7, 18, 0.92) 0%, rgba(3, 7, 18, 0.75) 50%, rgba(3, 7, 18, 0.4) 100%);
+    z-index: 1;
+}
+
+.es-climate-gallery-content {
+    position: relative;
+    z-index: 2;
+    max-width: 600px;
+    margin-bottom: 0;
+    flex: 1 1 42%;
+}
+
+.es-climate-location-tag {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #2dd4bf;
+    margin-bottom: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.es-climate-location-tag::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 2px;
+    background-color: #2dd4bf;
+}
+
+.es-climate-title {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.1;
+    margin-bottom: 20px;
+    text-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+    text-transform: uppercase;
+}
+
+.es-climate-desc {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1rem;
+    line-height: 1.7;
+    margin-bottom: 30px;
+}
+
+.es-climate-discover-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    padding: 12px 28px;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    text-decoration: none;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.es-climate-discover-btn:hover {
+    background: #2dd4bf;
+    color: #030712;
+    border-color: #2dd4bf;
+    box-shadow: 0 0 20px rgba(45, 212, 191, 0.5);
+}
+
+.es-climate-slider-container {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding-bottom: 20px;
+    scrollbar-width: none;
+    flex: 1 1 58%;
+}
+
+.es-climate-slider-container::-webkit-scrollbar {
+    display: none;
+}
+
+.es-climate-card {
+    min-width: 220px;
+    width: 220px;
+    height: 300px;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.es-climate-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.es-climate-card:hover img, .es-climate-card.active img {
+    transform: scale(1.08);
+}
+
+.es-climate-card.active {
+    border-color: #2dd4bf;
+    box-shadow: 0 0 30px rgba(45, 212, 191, 0.4);
+    transform: translateY(-8px);
+}
+
+.es-climate-card-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60%;
+    background: linear-gradient(180deg, transparent 0%, rgba(3, 7, 18, 0.9) 100%);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.es-climate-card-subtitle {
+    font-size: 0.72rem;
+    color: #2dd4bf;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.es-climate-card-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #ffffff;
+    font-family: 'Science Gothic', sans-serif;
+    line-height: 1.2;
+}
+
+.es-climate-nav-row {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 25px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 20px;
+}
+
+@media (min-width: 900px) {
+    .es-climate-gallery-section { flex-direction: row; align-items: center; min-height: 560px; }
+    .es-climate-gallery-section > div:last-child { flex: 1 1 58%; min-width: 0; }
+    .es-climate-slider-container { flex-wrap: nowrap; }
+}
+
+.es-climate-arrows {
+    display: flex;
+    gap: 12px;
+}
+
+.es-climate-arrow-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(8, 18, 32, 0.8);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.es-climate-arrow-btn:hover {
+    background: #2dd4bf;
+    color: #030712;
+    border-color: #2dd4bf;
+    box-shadow: 0 0 15px rgba(45, 212, 191, 0.5);
+}
+
+/* Satellite Imagery Gallery Grid */
+.es-image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+    gap: 22px;
+}
+
+.es-image-card {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: #0b1624;
+    border: 1px solid rgba(146, 190, 210, 0.2);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+}
+
+.es-image-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(45, 212, 191, 0.65);
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.32);
+}
+
+.es-image-wrapper {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    position: relative;
+    overflow: hidden;
+    background: #07101c;
+}
+
+.es-image-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.es-image-card:hover .es-image-wrapper img {
+    transform: scale(1.06);
+}
+
+.es-image-body {
+    min-width: 0;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    padding: 18px;
+    background: linear-gradient(180deg, #0d1b2b 0%, #0a1522 100%);
+}
+
+.es-image-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 0;
+    margin-bottom: 10px;
+}
+
+.es-image-body h3 {
+    font-family: 'Science Gothic', sans-serif;
+    min-width: 0;
+    flex: 1;
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.4;
+    color: #ffffff;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.es-badge-teal {
+    flex: 0 0 auto;
+    max-width: 42%;
+    background: rgba(45, 212, 191, 0.15);
+    color: #2dd4bf;
+    border: 1px solid rgba(45, 212, 191, 0.3);
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-size: 0.68rem;
+    line-height: 1.2;
+    font-weight: 600;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+}
+
+.es-card-meta {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.76rem;
+    line-height: 1.55;
+    margin: 0 0 16px;
+    overflow-wrap: anywhere;
+}
+
+.es-card-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: auto;
+}
+
+@media (max-width: 640px) {
+    .es-image-grid { grid-template-columns: 1fr; gap: 16px; }
+    .es-image-body { padding: 16px; }
+}
+
+/* Climate Companies Logo Auto Animation Ticker */
+.es-partners-section {
+    padding: 64px 0 82px;
+    background:
+        radial-gradient(circle at top, rgba(26, 80, 128, 0.18), transparent 38%),
+        rgba(2, 8, 18, 0.92);
+    border-top: 1px solid rgba(140, 193, 233, 0.12);
+    border-bottom: 1px solid rgba(140, 193, 233, 0.12);
+    overflow: hidden;
+    position: relative;
+}
+
+.es-partners-title {
+    text-align: center;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: rgba(190, 218, 255, 0.8);
+    margin-bottom: 28px;
+    font-weight: 700;
+}
+
+.es-ticker-wrap {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    mask-image: linear-gradient(to right, transparent 0, #000 8%, #000 92%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 8%, #000 92%, transparent 100%);
+}
+
+.es-ticker-wrap::before,
+.es-ticker-wrap::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 180px;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.es-ticker-wrap::before {
+    left: 0;
+    background: linear-gradient(to right, rgba(2, 8, 18, 1), rgba(2, 8, 18, 0));
+}
+
+.es-ticker-wrap::after {
+    right: 0;
+    background: linear-gradient(to left, rgba(2, 8, 18, 1), rgba(2, 8, 18, 0));
+}
+
+.es-ticker-move {
+    display: flex;
+    align-items: center;
+    width: max-content;
+    animation: es-ticker 34s linear infinite;
+    will-change: transform;
+}
+
+.es-ticker-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 240px;
+    height: 102px;
+    margin: 0 18px;
+    padding: 18px 24px;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(135deg, rgba(12, 22, 37, 0.92), rgba(10, 16, 28, 0.86));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 30px rgba(0,0,0,0.3);
+    transition: transform 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.es-ticker-item::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(120deg, rgba(255,255,255,0.12), transparent 30%, transparent 65%, rgba(255,255,255,0.08));
+    pointer-events: none;
+}
+
+.es-ticker-item:hover {
+    transform: translateY(-5px);
+    border-color: rgba(118, 197, 255, 0.38);
+    box-shadow: 0 18px 36px rgba(41, 128, 185, 0.22), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.es-ticker-item img {
+    position: relative;
+    z-index: 1;
+    width: 132px;
+    height: 48px;
+    object-fit: contain;
+    transition: transform 0.4s ease, filter 0.4s ease;
+    filter: drop-shadow(0 8px 15px rgba(0, 0, 0, 0.389));
+}
+
+.es-ticker-item:hover img {
+    transform: scale(1.06);
+}
+
+@keyframes es-ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* Stunning Full-Width Comfortable CTA Section */
+.es-cta-section {
+    position: relative;
+    width: 100%;
+    margin: 80px 0 0 0;
+    background: linear-gradient(135deg, rgba(8, 18, 32, 0.95) 0%, rgba(4, 11, 22, 0.98) 100%);
+    border-top: 1px solid rgba(45, 212, 191, 0.3);
+    border-bottom: 1px solid rgba(45, 212, 191, 0.3);
+    padding: 100px 5%;
+    text-align: center;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 40px rgba(99, 102, 241, 0.15);
+}
+
+.es-cta-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    transform: translate(-50%, -50%);
+    object-fit: cover;
+    z-index: 1;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.es-cta-shade {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, rgba(3, 7, 18, 0.382) 0%, rgba(3, 7, 18, 0.374) 100%);
+    z-index: 2;
+    pointer-events: none;
+}
+
+.es-cta-content {
+    position: relative;
+    z-index: 3;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.es-cta-section h2 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 16px;
+    text-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
+}
+
+.es-cta-section p {
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 1.05rem;
+    overflow-wrap: anywhere;
+    max-width: 650px;
+    margin: 0 auto 35px auto;
+    line-height: 1.6;
+}
+
+.es-live-vitals {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(14, 81, 77, 0.28), transparent 38%),
+        linear-gradient(180deg, rgba(2, 6, 12, 0.98) 0%, rgba(3, 8, 16, 0.98) 100%);
+    color: #f8fafc;
+    padding: 24px clamp(16px, 5vw, 48px);
+    border-top: 1px solid rgba(255,255,255,0.12);
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+.es-live-vitals::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(9, 14, 20, 0.92) 0%, rgba(9, 14, 20, 0.18) 14%, rgba(9, 14, 20, 0.18) 86%, rgba(9, 14, 20, 0.92) 100%);
+    pointer-events: none;
+}
+.es-live-vitals-head,
+.es-live-vitals-grid,
+.es-live-vitals-foot {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 1400px;
+    margin-inline: auto;
+    padding-inline: 0;
+}
+.es-live-vitals-head { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:24px; flex-wrap: wrap; }
+.es-live-nav { display:flex; align-items:center; gap:10px; flex-wrap: wrap; justify-content: flex-end; }
+.es-live-station-picker { display:flex; align-items:center; gap:7px; padding:5px 10px 5px 11px; border:1px solid rgba(255,255,255,.2); border-radius:999px; background:rgba(15,23,42,.74); box-shadow: inset 0 1px 0 rgba(255,255,255,.04); white-space: nowrap; }
+.es-live-station-picker i { color:#5eead4; font-size:10px; }
+.es-live-station-select { max-width:145px; min-width:118px; padding:5px 22px 5px 2px; border:0; background:transparent; color:#f8fafc; font:600 11px var(--public-font-body); outline:none; cursor:pointer; }
+.es-live-station-select option { background:#0b1014; color:#f8fafc; }
+.es-live-station-select:focus { border-color:#2dd4bf; box-shadow:0 0 0 3px rgba(45,212,191,.12); }
+.es-live-nav button { width:30px; height:30px; border:1px solid rgba(255,255,255,.35); border-radius:50%; background:rgba(15,23,42,.38); color:#fff; cursor:pointer; transition:background .25s ease, border-color .25s ease, transform .25s ease; }
+.es-live-nav button:hover { background:rgba(45,212,191,.16); border-color:#2dd4bf; transform:scale(1.06); }
+.es-live-kicker { color:#a7f3d0; font:700 11px/1 var(--public-font-data); letter-spacing:4px; text-transform:uppercase; }
+.es-live-title { margin:8px 0 0; font:600 clamp(1.2rem, 2.5vw, 1.75rem)/1.1 var(--public-font-display); letter-spacing:-0.01em; word-break: break-word; }
+.es-live-status { display:inline-flex; align-items:center; gap:8px; color:#cbd5e1; font-size:12px; white-space:nowrap; }
+.es-live-status-dot { width:8px; height:8px; border-radius:50%; background:#34d399; box-shadow:0 0 14px #34d399; animation:es-live-pulse 1.8s ease-in-out infinite; }
+.es-live-status-dot.is-idle { background:#f59e0b; box-shadow:0 0 14px #f59e0b; }
+@keyframes es-live-pulse { 50% { opacity:.35; transform:scale(.7); } }
+.es-live-vitals-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:clamp(14px, 2vw, 32px) clamp(16px, 2.5vw, 38px); align-items:stretch; padding-top:8px; }
+.es-live-metric { min-width:0; border-top:1px solid rgba(255,255,255,.26); padding:16px 0 0; transition:transform .35s ease, opacity .35s ease; overflow: hidden; }
+.es-live-metric:hover { transform:translateY(-2px); }
+.es-live-metric.es-live-enter { animation:es-live-enter .55s both; }
+@keyframes es-live-enter { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:translateY(0); } }
+.es-live-metric-label { color:#e2e8f0; font:600 clamp(11px, 1.2vw, 14px) var(--public-font-display); letter-spacing:0.01em; white-space: normal; }
+.es-live-metric-row { display:flex; align-items:flex-end; gap:8px; min-height:56px; margin-top:10px; flex-wrap: nowrap; }
+.es-live-metric-value { color:#fff; font:500 clamp(1.75rem, 3.5vw, 3rem)/1 var(--public-font-data); letter-spacing:-0.04em; transition:color .25s ease; white-space: nowrap; }
+.es-live-metric-value.is-updated { color:#5eead4; }
+.es-live-metric-unit { color:#d1d5db; font-size:clamp(10px, 1.1vw, 13px); padding-bottom:6px; white-space: nowrap; }
+.es-live-metric-trend { color:#fb7185; font-size:24px; line-height:1; padding-bottom:6px; }
+.es-live-metric-trend.is-down { color:#60a5fa; }
+.es-live-metric.is-hidden { display:none; }
+.es-live-chart { display:block; width:100%; height:44px; margin-top:10px; }
+.es-live-vitals-foot { display:flex; justify-content:space-between; gap:16px; color:#9ca3af; font-size:10px; margin-top:12px; }
+.es-live-source { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.es-live-empty { grid-column:1/-1; color:#cbd5e1; padding:22px 0; border-top:1px solid rgba(255,255,255,.25); }
+@media (max-width: 900px) { .es-live-vitals-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) {
+    .es-live-vitals { padding: 20px clamp(12px, 4vw, 24px); }
+    .es-live-vitals-head, .es-live-vitals-foot { align-items:flex-start; flex-direction:column; gap: 12px; }
+    .es-live-nav { width:100%; justify-content:space-between; }
+    .es-live-station-select { max-width:125px; }
+    .es-live-vitals-grid { grid-template-columns: 1fr; gap:18px 12px; }
+    .es-live-metric-value { font-size:1.75rem; }
+    .es-live-title { margin:6px 0 0; font-size: 1.1rem; }
+}
+
+@media (max-width: 760px) {
+    .es-feature-video-section { padding: 18px 0; }
+    .es-feature-video-frame { aspect-ratio: 16 / 10; }
+    .es-hero-section { justify-content:center; text-align:center; padding:110px 22px 64px; }
+    .es-hero-content { margin:0 auto; }
+    .es-hero-eyebrow, .es-hero-buttons, .es-animated-text-container { justify-content:center; }
+    .es-hero-content h1 { font-size:clamp(2.35rem, 11vw, 3.6rem); white-space:normal; overflow-wrap:normal; }
+    .es-hero-content p { margin-left:auto !important; margin-right:auto !important; }
+    .es-hero-index-rail { top:auto; right:50%; bottom:18px; flex-direction:row; transform:translateX(50%); gap:22px; }
+    .es-hero-index-rail::before { top:50%; right:0; left:0; bottom:auto; width:auto; height:1px; }
+    .es-hero-index.active::after { right:auto; top:auto; bottom:-3px; left:50%; width:8px; transform:translateX(-50%); }
+}
+
+/* Scroll-linked Kardashev timeline */
+.kardashev {
+    position: relative;
+    height: 100vh;
+    min-height: 620px;
+    background: #020408;
+    color: #f8fafc;
+}
+
+.kard-shell,
+.kard-sticky,
+.kard-media {
+    position: relative;
+    width: 100%;
+}
+
+.kard-sticky {
+    position: relative;
+    height: 100vh;
+    min-height: 620px;
+    overflow: hidden;
+    background: #020408;
+}
+
+.kard-media {
+    position: absolute;
+    inset: 0;
+    background: #020408;
+}
+
+.kard__vid {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    background: #02040873;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 10%, #000 90%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 10%, #000 90%, transparent 100%);
+}
+
+.kard-stage-image {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .45s ease;
+}
+
+.kard-stage-image.is-selected {
+    opacity: 1;
+}
+
+.kard-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(2, 5, 10, .92) 0%, rgba(2, 5, 10, .58) 35%, rgba(2, 5, 10, .08) 72%), linear-gradient(0deg, rgba(2, 5, 10, .58), transparent 45%);
+    pointer-events: none;
+}
+
+.kard-overlay {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100%;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 10vh 8vw 4vh 28vw;
+    transform: translateY(7vh);
+}
+
+.es-home-wrapper .kard-overlay .kicker {
+    margin: 0 0 20px;
+    color: rgba(237, 237, 238, .4);
+    font: 500 12px/1.6 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.es-home-wrapper .kard__title {
+    max-width: 440px;
+    margin: 0 0 26px;
+    color: #fff;
+    font: 300 clamp(1.95rem, 8.5vw, 3.15rem)/1.04 "Inter Tight", Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    letter-spacing: 0;
+    text-transform: none !important;
+    font-variant: normal;
+}
+
+.scale {
+    display: grid;
+    gap: 0;
+    width: min(100%, 580px);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.scale__tier {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 0;
+    padding: 15px 0;
+    border-top: 1px solid rgba(255, 255, 255, .14);
+    color: rgba(255, 255, 255, .28);
+    cursor: pointer;
+    outline: none;
+    transition: color .45s ease, opacity .45s ease, transform .45s ease;
+}
+
+.scale__tier:hover,
+.scale__tier:focus-visible {
+    color: rgba(255, 255, 255, .78);
+}
+
+.scale__tier:focus-visible {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .6);
+}
+
+.scale__tier.is-active {
+    color: #fff;
+}
+
+.es-home-wrapper .scale__id {
+    font: 400 16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    text-transform: none;
+}
+
+.es-home-wrapper .scale__desc {
+    font: 400 16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@media (max-width: 760px) {
+    .kardashev { height: 100svh; min-height: 560px; }
+    .kard-sticky { min-height: 560px; }
+    .kard-overlay { justify-content: flex-end; padding: 10vh 22px 10vh; transform: none; }
+    .kard-scrim { background: linear-gradient(0deg, rgba(2, 5, 10, .95) 0%, rgba(2, 5, 10, .48) 58%, rgba(2, 5, 10, .12) 100%); }
+    .kard__title { max-width: 440px;  margin-bottom: 26px;  font-size: clamp(1.95rem, 8.5vw, 3.15rem); }    
+    .scale__tier { grid-template-columns: 76px 1fr; padding: 12px 0; }
+    .scale__id, .scale__desc { font-size: 13px; line-height: 1.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .scale__tier { transition: none; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{% set stats = stats|default({'total_records': 0, 'regions': 0, 'years': 0, 'alerts': 0}) %}
+<div class="es-home-wrapper">
+
+    <!-- Climate intelligence hero over the existing video -->
+    <section class="es-hero-section">
+        <video class="es-hero-video-bg" id="authVideo" autoplay muted loop playsinline preload="none">
+            <source src="{{ url_for('static', filename='videos/clip.mp4') }}" type="video/mp4">
+            Your browser does not support HTML5 video.
+        </video>
+        <div class="es-hero-overlay"></div>
+        <nav class="es-hero-index-rail" id="esHeroIndexRail" aria-label="Featured climate topics">
+            <button type="button" class="es-hero-index active" data-hero-index="0" aria-label="Show global warming topic">01</button>
+            <button type="button" class="es-hero-index" data-hero-index="1" aria-label="Show extreme weather topic">02</button>
+            <button type="button" class="es-hero-index" data-hero-index="2" aria-label="Show climate resilience topic">03</button>
+        </nav>
+        <div class="es-hero-content">
+            <div class="es-hero-eyebrow"><i class="fas fa-globe-americas"></i> Earth observation, made actionable</div>
+            <h1 id="esHeroHeading">
+                <span id="esHeroLead">Understand the climate.</span>
+                <span class="highlight-teal" id="esHeroHighlight">Shape what comes next.</span>
+            </h1>
+            <div class="es-hero-topic" id="esHeroTopic" aria-live="polite">Tracking global warming in real time</div>
+            
+            <p style="color: rgba(255, 255, 255, 0.75); font-size: 1.05rem; max-width: 520px; margin: 0 0 28px; line-height: 1.6;">
+                Monitor temperature, rainfall, air quality, and carbon signals in one intelligent climate data system.
+            </p>
+            
+            <div class="es-hero-buttons">
+                <a href="{{ url_for('auth.register') }}" class="es-btn-primary">
+                    <i class="fas fa-arrow-right"></i> Explore the platform
+                </a>
+                <a href="{{ url_for('public.realtime_climate') }}" class="es-btn-secondary">
+                    <i class="fas fa-chart-line" style="font-size: 1rem; color: #67e8f9;"></i> View live climate data
+                </a>
+            </div>
+            
+            <div class="es-hero-stats">
+                <div class="es-hero-stat">
+                    <div class="stat-number">{{ "{:,}".format(stats.total_records|default(0)) }}</div>
+                    <div class="stat-label">Climate Records</div>
+                </div>
+                <div class="es-hero-stat">
+                    <div class="stat-number">{{ stats.regions|default(0) }}</div>
+                    <div class="stat-label">Regions Monitored</div>
+                </div>
+                <div class="es-hero-stat">
+                    <div class="stat-number">{{ stats.years|default(0) }}</div>
+                    <div class="stat-label">Years of Data</div>
+                </div>
+                <div class="es-hero-stat">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">Real-time Monitoring</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Live backend vital signs rail at the bottom of the hero video -->
+    <section class="es-live-vitals" id="esLiveVitals" data-feed-url="{{ url_for('public.realtime_climate_data') }}" data-initial-stations="{{ realtime_stations|default([])|tojson|forceescape }}">
+        <div class="es-live-vitals-head">
+            <div>
+                <div class="es-live-kicker">Vital Signs</div>
+                <h2 class="es-live-title">Live climate network</h2>
+            </div>
+            <div class="es-live-nav"><label class="es-live-station-picker" title="Choose a realtime station"><i class="fas fa-location-dot"></i><select class="es-live-station-select" id="esLiveStation" aria-label="Choose realtime station"><option value="">Choose station</option></select></label><button type="button" id="esLivePrev" aria-label="Previous climate indicators"><i class="fas fa-chevron-left"></i></button><button type="button" id="esLiveNext" aria-label="Next climate indicators"><i class="fas fa-chevron-right"></i></button><div class="es-live-status"><span class="es-live-status-dot" id="esLiveStatusDot"></span><span id="esLiveStatus">Updating from backend</span></div></div>
+        </div>
+        <div class="es-live-vitals-grid" id="esLiveMetrics">
+            <div class="es-live-empty">Waiting for an active realtime station...</div>
+        </div>
+        <div class="es-live-vitals-foot">
+            <span class="es-live-source" id="esLiveSource">No station selected</span>
+            <span id="esLiveUpdated">Awaiting first reading</span>
+        </div>
+    </section>
+
+      <!-- ===================== KARDASHEV ===================== -->
+    <section class="kardashev" id="kardashev">
+        <div class="kard-shell">
+            <div class="kard-sticky">
+                <div class="kard-media">
+                    <video class="kard__vid" id="kardVideo" autoplay muted loop playsinline preload="auto" aria-label="Earth, Sun, and galaxy visualization">
+                        <source src="{{ url_for('static', filename='nasa/earth.mp4') }}" type="video/mp4">
+                    </video>
+                    <img class="kard-stage-image" data-kard-image="1" src="{{ url_for('static', filename='nasa/Kardashev_T1.png') }}" alt="Earth visualization">
+                    <img class="kard-stage-image" data-kard-image="2" src="{{ url_for('static', filename='nasa/Kardashev_T2.png') }}" alt="Sun visualization">
+                    <img class="kard-stage-image" data-kard-image="3" src="{{ url_for('static', filename='nasa/Kardashev_T3.png') }}" alt="Galaxy visualization">
+                    <div class="kard-scrim"></div>
+                </div>
+                <div class="container kard-overlay">
+                    <p class="kicker">The Kardashev Scale</p>
+                    <h2 class="kard__title">We aspire to heal our living planet</h2>
+                    <ol class="scale" aria-label="Kardashev scale levels">
+                        <li class="scale__tier is-active" data-tier="1" tabindex="0" role="button" aria-label="Show Type I: planetary energy"><span class="scale__id">Type I</span><span class="scale__desc">Harness all of the energy on a planet</span></li>
+                        <li class="scale__tier" data-tier="2" tabindex="0" role="button" aria-label="Show Type II: stellar energy"><span class="scale__id">Type II</span><span class="scale__desc">Harness all of the energy from a star</span></li>
+                        <li class="scale__tier" data-tier="3" tabindex="0" role="button" aria-label="Show Type III: galactic energy"><span class="scale__id">Type III</span><span class="scale__desc">Harness all of the energy in a galaxy</span></li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+ <!-- Trusted Climate Organizations Logo Slider -->
+<div class="es-partners-section">
+    <div class="es-partners-title">Trusted by climate leaders</div>
+
+    <div class="es-ticker-wrap">
+        <div class="es-ticker-move">
+
+            <!-- NASA -->
+            <div class="es-ticker-item">
+                <img src="https://www.google.com/s2/favicons?domain_url=https://www.nasa.gov&sz=128"
+                     alt="NASA"
+                     onerror="this.style.display='none'">
+                <span>NASA</span>
+            </div>
+
+            <!-- NOAA -->
+            <div class="es-ticker-item">
+                <img src="https://www.google.com/s2/favicons?domain_url=https://www.noaa.gov&sz=128"
+                     alt="NOAA"
+                     onerror="this.style.display='none'">
+                <span>NOAA</span>
+            </div>
+
+            <!-- ESA -->
+            <div class="es-ticker-item">
+                <img src="https://www.google.com/s2/favicons?domain_url=https://www.esa.int&sz=128"
+                     alt="European Space Agency">
+                <span>European Space Agency</span>
+            </div>
+
+            <!-- WMO -->
+            <div class="es-ticker-item">
+                <img src="https://www.google.com/s2/favicons?domain_url=https://wmo.int&sz=128"
+                     alt="World Meteorological Organization">
+                <span>WMO</span>
+            </div>
+
+            <!-- IPCC -->
+            <div class="es-ticker-item">
+                <img src="https://www.google.com/s2/favicons?domain_url=https://www.ipcc.ch&sz=128"
+                     alt="IPCC">
+                <span>IPCC</span>
+            </div>
+
+            <!-- Greenpeace -->
+            <div class="es-ticker-item">
+                <img src="https://www.google.com/s2/favicons?domain_url=https://www.greenpeace.org&sz=128"
+                     alt="Greenpeace">
+                <span>Greenpeace</span>
+            </div>
+
+            <!-- Duplicate for infinite animation -->
+
+            <div class="es-ticker-item">
+                <img src="https://www.google.com/s2/favicons?domain_url=https://www.nasa.gov&sz=128"
+                     alt="NASA">
+                <span>NASA</span>
+            </div>
+
+            <div class="es-ticker-item">
+                <img src="https://www.google.com/s2/favicons?domain_url=https://www.noaa.gov&sz=128"
+                     alt="NOAA">
+                <span>NOAA</span>
+            </div>
+
+            <div class="es-ticker-item">
+                <img src="https://www.google.com/s2/favicons?domain_url=https://www.esa.int&sz=128"
+                     alt="ESA">
+                <span>European Space Agency</span>
+            </div>
+
+            <div class="es-ticker-item">
+                <img src="https://www.google.com/s2/favicons?domain_url=https://wmo.int&sz=128"
+                     alt="WMO">
+                <span>WMO</span>
+            </div>
+
+            <div class="es-ticker-item">
+                <img src="https://www.google.com/s2/favicons?domain_url=https://www.ipcc.ch&sz=128"
+                     alt="IPCC">
+                <span>IPCC</span>
+            </div>
+
+            <div class="es-ticker-item">
+                <img src="https://www.google.com/s2/favicons?domain_url=https://www.greenpeace.org&sz=128"
+                     alt="Greenpeace">
+                <span>Greenpeace</span>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+    <!-- Features Section -->
+    <section class="es-section">
+        <div class="es-section-header">
+            <div class="es-section-icon"><i class="fas fa-chart-line"></i></div>
+            <h2>Comprehensive Climate Analysis</h2>
+            <p>Leveraging big data technologies for powerful climate insights and predictions</p>
+        </div>
+        <div class="es-feature-grid">
+            <div class="es-feature-card">
+                <div class="es-feature-icon"><i class="fas fa-database"></i></div>
+                <h3>HDFS Data Storage</h3>
+                <p>Scalable and fault-tolerant storage using Hadoop Distributed File System for massive climate datasets from satellites, weather stations, and sensors.</p>
+            </div>
+            <div class="es-feature-card">
+                <div class="es-feature-icon"><i class="fas fa-cogs"></i></div>
+                <h3>MapReduce Processing</h3>
+                <p>Parallel processing of climate data across distributed nodes with custom MapReduce jobs for temperature analysis, anomaly detection, and more.</p>
+            </div>
+            <div class="es-feature-card">
+                <div class="es-feature-icon"><i class="fas fa-brain"></i></div>
+                <h3>Machine Learning</h3>
+                <p>Predictive models for climate trends, anomaly detection, flood risk assessment, and air quality forecasting using advanced ML algorithms.</p>
+            </div>
+            <div class="es-feature-card">
+                <div class="es-feature-icon"><i class="fas fa-chart-line"></i></div>
+                <h3>Interactive Dashboards</h3>
+                <p>Beautiful, real-time dashboards with customizable visualizations for temperature trends, rainfall patterns, and air quality monitoring.</p>
+            </div>
+            <div class="es-feature-card">
+                <div class="es-feature-icon"><i class="fas fa-satellite"></i></div>
+                <h3>Real-time Monitoring</h3>
+                <p>Live data streaming from environmental sensors and weather stations with automated alerts for critical climate events.</p>
+                <a href="{{ url_for('public.realtime_climate') }}" class="es-feature-link">View live conditions <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="es-feature-card">
+                <div class="es-feature-icon"><i class="fas fa-bell"></i></div>
+                <h3>Smart Alerts</h3>
+                <p>Automated notifications based on configurable thresholds for temperature extremes, heavy rainfall, poor air quality, and other climate anomalies.</p>
+                <a href="{{ url_for('public.public_alerts') }}" class="es-feature-link">See current alerts <i class="fas fa-arrow-right"></i></a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="es-section alt-bg">
+        <div class="es-section-header">
+            <div class="es-section-icon"><i class="fas fa-chart-bar"></i></div>
+            <h2>Trusted by Climate Scientists</h2>
+            <p>Our platform processes millions of data points daily from around the globe</p>
+        </div>
+        <div class="es-stats-grid">
+            <div class="es-stat-card">
+                <div class="es-stat-icon teal"><i class="fas fa-database"></i></div>
+                <h3>{{ "{:,}".format(stats.total_records|default(0)) }}</h3>
+                <p>Climate Records</p>
+            </div>
+            <div class="es-stat-card">
+                <div class="es-stat-icon blue"><i class="fas fa-map-marker-alt"></i></div>
+                <h3>{{ stats.regions|default(0) }}</h3>
+                <p>Regions Monitored</p>
+            </div>
+            <div class="es-stat-card">
+                <div class="es-stat-icon green"><i class="fas fa-brain"></i></div>
+                <h3>6</h3>
+                <p>ML Models</p>
+            </div> 
+            <div class="es-stat-card">
+                <div class="es-stat-icon orange"><i class="fas fa-bell"></i></div>
+                <h3>{{ stats.alerts|default(0) }}</h3>
+                <p>Active Alerts</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Climate Weather Gallery -->
+    <section class="es-climate-gallery-section" id="esClimateGallery" style="background-image: url('https://i.pinimg.com/736x/70/cf/7e/70cf7ec6897dee03e6d46f8370214761.jpg');">
+        <div class="es-climate-gallery-overlay"></div>
+        
+        <div class="es-climate-gallery-content">
+            <div class="es-climate-location-tag" id="esGalleryTag">Tropical Meteorology</div>
+            <h2 class="es-climate-title" id="esGalleryTitle">Cyclone & Hurricane Dynamics</h2>
+            <p class="es-climate-desc" id="esGalleryDesc">Real-time satellite tracking and atmospheric pressure analysis of major tropical storm systems impacting coastal ecosystems and global weather patterns.</p>
+            <a href="https://www.accuweather.com/" target="_blank" class="es-climate-discover-btn">
+                <i class="fas fa-compass"></i> Discover Location
+            </a>
+        </div>
+
+        <div>
+            <div class="es-climate-slider-container" id="esClimateSlider">
+                <!-- Item 1 -->
+                <div class="es-climate-card active" data-index="0" 
+                     data-tag="Tropical Meteorology" 
+                     data-title="Cyclone & Hurricane Dynamics" 
+                     data-desc="Real-time satellite tracking and atmospheric pressure analysis of major tropical storm systems impacting coastal ecosystems and global weather patterns."
+                     data-bg="https://images.unsplash.com/photo-1562089727-90aa996a6f18?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fGdsb2JhbCUyMHdhcm1pbmd8ZW58MHx8MHx8fDA%3D">
+                    <img src="https://i.pinimg.com/736x/e2/9e/42/e29e426823f6c7e7ca127a0f6a6b7534.jpg" alt="Cyclone">
+                    <div class="es-climate-card-overlay">
+                        <div class="es-climate-card-subtitle">Atlantic Basin</div>
+                        <div class="es-climate-card-title">Hurricane Systems</div>
+                    </div>
+                </div>
+
+                <!-- Item 2 -->
+                <div class="es-climate-card" data-index="1" 
+                     data-tag="Cryosphere & Glaciers" 
+                     data-title="Arctic Ice Sheet Melting" 
+                     data-desc="Monitoring rapid polar ice reduction and sea-level rise indicators across Greenland and Antarctic glacier networks using remote sensing."
+                     data-bg="https://i.pinimg.com/1200x/25/29/cf/2529cf5b7148ff7e4736aa34013a5c0e.jpg">
+                    <img src="https://i.pinimg.com/1200x/72/b1/46/72b146e98671cddaf4e6b89575499ccb.jpg" alt="Glaciers">
+                    <div class="es-climate-card-overlay">
+                        <div class="es-climate-card-subtitle">Arctic Circle</div>
+                        <div class="es-climate-card-title">Glacier Recession</div>
+                    </div>
+                </div>
+
+                <!-- Item 3 -->
+                <div class="es-climate-card" data-index="2" 
+                     data-tag="Arid & Drought Monitoring" 
+                     data-title="Sahara Desert Expansion" 
+                     data-desc="Evaluating soil moisture depletion, prolonged drought anomalies, and desertification trends across North African and Middle Eastern zones."
+                     data-bg="https://i.pinimg.com/1200x/b2/fc/47/b2fc47c914e71c378d0a9ff39f9c104c.jpg">
+                    <img src="https://i.pinimg.com/1200x/90/f4/35/90f435da8440d75144b407d9f95e7f9f.jpg" alt="Desert">
+                    <div class="es-climate-card-overlay">
+                        <div class="es-climate-card-subtitle">North Africa</div>
+                        <div class="es-climate-card-title">Extreme Drought</div>
+                    </div>
+                </div>
+
+                <!-- Item 4 -->
+                <div class="es-climate-card" data-index="3" 
+                     data-tag="Atmospheric Hazards" 
+                     data-title="Wildfire Smoke Dispersal" 
+                     data-desc="Tracking particulate matter emissions, wind corridor transport, and air quality degradation resulting from severe forest fire outbreaks."
+                     data-bg="https://assets.science.nasa.gov/dynamicimage/assets/science/esd/eo/content-feature/globalwarming/images/ISS022-E-6674.jpg?w=720&h=240&fit=crop&crop=faces%2Cfocalpoint">
+                    <img src="https://i.pinimg.com/736x/e3/6d/2d/e36d2d6b9937a59faa5059cf619c6296.jpg" alt="Wildfires">
+                    <div class="es-climate-card-overlay">
+                        <div class="es-climate-card-subtitle">North America</div>
+                        <div class="es-climate-card-title">Forest Wildfires</div>
+                    </div>
+                </div>
+
+                <!-- Item 5 -->
+                <div class="es-climate-card" data-index="4" 
+                     data-tag="Hydrological Systems" 
+                     data-title="Monsoon Flooding & Runoff" 
+                     data-desc="Analyzing heavy precipitation volumes, river basin overflow risks, and flash flood mitigation metrics across vulnerable river valleys."
+                     data-bg="https://i.pinimg.com/1200x/3d/9b/59/3d9b591d17791dfa8fcc281c60f557ce.jpg">
+                    <img src="https://i.pinimg.com/736x/72/0b/bd/720bbd9829bb8e99429118e8fc9cdcd4.jpg" alt="Floods">
+                    <div class="es-climate-card-overlay">
+                        <div class="es-climate-card-subtitle">South Asia</div>
+                        <div class="es-climate-card-title">Monsoon Floods</div>
+                    </div>
+                </div>
+
+                <!-- Item 6 -->
+                <div class="es-climate-card" data-index="5" 
+                     data-tag="Solar & Thermal Radiation" 
+                     data-title="Global Heatwave Anomalies" 
+                     data-desc="Measuring land surface temperature spikes, urban heat island effects, and solar radiation intensity during persistent summer thermal domes."
+                     data-bg="https://i.pinimg.com/1200x/8d/10/3a/8d103a1dee527a75880a6313a7030a34.jpg">
+                    <img src="https://i.pinimg.com/736x/5f/a5/e7/5fa5e7d7023f055c4e8a153de257baab.jpg" alt="Heatwave">
+                    <div class="es-climate-card-overlay">
+                        <div class="es-climate-card-subtitle">Southern Europe</div>
+                        <div class="es-climate-card-title">Thermal Extremes</div>
+                    </div>
+                </div> 
+
+                <!-- Item 7 -->
+                <div class="es-climate-card" data-index="6" 
+                     data-tag="Polar Meteorology" 
+                     data-title="Polar Vortex Disruption" 
+                     data-desc="Studying stratospheric temperature shifts and Arctic blast incursions bringing extreme winter blizzards and sub-zero temperatures."
+                     data-bg="https://images.unsplash.com/photo-1561978879-84fa00184ef2?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D">
+                    <img src="https://i.pinimg.com/1200x/91/c7/52/91c752538b208109848dab2503b39f00.jpg" alt="Blizzard">
+                    <div class="es-climate-card-overlay">
+                        <div class="es-climate-card-subtitle">Northern Latitudes</div>
+                        <div class="es-climate-card-title">Blizzard Vortex</div>
+                    </div>
+                </div>
+
+                <!-- Item 8 -->
+                <div class="es-climate-card" data-index="7" 
+                     data-tag="Marine Ecosystems" 
+                     data-title="Ocean Warming & Coral Bleaching" 
+                     data-desc="Assessing marine heatwaves, sea surface temperature anomalies, and widespread coral reef degradation across tropical oceanic zones."
+                     data-bg="https://images.unsplash.com/photo-1578604665675-9aee692f6ddc?q=80&w=1531&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D">
+                    <img src="https://i.pinimg.com/1200x/40/93/75/409375ffce883f9b3d483d8818f65f3e.jpg" alt="Ocean">
+                    <div class="es-climate-card-overlay">
+                        <div class="es-climate-card-subtitle">Coral Seas</div>
+                        <div class="es-climate-card-title">Marine Warming</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="es-climate-nav-row">
+                <div class="es-climate-arrows">
+                    <button class="es-climate-arrow-btn" id="esPrevBtn"><i class="fas fa-arrow-left"></i></button>
+                    <button class="es-climate-arrow-btn" id="esNextBtn"><i class="fas fa-arrow-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Satellite Imagery Gallery -->
+    <section class="es-section alt-bg">
+        <div class="es-section-header">
+            <div class="es-section-icon"><i class="fas fa-satellite"></i></div>
+            <h2>Latest Satellite Imagery</h2>
+            <p>Recently ingested satellite and aerial captures with extracted climate indicators</p>
+        </div>
+        {% if images %}
+        <div class="es-image-grid">
+            {% for img in images %}
+            <div class="es-image-card">
+                <div class="es-image-wrapper">
+                    <img src="{{ url_for('public.public_imagery_file', image_id=img.id) }}"
+                         alt="{{ img.name }}"
+                         onerror="this.style.display='none';this.parentNode.innerHTML='<div style=&quot;display:flex;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,0.5);&quot;><i class=&quot;fas fa-satellite&quot; style=&quot;font-size:36px;&quot;></i></div>';">
+                </div>
+                <div class="es-image-body">
+                    <div class="es-image-heading">
+                        <h3>{{ img.name }}</h3>
+                        <span class="es-badge-teal">{{ img.platform }}</span>
+                    </div>
+                    <div class="es-card-meta">
+                        <i class="fas fa-calendar"></i> {{ img.capture_date or 'Unknown date' }}
+                        {% if img.width and img.height %} &middot; {{ img.width }}x{{ img.height }}px{% endif %}
+                    </div>
+                    <div class="es-card-tags">
+                        {% if img.land_surface_temp is not none %}
+                        <span style="background:rgba(239,68,68,0.15);color:#f87171;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;"><i class="fas fa-thermometer-half"></i> {{ "%.1f"|format(img.land_surface_temp) }}°C</span>
+                        {% endif %}
+                        {% if img.cloud_cover is not none %}
+                        <span style="background:rgba(59,130,246,0.15);color:#60a5fa;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;"><i class="fas fa-cloud"></i> {{ "%.1f"|format(img.cloud_cover) }}%</span>
+                        {% endif %}
+                        {% if img.vegetation_index is not none %}
+                        <span style="background:rgba(16,185,129,0.15);color:#34d399;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;"><i class="fas fa-leaf"></i> {{ "%.1f"|format(img.vegetation_index) }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <p style="text-align:center;margin-top:32px;font-size:14px;color:rgba(255,255,255,0.5);">
+            Indicators: <i class="fas fa-thermometer-half" style="color:#f87171;"></i> Land surface temperature &middot;
+            <i class="fas fa-cloud" style="color:#60a5fa;"></i> Cloud cover &middot;
+            <i class="fas fa-leaf" style="color:#34d399;"></i> Vegetation index
+        </p>
+        {% else %}
+        <div style="text-align:center;padding:60px;border:1px dashed rgba(140,193,233,0.3);border-radius:20px;color:rgba(255,255,255,0.5);">
+            <i class="fas fa-satellite" style="font-size:48px;margin-bottom:16px;display:block;opacity:0.5;color:#2dd4bf;"></i>
+            <p style="font-size:16px;">No satellite imagery published yet. Images ingested by our analysts will appear here automatically.</p>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Stunning Full-Width Bottom CTA Section -->
+    <section class="es-cta-section">
+        <video class="es-cta-video" id="authVideo" autoplay muted loop playsinline preload="none" poster="{{ url_for('static', filename='favicon.png') }}">
+            <source src="{{ url_for('static', filename='videos/waterfall.mp4') }}" type="video/mp4">
+            Your browser does not support HTML5 video.
+        </video>
+        <div class="es-cta-shade"></div>
+        
+        <div class="es-cta-content">
+            <h2>Ready to Get Started?</h2>
+            <p>Join our platform and gain access to powerful climate analytics tools.</p>
+            <a href="{{ url_for('auth.register') }}" class="es-btn-primary" style="padding: 16px 36px; font-size: 0.95rem;">
+                <i class="fas fa-user-plus"></i> Create Free Account
+            </a>
+        </div>
+    </section>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Render the public vital-sign strip from the same realtime feed as the live page.
+    const heroLead = document.getElementById('esHeroLead');
+    const heroHighlight = document.getElementById('esHeroHighlight');
+    const heroTopic = document.getElementById('esHeroTopic');
+    const heroDescription = document.querySelector('.es-hero-content > p');
+    const heroIndexes = document.querySelectorAll('.es-hero-index');
+    const heroSlides = [
+        ['Understand the climate.', 'Shape what comes next.', 'Tracking global warming in real time', 'Monitor temperature, rainfall, air quality, and carbon signals in one intelligent climate data system.'],
+        ['See change clearly.', 'Act before extremes.', 'Reading the signals of extreme weather', 'Connect patterns across heat, rainfall, wind, and air quality to make faster climate decisions.'],
+        ['Build a resilient future.', 'Grounded in evidence.', 'Turning climate intelligence into action', 'Explore trusted climate data, live observations, and predictive insight for a changing planet.']
+    ];
+    let heroSlideIndex = 0;
+    function updateHeroSlide(index) {
+        heroSlideIndex = (index + heroSlides.length) % heroSlides.length;
+        const slide = heroSlides[heroSlideIndex];
+        [heroLead, heroHighlight, heroTopic, heroDescription].forEach(function(element) {
+            if (element) element.classList.remove('es-hero-copy-changing');
+        });
+        window.setTimeout(function() {
+            if (heroLead) heroLead.textContent = slide[0];
+            if (heroHighlight) heroHighlight.textContent = slide[1];
+            if (heroTopic) heroTopic.textContent = slide[2];
+            if (heroDescription) heroDescription.textContent = slide[3];
+            [heroLead, heroHighlight, heroTopic, heroDescription].forEach(function(element) {
+                if (element) element.classList.add('es-hero-copy-changing');
+            });
+        }, 120);
+        heroIndexes.forEach(function(button, buttonIndex) {
+            button.classList.toggle('active', buttonIndex === heroSlideIndex);
+        });
+    }
+    heroIndexes.forEach(function(button) {
+        button.addEventListener('click', function() {
+            updateHeroSlide(Number(button.dataset.heroIndex));
+        });
+    });
+
+    const liveRoot = document.getElementById('esLiveVitals');
+    const metricsRoot = document.getElementById('esLiveMetrics');
+    if (liveRoot && metricsRoot) {
+        const feedUrl = liveRoot.getAttribute('data-feed-url');
+        let initialStations = [];
+        try { initialStations = JSON.parse(liveRoot.getAttribute('data-initial-stations') || '[]'); } catch (error) { initialStations = []; }
+        let selectedStationId = '';
+        let availableStations = initialStations;
+        const stationSelect = document.getElementById('esLiveStation');
+        const metricConfig = [
+            { key: 'temperature', label: 'Temperature', unit: '°C', color: '#fb7185', icon: '↑' },
+            { key: 'rainfall', label: 'Rainfall', unit: 'mm', color: '#2dd4bf', icon: '↓' },
+            { key: 'co2_level', label: 'Carbon dioxide', unit: 'ppm', color: '#38bdf8', icon: '↑' },
+            { key: 'air_quality_index', label: 'Air quality index', unit: 'AQI', color: '#fbbf24', icon: '↓' },
+            { key: 'humidity', label: 'Humidity', unit: '%', color: '#60a5fa', icon: '↑' },
+            { key: 'wind_speed', label: 'Wind speed', unit: 'km/h', color: '#a78bfa', icon: '↑' },
+            { key: 'pressure', label: 'Pressure', unit: 'hPa', color: '#f97316', icon: '↑' }
+        ];
+
+        function number(value) {
+            return value === null || value === undefined || Number.isNaN(Number(value)) ? null : Number(value);
+        }
+
+        function formatValue(value) {
+            if (value === null) return '—';
+            return Number(value).toLocaleString(undefined, { maximumFractionDigits: 1 });
+        }
+
+        function escapeHtml(value) {
+            return String(value === null || value === undefined ? '' : value).replace(/[&<>'"]/g, function(character) {
+                return {'&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;'}[character];
+            });
+        }
+
+        function drawMiniChart(canvas, values, color, bars) {
+            const width = canvas.clientWidth || 220;
+            const height = 48;
+            const ratio = window.devicePixelRatio || 1;
+            canvas.width = width * ratio;
+            canvas.height = height * ratio;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(ratio, ratio);
+            ctx.clearRect(0, 0, width, height);
+            const clean = values.filter(function(value) { return value !== null; });
+            if (!clean.length) return;
+            const min = Math.min.apply(null, clean);
+            const max = Math.max.apply(null, clean);
+            const spread = max - min || 1;
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.globalAlpha = .22;
+            if (bars) {
+                const barWidth = Math.max(3, width / Math.max(clean.length * 1.5, 1));
+                clean.forEach(function(value, index) {
+                    const barHeight = 7 + ((value - min) / spread) * 30;
+                    ctx.fillRect(index * (width / clean.length), height - barHeight, barWidth, barHeight);
+                });
+            } else {
+                ctx.globalAlpha = 1;
+                ctx.lineWidth = 2;
+                ctx.lineJoin = 'round';
+                ctx.beginPath();
+                clean.forEach(function(value, index) {
+                    const x = clean.length === 1 ? width / 2 : index * width / (clean.length - 1);
+                    const y = height - 7 - ((value - min) / spread) * 34;
+                    if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+                ctx.globalAlpha = .1;
+                ctx.lineTo(width, height);
+                ctx.lineTo(0, height);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        function updateStationOptions(stations) {
+            if (!stationSelect) return;
+            const current = selectedStationId;
+            stationSelect.innerHTML = '<option value="">Choose station</option>' + (stations || []).map(function(item) {
+                return '<option value="' + escapeHtml(item.id) + '">' + escapeHtml(item.name || 'Stream #' + item.id) + '</option>';
+            }).join('');
+            selectedStationId = (stations || []).some(function(item) { return String(item.id) === String(current); }) ? current : ((stations || [])[0] ? String(stations[0].id) : '');
+            stationSelect.value = selectedStationId;
+        }
+
+        function render(stations) {
+            updateStationOptions(stations);
+            const station = (stations || []).find(function(item) { return String(item.id) === String(selectedStationId); }) || (stations || []).find(function(item) { return item.has_data; });
+            if (!station) {
+                metricsRoot.innerHTML = '<div class="es-live-empty">Waiting for an active realtime station...</div>';
+                document.getElementById('esLiveStatus').textContent = 'No active readings';
+                document.getElementById('esLiveStatusDot').classList.add('is-idle');
+                return;
+            }
+            metricsRoot.innerHTML = metricConfig.map(function(metric, index) {
+                const value = number(station.readings && station.readings[metric.key]);
+                const history = (station.history || []).map(function(item) { return number(item.readings && item.readings[metric.key]); }).filter(function(item) { return item !== null; });
+                const previous = history.length > 1 ? history[history.length - 2] : value;
+                const direction = value !== null && previous !== null && value < previous ? 'is-down' : '';
+                const arrow = value !== null && previous !== null && value < previous ? '↓' : metric.icon;
+                return '<article class="es-live-metric es-live-enter" style="animation-delay:' + (index * 60) + 'ms" data-live-key="' + metric.key + '">' +
+                    '<div class="es-live-metric-label">' + metric.label + '</div>' +
+                    '<div class="es-live-metric-row"><span class="es-live-metric-trend ' + direction + '">' + arrow + '</span>' +
+                    '<span class="es-live-metric-value">' + formatValue(value) + '</span><span class="es-live-metric-unit">' + metric.unit + '</span></div>' +
+                    '<canvas class="es-live-chart" data-chart-index="' + index + '" aria-label="' + metric.label + ' recent trend"></canvas></article>';
+            }).join('');
+            metricConfig.forEach(function(metric, index) {
+                const history = (station.history || []).map(function(item) { return number(item.readings && item.readings[metric.key]); });
+                drawMiniChart(metricsRoot.querySelector('[data-chart-index="' + index + '"]'), history, metric.color, metric.key === 'rainfall');
+            });
+            document.getElementById('esLiveSource').textContent = (station.name || 'Realtime station') + (station.location ? ' · ' + station.location : '');
+            document.getElementById('esLiveUpdated').textContent = station.timestamp ? 'Updated ' + new Date(station.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Updated just now';
+            document.getElementById('esLiveStatus').textContent = 'Live · ' + (station.name || 'network');
+            document.getElementById('esLiveStatusDot').classList.remove('is-idle');
+        }
+
+        function refreshLiveData() {
+            fetch(feedUrl, { headers: { 'Accept': 'application/json' } })
+                .then(function(response) { if (!response.ok) throw new Error('feed unavailable'); return response.json(); })
+                .then(function(payload) { availableStations = payload.stations || []; render(availableStations); shiftMetricWindow(0); })
+                .catch(function() { document.getElementById('esLiveStatus').textContent = 'Backend temporarily unavailable'; });
+        }
+        function shiftMetricWindow(direction) {
+            const cards = Array.prototype.slice.call(metricsRoot.querySelectorAll('.es-live-metric'));
+            if (cards.length <= 4) return;
+            const visible = window.innerWidth <= 560 ? 1 : window.innerWidth <= 900 ? 2 : 4;
+            let first = cards.findIndex(function(card) { return card.classList.contains('es-live-window-start'); });
+            if (first < 0) first = 0;
+            first = (first + direction + cards.length) % cards.length;
+            cards.forEach(function(card, index) {
+                const shown = ((index - first + cards.length) % cards.length) < visible;
+                card.style.display = shown ? '' : 'none';
+                card.classList.toggle('es-live-window-start', index === first);
+            });
+        }
+        const prevButton = document.getElementById('esLivePrev');
+        const nextButton = document.getElementById('esLiveNext');
+        if (prevButton) prevButton.addEventListener('click', function() { shiftMetricWindow(-1); });
+        if (nextButton) nextButton.addEventListener('click', function() { shiftMetricWindow(1); });
+        if (stationSelect) stationSelect.addEventListener('change', function() {
+            selectedStationId = this.value;
+            render(availableStations);
+            shiftMetricWindow(0);
+        });
+        render(initialStations);
+        shiftMetricWindow(0);
+        window.setInterval(refreshLiveData, 5000);
+        window.addEventListener('resize', function() { refreshLiveData(); });
+    }
+
+    // Interactive Climate Weather Gallery Script
+    const gallerySection = document.getElementById('esClimateGallery');
+    const galleryTag = document.getElementById('esGalleryTag');
+    const galleryTitle = document.getElementById('esGalleryTitle');
+    const galleryDesc = document.getElementById('esGalleryDesc');
+    const cards = document.querySelectorAll('.es-climate-card');
+    const prevBtn = document.getElementById('esPrevBtn');
+    const nextBtn = document.getElementById('esNextBtn');
+    let activeIndex = 0;
+
+    function updateGallery(index) {
+        if (index < 0) index = cards.length - 1;
+        if (index >= cards.length) index = 0;
+        activeIndex = index;
+
+        cards.forEach((card, idx) => {
+            if (idx === activeIndex) {
+                card.classList.add('active');
+                card.scrollIntoView({ behavior: 'auto', inline: 'nearest', block: 'nearest' });
+            } else {
+                card.classList.remove('active');
+            }
+        });
+
+        const activeCard = cards[activeIndex];
+        const tag = activeCard.getAttribute('data-tag');
+        const title = activeCard.getAttribute('data-title');
+        const desc = activeCard.getAttribute('data-desc');
+        const bg = activeCard.getAttribute('data-bg');
+
+        gallerySection.style.backgroundImage = `url('${bg}')`;
+        galleryTag.textContent = tag;
+        galleryTitle.textContent = title;
+        galleryDesc.textContent = desc;
+    }
+
+    cards.forEach((card, idx) => {
+        card.addEventListener('click', () => {
+            updateGallery(idx);
+        });
+    });
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            updateGallery(activeIndex - 1);
+        });
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            updateGallery(activeIndex + 1);
+        });
+    }
+
+    updateGallery(0);
+
+    const kardashev = document.getElementById('kardashev');
+    const kardVideo = document.getElementById('kardVideo');
+    const kardImages = Array.prototype.slice.call(document.querySelectorAll('.kard-stage-image[data-kard-image]'));
+    const kardTiers = document.querySelectorAll('.scale__tier');
+    let kardFrame = 0;
+
+    function updateKardashev() {
+        kardFrame = 0;
+        if (!kardashev || !kardVideo) return;
+        const progress = kardVideo.duration > 0 ? kardVideo.currentTime / kardVideo.duration : 0;
+        const tierIndex = Math.min(kardTiers.length - 1, Math.floor(Math.min(.999999, progress) * kardTiers.length));
+        kardTiers.forEach(function(tier, index) {
+            tier.classList.toggle('is-active', index === tierIndex);
+        });
+    }
+
+    function requestKardashevUpdate() {
+        if (!kardFrame) kardFrame = window.requestAnimationFrame(updateKardashev);
+    }
+
+    function showKardashevTier(tier) {
+        const tierIndex = Math.max(0, Math.min(kardTiers.length - 1, Number(tier) - 1));
+        kardImages.forEach(function(image) {
+            image.classList.toggle('is-selected', image.dataset.kardImage === String(tier));
+        });
+        if (!kardVideo) return;
+        if (kardVideo.duration) {
+            const progress = (tierIndex + 0.5) / kardTiers.length;
+            kardVideo.currentTime = progress * kardVideo.duration;
+        }
+        kardVideo.pause();
+        requestKardashevUpdate();
+    }
+
+    if (kardashev && kardVideo) {
+        kardVideo.addEventListener('loadedmetadata', requestKardashevUpdate);
+        kardVideo.addEventListener('timeupdate', requestKardashevUpdate);
+        kardTiers.forEach(function(tier) {
+            tier.addEventListener('click', function() {
+                showKardashevTier(tier.dataset.tier);
+            });
+            tier.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    showKardashevTier(tier.dataset.tier);
+                }
+            });
+        });
+        kardVideo.play().catch(function() {});
+        requestKardashevUpdate();
+    }
+});
+</script>
+{% endblock %}

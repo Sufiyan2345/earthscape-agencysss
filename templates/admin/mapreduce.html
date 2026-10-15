@@ -1,0 +1,169 @@
+{% extends "admin/base.html" %}
+{% import "mapreduce_result.html" as mr %}
+{# Defensive: never crash if a stale backend omits stats #}
+{% set stats = stats|default({'total': 0, 'running': 0, 'pending': 0, 'completed': 0, 'failed': 0, 'cancelled': 0, 'avg_execution_time': 0, 'input_records': 0, 'output_records': 0}) %}
+{% block page_title %}MapReduce Monitor{% endblock %}
+{% block content %}
+{# ── Cluster statistics ─────────────────────────────────────────────── #}
+<div class="grid grid-4 mb-3">
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-cogs"></i></div><div class="stat-info"><h4>Total Jobs</h4><div class="stat-value">{{ stats.total }}</div></div></div>
+    <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-spinner"></i></div><div class="stat-info"><h4>Running</h4><div class="stat-value">{{ stats.running + stats.pending }}</div></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h4>Completed</h4><div class="stat-value">{{ stats.completed }}</div></div></div>
+    <div class="stat-card"><div class="stat-icon red"><i class="fas fa-times-circle"></i></div><div class="stat-info"><h4>Failed</h4><div class="stat-value">{{ stats.failed }}</div></div></div>
+</div>
+<div class="grid grid-3 mb-3">
+    <div class="stat-card"><div class="stat-icon teal"><i class="fas fa-clock"></i></div><div class="stat-info"><h4>Avg Execution Time</h4><div class="stat-value">{{ stats.avg_execution_time }}s</div></div></div>
+    <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-download"></i></div><div class="stat-info"><h4>Records Processed</h4><div class="stat-value">{{ "{:,}".format(stats.input_records) }}</div></div></div>
+    <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-upload"></i></div><div class="stat-info"><h4>Output Records</h4><div class="stat-value">{{ "{:,}".format(stats.output_records) }}</div></div></div>
+</div>
+
+<div class="alert alert-{{ 'success' if hadoop_status and hadoop_status.backend == 'Real Hadoop/YARN' else 'warning' }}" style="margin-bottom:16px;">
+    <i class="fas fa-server"></i>
+    Processing backend: <strong>{{ hadoop_status.backend if hadoop_status else 'Unknown' }}</strong>.
+    {% if hadoop_status and hadoop_status.backend == 'Real Hadoop/YARN' %}Distributed cluster connected.{% else %}Local fallback is active; configure Hadoop/YARN for distributed execution.{% endif %}
+</div>
+
+{# ── Job monitor ────────────────────────────────────────────────────── #}
+<div class="card" id="mrMonitor"
+     data-status-url="{{ url_for('admin.job_status', job_id=0) }}">
+    <div class="card-header">
+        <h3><i class="fas fa-satellite-dish"></i> Hadoop Job Monitor ({{ jobs|length }})</h3>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <span id="liveIndicator" style="display:none;font-size:12px;color:var(--green, #16a34a);font-weight:600;"><i class="fas fa-circle" style="font-size:8px;animation:blink 1.2s infinite;"></i> LIVE</span>
+            <a href="{{ url_for('admin.mapreduce') }}" class="btn btn-sm btn-outline" title="Refresh"><i class="fas fa-sync-alt"></i> Refresh</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+            {% for f, label, cnt in [('all', 'All', stats.total),
+                                     ('running', 'Running', stats.running + stats.pending),
+                                     ('completed', 'Completed', stats.completed),
+                                     ('failed', 'Failed', stats.failed),
+                                     ('cancelled', 'Cancelled', stats.cancelled)] %}
+            <a href="{{ url_for('admin.mapreduce', filter=f) }}"
+               class="btn btn-sm {{ 'btn-primary' if status_filter == f else 'btn-outline' }}">{{ label }} ({{ cnt }})</a>
+            {% endfor %}
+        </div>
+        <table class="table">
+            <thead><tr><th>ID</th><th>Job Name</th><th>Type</th><th>Submitted By</th><th>Status</th><th>Progress</th><th>Records In/Out</th><th>Time</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for j in jobs %}
+                <tr data-job-row="{{ j.id }}" data-status="{{ j.status }}">
+                    <td>#{{ j.id }}</td>
+                    <td><strong>{{ j.job_name }}</strong><br><small class="text-muted">{{ j.created_at|fmtdatetime if j.created_at else '' }}</small></td>
+                    <td><span class="badge badge-teal">{{ j.job_type|replace('_', ' ')|title }}</span></td>
+                    <td><small>{{ j.submitter_name }}</small></td>
+                    <td data-cell="status">{{ mr.badge_status(j.status) }}</td>
+                    <td style="min-width:140px;">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div style="flex:1;background:var(--gray-100);border-radius:4px;height:8px;overflow:hidden;"><div data-progress="{{ j.progress or 0 }}"
+                                 style="background:var(--primary);height:100%;border-radius:4px;transition:width 0.3s;"></div></div>
+                            <span data-cell="pct" style="font-size:13px;">{{ j.progress or 0 }}%</span>
+                        </div>
+                    </td>
+                    <td data-cell="records"><small>{{ j.input_records or 0 }} / {{ j.output_records or 0 }}</small></td>
+                    <td data-cell="time"><small>{{ j.execution_time or 0 }}s</small></td>
+                    <td>
+                        <div style="display:flex;gap:4px;">
+                            <a href="{{ url_for('admin.view_job', job_id=j.id) }}" class="btn btn-sm btn-outline" title="View details"><i class="fas fa-eye"></i></a>
+                            {% if j.status in ['pending', 'running'] %}
+                            <form method="POST" action="{{ url_for('admin.cancel_job', job_id=j.id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-danger" title="Cancel job"><i class="fas fa-stop"></i></button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" class="text-center">
+                    {% if status_filter == 'all' %}No MapReduce jobs submitted yet — analysts can submit processing jobs from the Analyst panel.{% else %}No {{ status_filter }} jobs.{% endif %}
+                </td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p class="text-muted" style="font-size:12px;margin-bottom:0;"><i class="fas fa-info-circle">
+            
+        </i> Admin panel is monitoring-only — jobs are submitted by analysts from the Analyst panel. Progress bars update live while jobs run.</p>
+    </div>
+</div>
+
+{# ── Selected job detail ────────────────────────────────────────────── #}
+{% if job %}
+<div class="card" style="margin-top:24px;">
+    <div class="card-header">
+        <h3><i class="fas fa-info-circle"></i> Job #{{ job.id }}: {{ job.job_name }}</h3>
+        <a href="{{ url_for('admin.mapreduce') }}" class="btn btn-sm btn-outline"><i class="fas fa-arrow-left"></i> Back to monitor</a>
+    </div>
+    <div class="card-body">
+        <div class="grid grid-3">
+            <div><label>Job Type</label><p><span class="badge badge-teal">{{ job.job_type|replace('_', ' ')|title }}</span></p></div>
+            <div><label>Status</label><p>{{ mr.badge_status(job.status) }}</p></div>
+            <div><label>Progress</label><p>{{ job.progress or 0 }}%</p></div>
+            <div><label>Input Path (HDFS)</label><p><code>{{ job.input_path }}</code></p></div>
+            <div><label>Submitted By</label><p>{{ job.submitter_name }}</p></div>
+            <div><label>Created</label><p>{{ job.created_at[:16] if job.created_at else 'N/A' }}</p></div>
+            <div><label>Execution Time</label><p>{{ job.execution_time or 0 }}s</p></div>
+            <div><label>Input Records</label><p>{{ "{:,}".format(job.input_records or 0) }}</p></div>
+            <div><label>Output Records</label><p>{{ "{:,}".format(job.output_records or 0) }}</p></div>
+        </div>
+        {% if job.error_message %}
+        <div style="margin-top:16px;padding:16px;background:var(--red-50, #fef2f2);border-radius:8px;border:1px solid var(--red-200, #fecaca);">
+            <h4 style="color:var(--danger);">Error</h4>
+            <pre style="font-size:13px;color:var(--danger);">{{ job.error_message }}</pre>
+        </div>
+        {% endif %}
+        <div style="margin-top:16px;padding:16px;background:var(--gray-50);border-radius:8px;">
+            <h4 style="margin-bottom:12px;">Job Results</h4>
+            {{ mr.render(job) }}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+<style>@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.25;}}</style>
+<script>
+(function () {
+    // Initial progress bar widths
+    document.querySelectorAll('[data-progress]').forEach(function (el) {
+        el.style.width = el.getAttribute('data-progress') + '%';
+    });
+
+    // Live monitor: poll the status endpoint for every running job and
+    // update its row in place; reload the page when a job finishes.
+    var monitor = document.getElementById('mrMonitor');
+    if (!monitor) { return; }
+    var statusUrlTpl = monitor.getAttribute('data-status-url') || '';
+    var runningRows = Array.prototype.slice.call(document.querySelectorAll('tr[data-status="running"], tr[data-status="pending"]'));
+    if (runningRows.length === 0) { return; }
+
+    var indicator = document.getElementById('liveIndicator');
+    if (indicator) { indicator.style.display = 'inline-flex'; }
+
+    var finished = false;
+    setInterval(function () {
+        runningRows.forEach(function (row) {
+            var jobId = row.getAttribute('data-job-row');
+            fetch(statusUrlTpl.replace('/0', '/' + jobId), { headers: { 'Accept': 'application/json' } })
+                .then(function (res) { return res.ok ? res.json() : null; })
+                .then(function (data) {
+                    if (!data || data.error) { return; }
+                    var bar = row.querySelector('[data-progress]');
+                    var pct = row.querySelector('[data-cell="pct"]');
+                    var rec = row.querySelector('[data-cell="records"]');
+                    var timeCell = row.querySelector('[data-cell="time"]');
+                    if (bar) { bar.style.width = (data.progress || 0) + '%'; bar.setAttribute('data-progress', data.progress || 0); }
+                    if (pct) { pct.textContent = (data.progress || 0) + '%'; }
+                    if (rec) { rec.innerHTML = '<small>' + (data.input_records || 0) + ' / ' + (data.output_records || 0) + '</small>'; }
+                    if (timeCell && data.execution_time) { timeCell.innerHTML = '<small>' + data.execution_time + 's</small>'; }
+                    if (data.status !== 'running' && data.status !== 'pending' && !finished) {
+                        finished = true;
+                        setTimeout(function () { window.location.reload(); }, 800);
+                    }
+                })
+                .catch(function () { /* transient network error - retry next tick */ });
+        });
+    }, 4000);
+})();
+</script>
+{% endblock %}

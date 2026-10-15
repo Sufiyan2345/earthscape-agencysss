@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}EarthScape Climate System{% endblock %}</title>
+<link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='favicon.png') }}?v=20260830"> 
+<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}?v=20260830">
+<meta name="theme-color" content="#05070b">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Outfit:wght@100..900&family=Saira:ital,wght@0,100..900;1,100..900&family=Science+Gothic:wght@100..900&family=Zen+Dots&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}">
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+{% block body %}
+<!-- Navigation -->
+<!-- =========================
+RESPONSIVE NAVIGATION
+========================= -->
+<nav class="es-navbar-modern" id="esNavbar">
+    <div class="es-nav-container">
+        <!-- BRAND (LOCKED TO FAR LEFT CORNER - MASSIVELY ENLARGED LOGO) -->
+        <a href="{{ url_for('public.index') }}" class="es-nav-brand" aria-label="EarthScape Climate Home">
+            <img src="{{ url_for('static', filename='earthscape.png') }}" alt="EarthScape Climate logo">
+        </a>
+        <!-- LEFT-ALIGNED LINKS GROUP -->
+        <div class="es-nav-links-wrapper">
+            <ul class="es-nav-links">
+                <li><a href="{{ url_for('public.index') }}" class="{{ 'active' if request.endpoint == 'public.index' }}"><span>Home</span></a></li>
+                <li><a href="{{ url_for('public.about') }}" class="{{ 'active' if request.endpoint == 'public.about' }}"><span>About</span></a></li>
+                <li><a href="{{ url_for('public.services') }}" class="{{ 'active' if request.endpoint == 'public.services' }}"><span>Services</span></a></li>
+                <li><a href="{{ url_for('public.climate_insights') }}" class="{{ 'active' if request.endpoint == 'public.climate_insights' }}"><span>Insights</span></a></li>
+                <li><a href="{{ url_for('public.realtime_climate') }}" class="{{ 'active' if request.endpoint == 'public.realtime_climate' }}"><span>Live</span></a></li>
+                <li><a href="{{ url_for('public.public_alerts') }}" class="{{ 'active' if request.endpoint == 'public.public_alerts' }}"><span>Alerts</span></a></li>
+                <li><a href="{{ url_for('public.contact') }}" class="{{ 'active' if request.endpoint == 'public.contact' }}"><span>Contact</span></a></li>
+            </ul>
+        </div>
+        <div class="es-notif-wrap">
+            <button type="button" class="es-notif-btn" aria-label="Notifications">
+                <i class="fas fa-bell" aria-hidden="true"></i>
+                <span class="es-notif-badge" style="display:none;">0</span>
+            </button>
+            <div class="es-notif-dropdown">
+                <div class="es-notif-header">
+                    <span><i class="fas fa-comment-dots"></i> Admin Replies</span>
+                    <button type="button" class="es-notif-mark">Mark all read</button>
+                </div>
+                <div class="es-notif-list">
+                    <p class="es-notif-empty">No admin replies to your messages yet.</p>
+                </div>
+                <div class="es-notif-email">
+                    <input type="email" class="es-notif-email-input" placeholder="Your email to view replies">
+                    <button type="button" class="es-notif-email-btn">Check</button>
+                </div>
+                <div class="es-notif-footer">
+                    <a href="{{ url_for('public.contact') }}">Send a message</a>
+                </div>
+            </div>
+        </div>
+        <!-- DESKTOP ACTIONS (PREMIUM BLACK & WHITE ADVANCED HOVER) -->
+        <div class="es-nav-actions">
+            <a href="{{ url_for('auth.login') }}" class="es-btn-square">
+                <span>Login</span>
+            </a>
+            <a href="{{ url_for('auth.register') }}" class="es-btn-square">
+                <span>Register</span>
+            </a>
+        </div>
+        <!-- THREE DOT MOBILE MENU BUTTON -->
+        <button class="es-mobile-menu-btn" id="esMobileMenuBtn" type="button" aria-label="Open navigation menu" aria-expanded="false">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+    <!-- MOBILE MENU -->
+    <div class="es-mobile-menu" id="esMobileMenu">
+        <div class="es-mobile-menu-inner">
+            <div class="es-mobile-menu-header">
+                <span>Navigation</span>
+                <button class="es-mobile-close" id="esMobileClose" type="button" aria-label="Close navigation">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <!-- MOBILE LINKS -->
+            <ul class="es-mobile-nav-links">
+                <li>
+                    <a href="{{ url_for('public.index') }}" class="{{ 'active' if request.endpoint == 'public.index' }}">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                        <i class="fas fa-chevron-right es-arrow"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('public.about') }}" class="{{ 'active' if request.endpoint == 'public.about' }}">
+                        <i class="fas fa-globe-americas"></i>
+                        <span>About</span>
+                        <i class="fas fa-chevron-right es-arrow"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('public.services') }}" class="{{ 'active' if request.endpoint == 'public.services' }}">
+                        <i class="fas fa-layer-group"></i>
+                        <span>Services</span>
+                        <i class="fas fa-chevron-right es-arrow"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('public.climate_insights') }}" class="{{ 'active' if request.endpoint == 'public.climate_insights' }}">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Climate Insights</span>
+                        <i class="fas fa-chevron-right es-arrow"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('public.realtime_climate') }}" class="{{ 'active' if request.endpoint == 'public.realtime_climate' }}">
+                        <i class="fas fa-satellite-dish"></i>
+                        <span>Live Climate</span>
+                        <i class="fas fa-chevron-right es-arrow"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('public.public_alerts') }}" class="{{ 'active' if request.endpoint == 'public.public_alerts' }}">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Alerts</span>
+                        <i class="fas fa-chevron-right es-arrow"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('public.contact') }}" class="{{ 'active' if request.endpoint == 'public.contact' }}">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>Contact</span>
+                        <i class="fas fa-chevron-right es-arrow"></i>
+                    </a>
+                </li>
+            </ul>
+            <!-- MOBILE ACTIONS -->
+            <div class="es-mobile-actions">
+                <a href="{{ url_for('auth.login') }}" class="es-mobile-login">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Login</span>
+                </a>
+                <a href="{{ url_for('auth.register') }}" class="es-mobile-register">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Register</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+<style>
+/* =====================================================
+MAIN NAVBAR (TRANSPARENT GLASS & STANDARD HEIGHT)
+===================================================== */
+.es-navbar-modern {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.es-navbar-modern.nav-hidden {
+    opacity: 0;
+    transform: translateY(-100%);
+    pointer-events: none;
+}
+.es-nav-container {
+    position: relative;
+    width: 100%;
+    max-width: none;
+    height: 75px;
+    margin: 0;
+    padding: 0 28px 0 8px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+.es-nav-brand {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-shrink: 0;
+    text-decoration: none;
+    padding: 0;
+    margin-left: 0 !important;
+    margin-right: 12px;
+    overflow: visible;
+}
+.es-nav-brand img {
+    height: 140px;
+    width: auto;
+    max-width: 480px;
+    object-fit: contain;
+    display: block;
+    transform: translateY(6px);
+    transition: filter 0.3s ease, transform 0.3s ease;
+}
+.es-nav-brand:hover img {
+    filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.9));
+    transform: translateY(6px) scale(1.02);
+}
+.es-nav-links-wrapper {
+    display: flex;
+    justify-content: flex-start;
+    flex: 1;
+    min-width: 0;
+}
+.es-nav-links {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 32px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex-wrap: wrap;
+}
+.es-nav-links li a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 4px;
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: color 0.25s ease;
+}
+.es-nav-links li a:hover,
+.es-nav-links li a.active {
+    color: #ffffff;
+}
+.es-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.es-btn-square {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 88px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 0px;
+    text-decoration: none;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+    color: #ffffff;
+    background: #000000;
+    border: 1.5px solid #ffffff;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+.es-btn-square span {
+    position: relative;
+    z-index: 2;
+    transition: color 0.3s ease;
+}
+.es-btn-square::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: #ffffff;
+    z-index: 1;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.es-btn-square:hover::before {
+    transform: translateX(100%);
+}
+.es-btn-square:hover {
+    background: #ffffff;
+    color: #000000;
+    border-color: #ffffff;
+    box-shadow: 0 0 25px rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+}
+.es-btn-square:hover span {
+    color: #000000;
+}
+.es-mobile-menu-btn {
+    width: 46px;
+    height: 46px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    cursor: pointer;
+    background: #000000;
+    border: 1.5px solid #ffffff;
+    border-radius: 0px;
+    transition: all 0.3s ease;
+}
+.es-mobile-menu-btn span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #ffffff;
+    transition: all 0.3s ease;
+}
+.es-mobile-menu-btn:hover {
+    background: #ffffff;
+    border-color: #ffffff;
+}
+.es-mobile-menu-btn:hover span {
+    background: #000000;
+}
+.es-mobile-menu {
+    position: fixed;
+    top: 75px;
+    left: 0;
+    width: 100%;
+    height: calc(100vh - 75px);
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(15px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    overflow-y: auto;
+}
+.es-mobile-menu.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+.es-mobile-menu-inner {
+    width: min(430px, calc(100% - 28px));
+    margin: 14px auto 30px;
+    padding: 18px;
+    background: #05070b;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 0px;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.8);
+    transform: translateY(-15px);
+    transition: transform 0.35s ease;
+}
+.es-mobile-menu.active .es-mobile-menu-inner {
+    transform: translateY(0);
+}
+.es-mobile-menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 5px 16px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+}
+.es-mobile-close {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #ffffff;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0px;
+    transition: all 0.3s ease;
+}
+.es-mobile-close:hover {
+    color: #000000;
+    background: #ffffff;
+    border-color: #ffffff;
+}
+.es-mobile-nav-links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.es-mobile-nav-links li {
+    margin-bottom: 7px;
+}
+.es-mobile-nav-links a {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-height: 52px;
+    padding: 0 15px;
+    border-radius: 0px;
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    transition: all 0.25s ease;
+}
+.es-mobile-nav-links a > i:first-child {
+    width: 20px;
+    text-align: center;
+    color: #ffffff;
+    font-size: 0.95rem;
+}
+.es-mobile-nav-links a span {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+.es-mobile-nav-links .es-arrow {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.72rem;
+}
+.es-mobile-nav-links a:hover,
+.es-mobile-nav-links a.active {
+    color: #000000;
+    background: #ffffff;
+    border-color: #ffffff;
+}
+.es-mobile-nav-links a:hover > i:first-child,
+.es-mobile-nav-links a.active > i:first-child,
+.es-mobile-nav-links a:hover .es-arrow,
+.es-mobile-nav-links a.active .es-arrow {
+    color: #000000;
+}
+.es-mobile-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.es-mobile-login,
+.es-mobile-register {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 0 12px;
+    border-radius: 0px;
+    text-decoration: none;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #ffffff;
+    background: #000000;
+    border: 1.5px solid #ffffff;
+    transition: all 0.3s ease;
+}
+.es-mobile-login:hover,
+.es-mobile-register:hover {
+    background: #ffffff;
+    color: #000000;
+    border-color: #ffffff;
+}
+.es-notif-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.es-notif-btn,
+.es-desktop-notif-btn {
+    position: relative;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #ffffff;
+    background: #000000;
+    border: 1.5px solid #ffffff;
+    border-radius: 0px;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+}
+.es-notif-btn i,
+.es-desktop-notif-btn i {
+    color: #ffffff;
+}
+.es-notif-btn:hover,
+.es-desktop-notif-btn:hover {
+    background: #ffffff;
+    color: #000000;
+    border-color: #ffffff;
+}
+.es-notif-btn:hover i,
+.es-desktop-notif-btn:hover i {
+    color: #000000;
+}
+.es-notif-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 0px;
+    background: #ffffff;
+    color: #000000;
+    font-size: 0.62rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #000000;
+}
+.es-notif-dropdown {
+    position: absolute;
+    top: calc(100% + 14px);
+    right: 0;
+    width: min(340px, calc(100vw - 24px));
+    box-sizing: border-box;
+    background: #05070b;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.25s ease;
+    z-index: 1200;
+}
+.es-notif-dropdown.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+.es-notif-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+.es-notif-header i {
+    color: #ffffff;
+    margin-right: 6px;
+}
+.es-notif-mark {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    text-decoration: underline;
+}
+.es-notif-mark:hover {
+    color: rgba(255, 255, 255, 0.7);
+}
+.es-notif-list {
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 8px;
+}
+.es-notif-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 12px 10px;
+    margin-bottom: 8px;
+    color: #eaf3ff;
+}
+.es-notif-item:last-child {
+    margin-bottom: 0;
+    border-bottom: none;
+}
+.es-notif-item.unread {
+    background: rgba(255, 255, 255, 0.06);
+    border-left: 2px solid #ffffff;
+}
+.es-notif-item-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+.es-notif-item-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.es-notif-item-head strong {
+    color: #ffffff;
+}
+.es-notif-item-head span {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    padding: 2px 6px;
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.es-notif-item p {
+    margin: 0 0 6px 0;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.75rem;
+    line-height: 1.5;
+    word-break: break-word;
+}
+.es-notif-item small {
+    display: block;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.64rem;
+}
+.es-notif-item-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.es-notif-action {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.es-notif-action:hover {
+    color: #05070b;
+    background: #ffffff;
+    border-color: #ffffff;
+    transform: translateY(-2px);
+}
+.es-notif-delete:hover {
+    color: #ffffff;
+    background: #dc2626;
+    border-color: #dc2626;
+}
+.es-notif-action:disabled {
+    opacity: 0.35;
+    cursor: default;
+    transform: none;
+}
+.es-notif-empty {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+    padding: 28px 16px;
+    margin: 0;
+}
+.es-notif-email {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.es-notif-email-input {
+    min-width: 0;
+    flex: 1;
+    height: 34px;
+    padding: 0 10px;
+    box-sizing: border-box;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    outline: none;
+}
+.es-notif-email-input:focus {
+    border-color: rgba(255, 255, 255, 0.7);
+}
+.es-notif-email-btn {
+    flex-shrink: 0;
+    height: 34px;
+    padding: 0 12px;
+    color: #05070b;
+    background: #ffffff;
+    border: 1px solid #ffffff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+.es-notif-email-btn:hover {
+    color: #ffffff;
+    background: transparent;
+}
+.es-notif-footer {
+    padding: 12px 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+.es-notif-footer a {
+    color: #ffffff;
+    font-size: 0.76rem;
+    font-weight: 600;
+    text-decoration: underline;
+}
+@media (max-width: 1250px) {
+    .es-nav-links { gap: 20px; }
+    .es-nav-brand { margin-right: 20px; }
+    .es-nav-links li a { font-size: 0.8rem; }
+}
+@media (max-width: 1100px) {
+    .es-nav-links-wrapper, .es-nav-actions { display: none; }
+    .es-mobile-menu-btn { display: flex; }
+}
+@media (max-width: 600px) {
+    .es-nav-container { height: 70px; padding: 0 10px; }
+    .es-mobile-menu { top: 70px; height: calc(100vh - 70px); }
+    .es-nav-brand img { height: 95px; }
+    .es-notif-dropdown { position: fixed; top: 70px; right: 8px; }
+}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const navbar = document.getElementById("esNavbar");
+    const menuButton = document.getElementById("esMobileMenuBtn");
+    const mobileMenu = document.getElementById("esMobileMenu");
+    const closeButton = document.getElementById("esMobileClose");
+    const navLinks = mobileMenu ? mobileMenu.querySelectorAll("a") : [];
+
+    let lastScrollY = window.scrollY;
+    window.addEventListener("scroll", function () {
+        const currentScrollY = window.scrollY;
+        if (!navbar) return;
+
+        if (currentScrollY <= 10 || currentScrollY < lastScrollY) {
+            navbar.classList.remove("nav-hidden");
+        } else if (currentScrollY > lastScrollY) {
+            navbar.classList.add("nav-hidden");
+        }
+        lastScrollY = currentScrollY;
+    }, { passive: true });
+    
+    function toggleMobileMenu() {
+        const isOpen = mobileMenu.classList.contains("active");
+        if (isOpen) {
+            mobileMenu.classList.remove("active");
+            menuButton.setAttribute("aria-expanded", "false");
+            document.body.style.overflow = "";
+        } else {
+            mobileMenu.classList.add("active");
+            menuButton.setAttribute("aria-expanded", "true");
+            document.body.style.overflow = "hidden";
+        }
+    }
+    if (menuButton && mobileMenu) {
+        menuButton.addEventListener("click", toggleMobileMenu);
+        closeButton && closeButton.addEventListener("click", function () {
+            mobileMenu.classList.remove("active");
+            menuButton.setAttribute("aria-expanded", "false");
+            document.body.style.overflow = "";
+        });
+        navLinks.forEach(function (link) {
+            link.addEventListener("click", function () {
+                mobileMenu.classList.remove("active");
+                menuButton.setAttribute("aria-expanded", "false");
+                document.body.style.overflow = "";
+            });
+        });
+    }
+
+    const notifButton = document.querySelector('.es-notif-btn');
+    const notifDropdown = document.querySelector('.es-notif-dropdown');
+    const notifList = document.querySelector('.es-notif-list');
+    const notifBadge = document.querySelector('.es-notif-badge');
+    const notifMarkAll = document.querySelector('.es-notif-mark');
+    const notifEmailInput = document.querySelector('.es-notif-email-input');
+    const notifEmailBtn = document.querySelector('.es-notif-email-btn');
+    let currentReplies = [];
+
+    function escapeHtml(value) {
+        return String(value || '').replace(/[&<>\"']/g, function (char) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[char];
+        });
+    }
+
+    function renderReplies(replies) {
+        currentReplies = replies || [];
+        const unread = currentReplies.filter(function (reply) { return !reply.read; });
+        if (notifBadge) {
+            notifBadge.textContent = String(unread.length);
+            notifBadge.style.display = unread.length ? 'flex' : 'none';
+        }
+
+        if (!currentReplies.length) {
+            notifList.innerHTML = '<p class="es-notif-empty">No admin replies to your messages yet.</p>';
+            return;
+        }
+
+        notifList.innerHTML = currentReplies.map(function (reply) {
+            return '<div class="es-notif-item ' + (reply.read ? '' : 'unread') + '">' +
+                '<div class="es-notif-item-head"><strong class="es-notif-item-title">' + escapeHtml(reply.subject) + '</strong>' +
+                (reply.read ? '' : '<span>New</span>') +
+                '</div>' +
+                '<p>' + escapeHtml(reply.response || 'Admin replied to your message.') + '</p>' +
+                '<small>' + escapeHtml(reply.responded_by || 'Admin') + ' • ' + escapeHtml(reply.responded_at || '') + '</small>' +
+                '<div class="es-notif-item-actions">' +
+                '<button type="button" class="es-notif-action es-notif-read" data-reply-id="' + escapeHtml(reply.id) + '" aria-label="Mark as read" title="Mark as read" ' + (reply.read ? 'disabled' : '') + '><i class="fas fa-check" aria-hidden="true"></i></button>' +
+                '<button type="button" class="es-notif-action es-notif-delete" data-reply-id="' + escapeHtml(reply.id) + '" aria-label="Delete notification" title="Delete notification"><i class="fas fa-trash" aria-hidden="true"></i></button>' +
+                '</div>' +
+                '</div>';
+        }).join('');
+    }
+
+    function fetchReplies(email) {
+        let url = '/contact/replies';
+        if (email) {
+            url = '/contact/replies?email=' + encodeURIComponent(email);
+        }
+
+        fetch(url)
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                renderReplies(data.replies || []);
+            })
+            .catch(function () {
+                renderReplies([]);
+            });
+    }
+
+    function markRepliesRead(ids) {
+        if (!ids.length) return;
+        fetch('/contact/replies/mark-read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: ids })
+        }).then(function () {
+            fetchReplies();
+        });
+    }
+
+    function deleteReply(id) {
+        fetch('/contact/replies/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: [id] })
+        }).then(function (response) {
+            if (!response.ok) throw new Error('Unable to delete notification');
+            currentReplies = currentReplies.filter(function (reply) {
+                return String(reply.id) !== String(id);
+            });
+            renderReplies(currentReplies);
+        }).catch(function () {
+            fetchReplies();
+        });
+    }
+
+    if (notifButton && notifDropdown) {
+        notifButton.addEventListener('click', function () {
+            notifDropdown.classList.toggle('active');
+            if (notifDropdown.classList.contains('active')) {
+                fetchReplies();
+            }
+        });
+
+        document.addEventListener('click', function (event) {
+            if (!notifDropdown.contains(event.target) && !notifButton.contains(event.target)) {
+                notifDropdown.classList.remove('active');
+            }
+        });
+    }
+
+    if (notifMarkAll) {
+        notifMarkAll.addEventListener('click', function () {
+            const ids = currentReplies.filter(function (reply) { return !reply.read; }).map(function (reply) { return reply.id; });
+            markRepliesRead(ids);
+        });
+    }
+
+    if (notifList) {
+        notifList.addEventListener('click', function (event) {
+            const action = event.target.closest('.es-notif-action');
+            if (!action || action.disabled) return;
+            const id = action.getAttribute('data-reply-id');
+            if (!id) return;
+            if (action.classList.contains('es-notif-delete')) {
+                deleteReply(id);
+            } else if (action.classList.contains('es-notif-read')) {
+                markRepliesRead([id]);
+            }
+        });
+    }
+
+    if (notifEmailBtn && notifEmailInput) {
+        notifEmailBtn.addEventListener('click', function () {
+            const email = (notifEmailInput.value || '').trim();
+            if (!email) {
+                fetchReplies();
+                return;
+            }
+            fetch('/contact/replies/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email })
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                renderReplies(data.replies || []);
+                notifDropdown.classList.add('active');
+            })
+            .catch(function () {
+                renderReplies([]);
+            });
+        });
+    }
+
+    fetchReplies();
+});
+</script>
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div style="max-width:800px;margin:16px auto;padding:0 20px;position:relative;z-index:10;">
+{% for category, message in messages %}
+<div class="alert alert-{{ category }}">
+<i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+{{ message }}
+</div>
+{% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+    {% block content %}{% endblock %}
+
+<footer class="footer">
+    <div class="footer-glow footer-glow-one"></div>
+    <div class="footer-glow footer-glow-two"></div>
+
+    <div class="cta-card">
+        <div class="cta-orbit orbit-one"></div>
+        <div class="cta-orbit orbit-two"></div>
+        <div class="cta-map" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="cta-content">
+            <span class="eyebrow">Climate intelligence platform</span>
+            <h2>Experience superior<br>climate analytics</h2>
+            <p>150+ environmental data points per search.</p>
+        </div>
+        <a class="primary-button" href="{{ url_for('public.contact') }}">Get started <i class="fas fa-arrow-up-right-from-square" style="font-size: 14px;"></i></a>
+    </div>
+
+    <div class="footer-main">
+        <div class="brand-column">
+            <a class="brand" href="#top" aria-label="EarthScape Climate home">
+                <img src="{{ url_for('static', filename='earthscape.png') }}" alt="EarthScape Climate logo" class="footer-logo">
+            </a>
+            <p class="address"><i class="fas fa-map-marker-alt" style="margin-top: 3px; margin-right: 8px;">
+
+            </i> Jameel Jalabi Road, Block-B<br>&nbsp;&nbsp;&nbsp;&nbsp;Aptech North Nazimabad Town<br>&nbsp;&nbsp;&nbsp;&nbsp;Karachi, 74700, Pakistan</p>
+            <div class="contact-row" id="contact">
+                <div><span>Phone number</span><a href="tel:+922136630103"><i class="fas fa-phone" style="font-size: 11px;"></i> (+92) 2136630103</a></div>
+                <div><span>Email</span><a href="mailto:info-nn@aptechnorth.edu.pk"><i class="fas fa-envelope" style="font-size: 11px;"></i> info-nn@aptechnorth.edu.pk</a></div>
+            </div>
+        </div>
+
+        <nav class="link-grid" aria-label="Footer navigation">
+            <div class="link-column">
+                <h3>Quick links</h3>
+                <a href="{{ url_for('public.about') }}">About us</a>
+                <a href="{{ url_for('public.services') }}">Services</a>
+                <a href="{{ url_for('public.climate_insights') }}">Climate Insights</a> 
+                <a href="{{ url_for('public.realtime_climate') }}">Realtime Climate</a>
+                <a href="{{ url_for('public.public_alerts') }}">Climate Alerts</a>
+                <a href="{{ url_for('public.contact') }}">Contact</a>
+            </div>
+            <div class="link-column">
+                <h3>Social</h3>
+                <a class="social-link twitter" href="https://twitter.com" target="_blank" rel="noopener" aria-label="Twitter">
+                    <span class="social-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                            <path fill="currentColor" d="M18.9 2h3.68l-8.04 9.19L22.5 22h-7.27l-5.69-8.35L3.2 22H-.5l8.62-9.85L.9 2h7.45l5.13 7.56L18.9 2Zm-1.29 18h2.03L6.08 3.9H3.94L17.61 20Z"/></svg>
+                    </span>
+                    <span>Twitter</span>
+                </a>
+                <a class="social-link linkedin" href="https://linkedin.com" target="_blank" rel="noopener" aria-label="LinkedIn">
+                    <span class="social-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                            <path fill="currentColor" d="M6.94 8.5A1.56 1.56 0 1 1 6.94 5.4a1.56 1.56 0 0 1 0 3.1ZM5.5 9.7h2.88v9.3H5.5V9.7Zm4.6 0h2.76v1.27h.04c.38-.72 1.32-1.48 2.72-1.48 2.9 0 3.43 1.9 3.43 4.38V19H17.6v-17.6h-2.88v6.46c0 1.52-.03 3.47-2.11 3.47-2.11 0-2.44-1.65-2.44-3.35V9.7Z"/></svg>
+                    </span>
+                    <span>LinkedIn</span>
+                </a>
+                <a class="social-link instagram" href="https://instagram.com" target="_blank" rel="noopener" aria-label="Instagram">
+                    <span class="social-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                            <path fill="currentColor" d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7Zm5 3.2A4.8 4.8 0 1 1 7.2 12 4.8 4.8 0 0 1 12 7.2Zm0 2A2.8 2.8 0 1 0 14.8 12 2.8 2.8 0 0 0 12 9.2Zm5.1-3.1a1.1 1.1 0 1 1-1.1 1.1 1.1 1.1 0 0 1 1.1-1.1Z"/></svg>
+                    </span>
+                    <span>Instagram</span>
+                </a>
+                <a class="social-link email" href="mailto:info-nn@aptechnorth.edu.pk" aria-label="Email">
+                    <span class="social-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                            <path fill="currentColor" d="M3 6.75A2.75 2.75 0 0 1 5.75 4h12.5A2.75 2.75 0 0 1 21 6.75v10.5A2.75 2.75 0 0 1 18.25 20H5.75A2.75 2.75 0 0 1 3 17.25V6.75Zm2.2-.25 6.8 5.16 6.8-5.16H5.2Zm13.55 2.02-6.35 4.82a1 1 0 0 1-1.2 0L5.25 8.52v8.73c0 .42.34.76.76.76h12.38c.42 0 .76-.34.76-.76V8.52Z"/></svg>
+                    </span>
+                    <span>Email</span>
+                </a>
+            </div>
+            <div class="link-column">
+                <h3>Legal</h3>
+                <a href="{{ url_for('public.help_page') }}">Articles</a>
+                <a href="#data-sources">Data Sources</a>
+                <a href="#research-papers">Research Papers</a>
+                <a href="#terms-of-service">Terms of service</a>
+                <a href="#privacy-policy">Privacy policy</a>
+            </div>
+        </nav>
+    </div>
+
+    <div class="footer-bottom">
+        <span>© 2026 EarthScape Climate Agency. All rights reserved.</span>
+        <span class="status"><i></i> Systems operational</span>
+    </div>
+</footer>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+/* Global Footer Styles */
+:root {
+    color: #f3f5f7;
+    background: #020304;
+    font-family: 'Manrope', sans-serif;
+    font-synthesis: none;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.eyebrow {
+    color: #858c8f;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    display: inline-block;
+    font-weight: 500;
+}
+
+.footer {
+    position: relative;
+    isolation: isolate;
+    padding: 42px clamp(20px, 5vw, 76px) 22px;
+    background:
+        radial-gradient(circle at 15% 20%, rgba(47, 113, 162, 0.32), transparent 22%),
+        radial-gradient(circle at 78% 10%, rgba(46, 93, 147, 0.18), transparent 22%),
+        linear-gradient(180deg, rgba(3, 10, 18, 0.96) 0%, rgba(7, 17, 27, 0.95) 28%, rgba(2, 7, 11, 0.98) 100%);
+    border-top: 1px solid rgba(148, 176, 201, 0.16);
+    overflow: hidden;
+    font-family: 'Manrope', sans-serif;
+    color: #f3f5f7;
+}
+
+.footer:before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background:
+        linear-gradient(120deg, rgba(9, 18, 28, 0.72), rgba(6, 10, 18, 0.52) 40%, rgba(0, 0, 0, 0.58) 100%),
+        radial-gradient(circle at 50% 20%, rgba(125, 206, 255, 0.12), transparent 28%);
+    pointer-events: none;
+}
+
+.footer:after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: linear-gradient(180deg, rgba(2, 8, 15, 0.2), rgba(0, 0, 0, 0.28));
+    pointer-events: none;
+}
+
+.footer-glow {
+    position: absolute;
+    width: 360px;
+    height: 360px;
+    z-index: 3;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: 0.18;
+    pointer-events: none;
+}
+
+.footer-glow-one {
+    top: 130px;
+    left: -170px;
+    background: #288b83;
+}
+
+.footer-glow-two {
+    top: 20px;
+    right: -160px;
+    background: #65739d;
+}
+
+/* CTA Card Styles - Call to Action Section */
+.cta-card {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 28px;
+    min-height: 234px;
+    max-width: 1288px;
+    margin: 0 auto 50px;
+    padding: 38px clamp(24px, 4vw, 58px);
+    overflow: hidden;
+    border: 1px solid #252b2d49;
+    border-radius: 9px;
+    background-image: url('https://sxcontent9668.azureedge.us/cms-assets/assets/home_hero_ba20d17dfc.webp');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.36);
+    z-index: 10;
+}
+
+.cta-card:before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background: radial-gradient(circle at 70% 48%, rgba(58, 99, 111, 0.35), transparent 30%),
+                radial-gradient(circle at 45% 80%, rgba(92, 40, 81, 0.28), transparent 24%);
+}
+
+.cta-card:after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(90deg, rgba(8, 11, 12, 0.411) 0%, rgba(8, 11, 12, 0.432) 44%, rgba(8, 11, 12, 0.288) 100%);
+    pointer-events: none;
+}
+
+.cta-content {
+    position: relative;
+    z-index: 2;
+}
+
+.cta-content h2 {
+    margin: 13px 0 14px;
+    color: #f8f8f8;
+    font-size: clamp(2.25rem, 4vw, 4.15rem);
+    line-height: 0.95;
+    letter-spacing: -0.07em;
+    font-weight: 700;
+    text-transform: none !important;
+}
+
+.cta-content p {
+    margin: 0;
+    color: #858d90;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.primary-button {
+    position: relative;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 28px;
+    padding: 16px 18px 16px 24px;
+    flex-shrink: 0;
+    border: 2px solid #fff;
+    border-radius: 5px;
+    color: #111516;
+    background: #e9ece9;
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-decoration: none;
+    transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+.primary-button:hover {
+    transform: translateY(-3px);
+    background: #fff;
+    color: #000;
+    border-color: #fff;
+    box-shadow: 0 15px 40px rgba(255, 255, 255, 0.25);
+}
+
+.cta-orbit {
+    position: absolute;
+    z-index: -1;
+    border: 1px solid rgba(145, 164, 178, 0.34);
+    border-radius: 50%;
+    transform: rotate(-24deg);
+}
+
+.orbit-one {
+    width: 320px;
+    height: 520px;
+    top: -140px;
+    right: 32px;
+}
+
+.orbit-two {
+    width: 240px;
+    height: 390px;
+    top: -70px;
+    right: 78px;
+    border-color: rgba(131, 146, 173, 0.2);
+}
+
+.cta-map {
+    position: absolute;
+    right: 102px;
+    top: 50%;
+    width: 160px;
+    height: 130px;
+    transform: translateY(-50%);
+    opacity: 0.46;
+}
+
+.cta-map span {
+    position: absolute;
+    display: block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #d7dbd9;
+    box-shadow: 0 0 12px #b1ddd9;
+}
+
+.cta-map span:nth-child(1) { top: 27px; left: 65px; }
+.cta-map span:nth-child(2) { top: 48px; left: 103px; }
+.cta-map span:nth-child(3) { top: 70px; left: 56px; }
+.cta-map span:nth-child(4) { top: 89px; left: 83px; }
+.cta-map span:nth-child(5) { top: 58px; left: 28px; }
+
+/* Footer Main Content Grid */
+.footer-main {
+    display: grid;
+    grid-template-columns: minmax(340px, 1.15fr) minmax(450px, 1fr);
+    gap: 60px;
+    max-width: 1288px;
+    margin: 0 auto;
+    padding-bottom: 44px;
+    position: relative;
+    z-index: 10;
+}
+
+.brand-column {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    width: fit-content;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.brand:hover {
+    opacity: 1;
+}
+
+.footer-logo {
+    height: 140px;
+    width: auto;
+    max-width: 480px;
+    object-fit: contain;
+    display: block;
+    transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+.brand:hover .footer-logo {
+    filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.9));
+    transform: scale(1.02);
+}
+
+.brand-mark {
+    display: grid;
+    place-items: center;
+    width: 80px;
+    height: 80px;
+    border: 2px solid #84918d;
+    border-radius: 50%;
+    color: #d2ded9;
+    transition: all 0.3s ease;
+    font-size: 36px;
+}
+
+.brand:hover .brand-mark {
+    border-color: #fff;
+    box-shadow: 0 0 20px rgba(210, 222, 217, 0.5), 0 0 40px rgba(255, 255, 255, 0.2);
+}
+
+.brand strong {
+    display: block;
+    color: #f5f7f5;
+    font-size: 1.6rem;
+    letter-spacing: -0.06em;
+    font-weight: 700;
+}
+
+.brand small {
+    display: block;
+    margin-top: 6px;
+    color: #7e8888;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+}
+
+.address {
+    display: flex;
+    flex-wrap: wrap;
+    color: #727b7d;
+    font-size: 0.85rem;
+    line-height: 1.8;
+    gap: 4px;
+}
+
+.address svg {
+    margin: 3px 8px 0 0;
+    color: #9ba8a5;
+    flex-shrink: 0;
+}
+
+.contact-row {
+    display: flex;
+    gap: clamp(28px, 5vw, 76px);
+    flex-wrap: wrap;
+}
+
+.contact-row div {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.contact-row span,
+.link-column h3 {
+    color: #697276;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.contact-row a {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #b5bbba;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: color 0.2s ease, transform 0.2s ease, background 0.2s ease, padding 0.2s ease;
+}
+
+.contact-row a:hover,
+.link-column a:hover {
+    color: #fff;
+    transform: translateX(3px);
+    background: rgba(255, 255, 255, 0.08);
+    padding: 4px 8px;
+    border-radius: 3px;
+}
+
+/* Footer Links Grid */
+.link-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+    padding-top: 5px;
+}
+
+.link-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.link-column h3 {
+    margin: 0 0 14px;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #e8eaea;
+    letter-spacing: 0.08em;
+}
+
+.link-column a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #8b9394;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: color 0.2s ease, transform 0.2s ease, background 0.2s ease, padding 0.2s ease, box-shadow 0.2s ease;
+    font-weight: 500;
+}
+
+.social-link {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px 7px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.social-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 0.8rem;
+    background: rgba(255, 255, 255, 0.12);
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.social-icon svg {
+    width: 12px;
+    height: 12px;
+    display: block;
+    color: inherit;
+}
+
+.social-link.twitter .social-icon { background: #1da1f2; }
+.social-link.linkedin .social-icon { background: #0a66c2; }
+.social-link.instagram .social-icon { background: linear-gradient(135deg, #f9ce34, #ee2a7b, #6228d7); }
+.social-link.email .social-icon { background: #4f8cff; }
+
+.social-link:hover {
+    color: #fff;
+    transform: translateX(2px) scale(1.01);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.link-column a:hover {
+    color: #fff;
+    transform: translateX(2px);
+}
+
+/* Footer Bottom Copyright */
+.footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    max-width: 1288px;
+    margin: 0 auto;
+    padding-top: 18px;
+    border-top: 1px solid #1b2022;
+    color: #596164;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    position: relative;
+    z-index: 10;
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status i {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #8ec6ab;
+    box-shadow: 0 0 8px #8ec6ab;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* Responsive Design - Tablet */
+@media (max-width: 800px) {
+    .showcase-space {
+        min-height: 44vh;
+    }
+    
+    .cta-card {
+        align-items: flex-start;
+        flex-direction: column;
+        min-height: 330px;
+    }
+    
+    .primary-button {
+        margin-top: 8px;
+    }
+    
+    .cta-map {
+        right: 32px;
+        bottom: 24px;
+        top: auto;
+        transform: none;
+    }
+    
+    .orbit-one {
+        right: -40px;
+    }
+    
+    .orbit-two {
+        right: 10px;
+    }
+    
+    .footer-main {
+        grid-template-columns: 1fr;
+        gap: 46px;
+    }
+    
+    .link-grid {
+        max-width: 600px;
+    }
+    
+    .footer-bottom {
+        flex-direction: column;
+    }
+}
+
+/* Responsive Design - Mobile */
+@media (max-width: 520px) {
+    .footer {
+        padding-inline: 16px;
+    }
+
+    .showcase-space {
+        padding-inline: 20px;
+    }
+    
+    .showcase-space h1 {
+        font-size: 3rem;
+    }
+    
+    .cta-card {
+        padding: 28px 22px;
+    }
+    
+    .cta-content h2 {
+        font-size: 2.5rem;
+    }
+    
+    .link-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 34px 20px;
+    }
+    
+    .link-column:last-child {
+        grid-column: 1 / -1;
+    }
+    
+    .footer-main {
+        gap: 38px;
+    }
+    
+    .contact-row {
+        flex-direction: column;
+        gap: 20px;
+    }
+}
+</style>
+{% endblock %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

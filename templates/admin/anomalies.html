@@ -1,0 +1,159 @@
+{% extends "admin/base.html" %}
+{% block page_title %}Anomaly Detection Monitor{% endblock %}
+{% block content %}
+<!-- Summary Stats -->
+<div class="grid grid-4 mb-3">
+    <div class="stat-card"><div class="stat-icon red"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-info"><h4>Anomalies Found</h4><div class="stat-value">{{ total_found }}</div></div></div>
+    <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-sliders-h"></i></div><div class="stat-info"><h4>Last Threshold</h4><div class="stat-value">{{ threshold }}</div></div></div>
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-thermometer-half"></i></div><div class="stat-info"><h4>Avg Temp</h4><div class="stat-value">{{ "%.1f"|format(summary.avg_temp) }}°C</div></div></div>
+    <div class="stat-card"><div class="stat-icon teal"><i class="fas fa-tint"></i></div><div class="stat-info"><h4>Avg Rainfall</h4><div class="stat-value">{{ "%.1f"|format(summary.avg_rainfall) }}mm</div></div></div>
+</div>
+
+<!-- Processing status overview -->
+<div class="grid grid-4 mb-3">
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-layer-group"></i></div><div class="stat-info"><h4>{{ run_stats.total }}</h4><p>Total Runs</p></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h4>{{ run_stats.completed }}</h4><p>Completed</p></div></div>
+    <div class="stat-card"><div class="stat-icon red"><i class="fas fa-times-circle"></i></div><div class="stat-info"><h4>{{ run_stats.failed }}</h4><p>Failed</p></div></div>
+    <div class="stat-card"><div class="stat-icon teal"><i class="fas fa-clock"></i></div>
+        <div class="stat-info"><h4 style="font-size:15px;">{{ latest_run.created_at|fmtdatetime if latest_run else '—' }}</h4><p>Last Successful Run</p></div></div>
+</div>
+
+<!-- Run history / processing status -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h3><i class="fas fa-history"></i> Processing Status ({{ runs|length }} runs)</h3>
+        <div class="card-actions"><span class="badge badge-gray">Read-only — detection runs are performed by Analysts</span></div>
+    </div>
+    <div class="card-body">
+        <table class="table">
+            <thead>
+                <tr><th>Run</th><th>Status</th><th>Threshold</th><th>Records Scanned</th><th>Anomalies</th><th>Critical</th><th>Run By</th><th>When</th></tr>
+            </thead>
+            <tbody>
+                {% for run in runs %}
+                <tr>
+                    <td><strong>#{{ run.id }}</strong></td>
+                    <td>
+                        {% if run.status == 'completed' %}
+                        <span class="badge badge-green"><i class="fas fa-check-circle"></i> Completed</span>
+                        {% else %}
+                        <span class="badge badge-red" title="{{ run.error or '' }}"><i class="fas fa-times-circle"></i> Failed</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ run.threshold }}</td>
+                    <td>{{ run.records_scanned }}</td>
+                    <td>{{ run.anomalies_found }}</td>
+                    <td>{% if run.critical_count > 0 %}<span class="badge badge-red">{{ run.critical_count }}</span>{% else %}0{% endif %}</td>
+                    <td>{{ run.run_by_name }}</td>
+                    <td><small>{{ run.created_at|fmtdatetime }}</small></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-center" style="color:var(--gray-400);padding:24px;">No detection runs recorded yet — analysts have not performed any anomaly detection.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Latest results charts -->
+<div class="card mb-3">
+    <div class="card-header"><h3><i class="fas fa-chart-scatter"></i> Latest Results — Anomaly Z-Score Distribution</h3>
+        <div class="card-actions">
+            {% if latest_run %}
+            <span class="badge badge-gray">Run #{{ latest_run.id }} — {{ latest_run.run_by_name }} — {{ latest_run.created_at[:16].replace('T', ' ') }}</span>
+            {% else %}
+            <span class="badge badge-gray">Live scan (no analyst runs yet)</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body"><div style="height:300px;"><canvas id="anomalyScatter"></canvas></div></div>
+</div>
+
+<div class="grid grid-2 mb-3">
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-thermometer-full"></i> Temperature Anomalies</h3></div>
+        <div class="card-body"><div style="height:250px;"><canvas id="tempAnomalyChart"></canvas></div></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-tint"></i> Rainfall Anomalies</h3></div>
+        <div class="card-body"><div style="height:250px;"><canvas id="rainAnomalyChart"></canvas></div></div>
+    </div>
+</div>
+
+<!-- Anomaly Table -->
+<div class="card">
+    <div class="card-header"><h3><i class="fas fa-list"></i> Detected Anomalies ({{ total_found }})</h3></div>
+    <div class="card-body">
+        <table class="table">
+            <thead><tr><th>Date</th><th>Station</th><th>Temp (°C)</th><th>Rainfall (mm)</th><th>Temp Z-Score</th><th>Rain Z-Score</th><th>Severity</th></tr></thead>
+            <tbody>
+                {% for a in anomalies %}
+                <tr>
+                    <td>{{ a.date or 'N/A' }}</td>
+                    <td>{{ a.station_name or 'N/A' }}</td>
+                    <td>{{ "%.1f"|format(a.temperature) if a.temperature else 'N/A' }}</td>
+                    <td>{{ "%.1f"|format(a.rainfall) if a.rainfall else 'N/A' }}</td>
+                    <td><span class="badge badge-{{ 'red' if a.temp_z_score and a.temp_z_score > 3 else 'yellow' }}">{{ "%.2f"|format(a.temp_z_score) if a.temp_z_score else 'N/A' }}</span></td>
+                    <td><span class="badge badge-{{ 'red' if a.rain_z_score and a.rain_z_score > 3 else 'yellow' }}">{{ "%.2f"|format(a.rain_z_score) if a.rain_z_score else 'N/A' }}</span></td>
+                    <td>
+                        {% if (a.temp_z_score or 0) > 3 or (a.rain_z_score or 0) > 3 %}
+                            <span class="badge badge-red">Critical</span>
+                        {% else %}
+                            <span class="badge badge-yellow">Moderate</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-center">No anomalies detected at this threshold</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script id="anomalyCfg" type="application/json" data-url="{{ url_for('admin.analytics_anomaly_data') }}"></script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}?v=20260813"></script>
+<script>
+var cfgEl = document.getElementById('anomalyCfg');
+var anomalyUrl = cfgEl.getAttribute('data-url');
+
+function loadAnomalyCharts(data) {
+    if (!data || data.length === 0) {
+        EarthScapeCharts.message('anomalyScatter', 'No anomalies detected at this threshold');
+        EarthScapeCharts.message('tempAnomalyChart', 'No anomalies detected at this threshold');
+        EarthScapeCharts.message('rainAnomalyChart', 'No anomalies detected at this threshold');
+        return;
+    }
+    EarthScapeCharts.renderAnomaly('anomalyScatter', data);
+
+    var tempPoints = data.map(function(a, i) { return { x: i, y: a.temperature || 0 }; });
+    EarthScapeCharts.create('tempAnomalyChart', {
+        type: 'scatter',
+        data: { datasets: [{ label: 'Temperature', data: tempPoints, backgroundColor: data.map(function(a) { return (a.temp_z_score || 0) > 2 ? '#ef4444' : '#0d9488'; }), pointRadius: 6 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
+    });
+
+    var rainPoints = data.map(function(a, i) { return { x: i, y: a.rainfall || 0 }; });
+    EarthScapeCharts.create('rainAnomalyChart', {
+        type: 'scatter',
+        data: { datasets: [{ label: 'Rainfall', data: rainPoints, backgroundColor: data.map(function(a) { return (a.rain_z_score || 0) > 2 ? '#3b82f6' : '#0d9488'; }), pointRadius: 6 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    fetch(anomalyUrl)
+        .then(function(r) { return r.json(); })
+        .then(loadAnomalyCharts)
+        .catch(function() {
+            EarthScapeCharts.message('anomalyScatter', 'Failed to load anomaly data');
+            EarthScapeCharts.message('tempAnomalyChart', 'Failed to load anomaly data');
+            EarthScapeCharts.message('rainAnomalyChart', 'Failed to load anomaly data');
+        });
+});
+</script>
+{% endblock %}

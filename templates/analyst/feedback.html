@@ -1,0 +1,123 @@
+{% extends "analyst/base.html" %}
+{% block page_title %}Feedback & Support{% endblock %}
+{% block content %}
+<!-- Feedback Stats -->
+<div class="grid grid-3" style="margin-bottom:20px;">
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="fas fa-paper-plane"></i></div>
+        <div class="stat-info"><h4>Total Feedback</h4><div class="stat-value">{{ total_feedback }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-info"><h4>Resolved</h4><div class="stat-value">{{ resolved_count }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon orange"><i class="fas fa-clock"></i></div>
+        <div class="stat-info"><h4>Pending</h4><div class="stat-value">{{ pending_count }}</div></div>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <!-- Submit Feedback -->
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-paper-plane"></i> Submit Feedback</h3></div>
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="submit_feedback">
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" name="subject" class="form-control" placeholder="What's this about?" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select name="category" class="form-control">
+                        <option value="general">General Feedback</option>
+                        <option value="bug">Bug Report</option>
+                        <option value="feature">Feature Request</option>
+                        <option value="data">Data Quality Issue</option>
+                        <option value="support">Technical Support</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select name="priority" class="form-control">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Message</label>
+                    <textarea name="message" class="form-control" rows="5" placeholder="Describe your feedback in detail..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Attachment <small style="color:var(--gray-400);">(optional: png, jpg, pdf, txt, csv, log)</small></label>
+                    <div class="modern-file-input">
+                        <div class="modern-file-icon"><i class="fas fa-paperclip"></i></div>
+                        <div class="modern-file-text">
+                            <strong id="feedbackFileName">Attach a file (optional)</strong>
+                            <small>PNG, JPG, PDF, TXT, CSV, LOG</small>
+                        </div>
+                        <span class="modern-file-badge">Choose File</span>
+                        <input type="file" name="attachment" accept=".png,.jpg,.jpeg,.gif,.pdf,.txt,.csv,.log" onchange="document.getElementById('feedbackFileName').textContent=this.files[0]?.name||'Attach a file (optional)'">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Submit Feedback</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Feedback History -->
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-history"></i> My Feedback History</h3></div>
+        <div class="card-body">
+            {% for fb in feedback_list %}
+            <div style="padding:12px 0;border-bottom:1px solid var(--gray-100);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                    <a href="{{ url_for('analyst.view_feedback', feedback_id=fb.id) }}" style="color:inherit;text-decoration:none;">
+                        <strong style="font-size:14px;">{{ fb.subject }}</strong>
+                    </a>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        <span class="badge badge-{{ 'green' if fb.status == 'resolved' else 'yellow' if fb.status == 'in_progress' else 'teal' }}">{{ fb.status|replace('_', ' ')|title }}</span>
+                        {% if fb.status != 'closed' %}
+                        <a href="{{ url_for('analyst.view_feedback', feedback_id=fb.id) }}#replyToAdmin" class="btn btn-sm btn-primary" title="Reply to Admin"><i class="fas fa-reply"></i> Reply to Admin</a>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('analyst.feedback') }}" onsubmit="return confirm('Delete this feedback?')" style="display:inline;">
+                            <input type="hidden" name="action" value="delete_feedback">
+                            <input type="hidden" name="feedback_id" value="{{ fb.id }}">
+                            <button type="submit" class="btn btn-sm btn-danger" title="Delete" style="padding:2px 8px;"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </div>
+                </div>
+                <p style="font-size:13px;color:var(--gray-600);margin:4px 0;">{{ fb.message[:120] }}{% if fb.message|length > 120 %}...{% endif %}</p>
+                <div style="display:flex;gap:16px;font-size:12px;color:var(--gray-400);margin-top:6px;">
+                    <span><i class="fas fa-tag"></i> {{ fb.category|capitalize }}</span>
+                    <span><i class="fas fa-clock"></i> {{ fb.created_at|fmtdatetime }}</span>
+                    {% if fb.attachment_path %}
+                    <span><i class="fas fa-paperclip"></i> Has attachment</span>
+                    {% endif %}
+                </div>
+                {% if fb.response %}
+                <div style="margin-top:8px;padding:8px 12px;background:var(--gray-50);border-radius:6px;border-left:3px solid var(--primary);">
+                    <strong style="font-size:12px;"><i class="fas fa-reply"></i> Admin Response:</strong>
+                    <p style="font-size:13px;margin:4px 0 0;">{{ fb.response[:200] }}{% if fb.response|length > 200 %}...{% endif %}</p>
+                    <a href="{{ url_for('analyst.view_feedback', feedback_id=fb.id) }}" style="font-size:11px;color:var(--primary);">View full detail</a>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:32px;color:var(--gray-400);">
+                <i class="fas fa-inbox" style="font-size:32px;margin-bottom:8px;display:block;"></i>
+                <p>No feedback submitted yet</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Quick Help Link -->
+<div style="text-align:center;margin-top:20px;">
+    <a href="{{ url_for('analyst.knowledge_base') }}" class="btn btn-outline"><i class="fas fa-book"></i> Browse Help Center / FAQ</a>
+</div>
+{% endblock %}

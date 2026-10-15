@@ -1,0 +1,296 @@
+{% extends "analyst/base.html" %}
+
+{% block page_title %}Feedback Detail #{{ feedback.id }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>
+            <i class="fas fa-comment-dots"></i>
+            Feedback #{{ feedback.id }}: {{ feedback.subject }}
+        </h3>
+
+        <div class="card-actions">
+            <a href="{{ url_for('analyst.feedback') }}" class="btn btn-sm btn-outline">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <div class="card-body">
+
+        <!-- Status Badges -->
+        <div style="display:flex; gap:8px; margin-bottom:16px;">
+
+            {% if feedback.status == 'resolved' %}
+                <span class="badge badge-green">Resolved</span>
+            {% elif feedback.status == 'in_progress' %}
+                <span class="badge badge-yellow">In Progress</span>
+            {% else %}
+                <span class="badge badge-red">
+                    {{ feedback.status|replace('_', ' ')|title }}
+                </span>
+            {% endif %}
+
+            {% if feedback.category == 'bug' %}
+                <span class="badge badge-teal">Bug</span>
+            {% elif feedback.category == 'feature' %}
+                <span class="badge badge-blue">Feature</span>
+            {% else %}
+                <span class="badge badge-gray">
+                    {{ feedback.category|title }}
+                </span>
+            {% endif %}
+
+            <span class="badge badge-gray">
+                Priority: {{ feedback.priority|default('medium', true)|title }}
+            </span>
+
+            {% if feedback.attachment_path %}
+                <span class="badge badge-gray">
+                    <i class="fas fa-paperclip"></i> Attachment
+                </span>
+            {% endif %}
+
+        </div>
+
+        <!-- Message -->
+        <div style="margin-bottom:20px;">
+            <h4>Message</h4>
+
+            <div style="padding:16px; background:var(--gray-50); border-radius:8px; line-height:1.7;">
+                {{ feedback.message }}
+            </div>
+        </div>
+
+        <!-- Attachment -->
+        {% if feedback.attachment_path %}
+        <div style="margin-bottom:20px;">
+            <h4>
+                <i class="fas fa-paperclip"></i> Attachment
+            </h4>
+
+            <a
+                href="{{ url_for('analyst.download_feedback_attachment', feedback_id=feedback.id) }}"
+                class="btn btn-sm btn-outline"
+            >
+                <i class="fas fa-download"></i> Download File
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Conversation -->
+        {% if feedback.messages %}
+        <div style="margin-bottom:20px;">
+
+            <h4>
+                <i class="fas fa-comments"></i> Conversation
+            </h4>
+
+            <div style="display:flex; flex-direction:column; gap:10px;">
+
+                {% for item in feedback.messages %}
+
+                    {% if item.sender_role == 'analyst' %}
+
+                        <div style="
+                            padding:14px;
+                            background:var(--gray-50);
+                            border-radius:8px;
+                            border-left:3px solid var(--gray-300);
+                        ">
+                            <strong style="font-size:12px;">You</strong>
+
+                            <p style="
+                                margin:4px 0 0;
+                                line-height:1.7;
+                                white-space:pre-wrap;
+                            ">
+                                {{ item.message }}
+                            </p>
+
+                            <small style="color:var(--gray-400);">
+                                {{ item.created_at|fmtdatetime }}
+                            </small>
+                        </div>
+
+                    {% else %}
+
+                        <div style="
+                            padding:14px;
+                            background:var(--blue-50);
+                            border-radius:8px;
+                            border-left:3px solid var(--primary);
+                        ">
+                            <strong style="font-size:12px;">Admin</strong>
+
+                            <p style="
+                                margin:4px 0 0;
+                                line-height:1.7;
+                                white-space:pre-wrap;
+                            ">
+                                {{ item.message }}
+                            </p>
+
+                            <small style="color:var(--gray-400);">
+                                {{ item.created_at|fmtdatetime }}
+                            </small>
+                        </div>
+
+                    {% endif %}
+
+                {% endfor %}
+
+            </div>
+        </div>
+
+        <!-- Old Response -->
+        {% elif feedback.response %}
+
+        <div style="margin-bottom:20px;">
+
+            <h4>
+                <i class="fas fa-reply"></i> Admin Response
+            </h4>
+
+            <div style="
+                padding:16px;
+                background:var(--blue-50);
+                border-radius:8px;
+                border-left:3px solid var(--primary);
+                line-height:1.7;
+            ">
+                {{ feedback.response }}
+            </div>
+
+            {% if feedback.responded_at %}
+            <p style="
+                font-size:12px;
+                color:var(--gray-400);
+                margin-top:6px;
+            ">
+                Responded on {{ feedback.responded_at[:16] }}
+            </p>
+            {% endif %}
+
+        </div>
+
+        <!-- No Response -->
+        {% else %}
+
+        <div style="
+            padding:20px;
+            text-align:center;
+            color:var(--gray-400);
+            background:var(--gray-50);
+            border-radius:8px;
+        ">
+            <i
+                class="fas fa-hourglass-half"
+                style="
+                    font-size:24px;
+                    margin-bottom:8px;
+                    display:block;
+                "
+            ></i>
+
+            <p>No response yet. Your feedback is being reviewed.</p>
+        </div>
+
+        {% endif %}
+
+        <!-- Reply -->
+        {% if feedback.status != 'closed' %}
+
+        <div
+            id="replyToAdmin"
+            style="
+                margin-bottom:20px;
+                padding:16px;
+                background:var(--gray-50);
+                border-radius:8px;
+            "
+        >
+
+            <h4>
+                <i class="fas fa-reply"></i> Reply to Admin
+            </h4>
+
+            <form
+                method="POST"
+                action="{{ url_for('analyst.reply_feedback', feedback_id=feedback.id) }}"
+            >
+
+                <textarea
+                    name="response"
+                    class="form-control"
+                    rows="4"
+                    required
+                    placeholder="Write your reply..."
+                ></textarea>
+
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                    style="margin-top:10px;"
+                >
+                    <i class="fas fa-paper-plane"></i>
+                    Send Reply
+                </button>
+
+            </form>
+
+        </div>
+
+        {% endif %}
+
+        <!-- Submitted Date -->
+        <div style="
+            margin-top:20px;
+            display:flex;
+            gap:16px;
+            font-size:13px;
+            color:var(--gray-400);
+        ">
+            <span>
+                <i class="fas fa-clock"></i>
+                Submitted: {{ feedback.created_at }}
+            </span>
+        </div>
+
+        <!-- Delete -->
+        <div style="margin-top:20px;">
+
+            <form
+                method="POST"
+                action="{{ url_for('analyst.feedback') }}"
+                onsubmit="return confirm('Delete this feedback?')"
+            >
+
+                <input
+                    type="hidden"
+                    name="action"
+                    value="delete_feedback"
+                >
+
+                <input
+                    type="hidden"
+                    name="feedback_id"
+                    value="{{ feedback.id }}"
+                >
+
+                <button
+                    type="submit"
+                    class="btn btn-sm btn-danger"
+                >
+                    <i class="fas fa-trash"></i>
+                    Delete Feedback
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}

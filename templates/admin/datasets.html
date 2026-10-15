@@ -1,0 +1,754 @@
+{% extends "admin/base.html" %}
+{% block page_title %}Dataset Review & Approval{% endblock %}
+{% block content %}
+
+<style>
+    .stat-card.hl-total    { outline: 2px solid var(--primary); }
+    .stat-card.hl-pending  { outline: 2px solid var(--warning); }
+    .stat-card.hl-approved { outline: 2px solid var(--success); }
+    .stat-card.hl-rejected { outline: 2px solid var(--danger); }
+    .admin-upload-form { grid-template-columns: 1.2fr 1fr 1.4fr auto; }
+    .admin-file-picker {
+        min-height: 42px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 10px;
+        border: 1px solid rgba(84, 168, 255, 0.32);
+        border-radius: 10px;
+        background: linear-gradient(135deg, rgba(15, 36, 67, 0.9), rgba(9, 25, 46, 0.96));
+        cursor: pointer;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+    .admin-file-picker:hover,
+    .admin-file-picker.is-dragging,
+    .admin-file-picker:focus-within {
+        border-color: #7ee7d0;
+        background: linear-gradient(135deg, rgba(21, 57, 91, 0.95), rgba(10, 38, 61, 0.98));
+        box-shadow: 0 0 0 3px rgba(126, 231, 208, 0.1), 0 8px 22px rgba(7, 23, 48, 0.32);
+    }
+    .admin-file-picker input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    .admin-file-icon { color: #7ee7d0; font-size: 16px; }
+    .admin-file-label { flex: 1; min-width: 0; color: #d9edff; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .admin-file-label.is-empty { color: #86a5c2; }
+    .admin-file-action { color: #8cc1e9; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+    @media (max-width: 900px) { .admin-upload-form { grid-template-columns: 1fr 1fr; } .admin-upload-form button { width: 100%; } }
+    @media (max-width: 560px) { .admin-upload-form { grid-template-columns: 1fr; } }
+
+    /* ─── PROFESSIONAL ACTION BUTTONS UI ─────────────────────────────── */
+    .dataset-action-group {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .dataset-action-btn {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        height: 32px;
+        min-width: fit-content;
+        padding: 0 9px;
+        border: none;
+        border-radius: 5px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+        text-decoration: none;
+        white-space: nowrap;
+        letter-spacing: 0.2px;
+    }
+
+    .dataset-action-btn::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: inherit;
+        border-radius: inherit;
+        z-index: -1;
+    }
+
+    /* View Button - Professional Blue */
+    .dataset-action-btn.btn-view {
+        background: linear-gradient(135deg, #0055A0 0%, #003D7A 100%);
+        color: #ffffff;
+        border: 1px solid rgba(126, 231, 208, 0.2);
+    }
+
+    .dataset-action-btn.btn-view:hover {
+        background: linear-gradient(135deg, #006FCC 0%, #0055A0 100%);
+        box-shadow: 0 6px 16px rgba(0, 85, 160, 0.3);
+        transform: translateY(-1px);
+    }
+
+    .dataset-action-btn.btn-view:active {
+        transform: translateY(0);
+    }
+
+    /* Approve Button - Elegant Green */
+    .dataset-action-btn.btn-approve {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        color: #ffffff;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .dataset-action-btn.btn-approve:hover {
+        background: linear-gradient(135deg, #34D399 0%, #10B981 100%);
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+        transform: translateY(-1px);
+    }
+
+    .dataset-action-btn.btn-approve:active {
+        transform: translateY(0);
+    }
+
+    /* Reject Button - Warm Orange */
+    .dataset-action-btn.btn-reject {
+        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        color: #ffffff;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .dataset-action-btn.btn-reject:hover {
+        background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+        box-shadow: 0 6px 16px rgba(245, 158, 11, 0.3);
+        transform: translateY(-1px);
+    }
+
+    .dataset-action-btn.btn-reject:active {
+        transform: translateY(0);
+    }
+
+    /* Delete Button - Soft Red */
+    .dataset-action-btn.btn-delete {
+        background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+        color: #ffffff;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .dataset-action-btn.btn-delete:hover {
+        background: linear-gradient(135deg, #F87171 0%, #EF4444 100%);
+        box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
+        transform: translateY(-1px);
+    }
+
+    .dataset-action-btn.btn-delete:active {
+        transform: translateY(0);
+    }
+
+    .dataset-action-btn.btn-info {
+        background: linear-gradient(135deg, #0066cc, #0051a8);
+        border: 1px solid rgba(0, 102, 204, 0.4);
+        color: #e0f2ff;
+    }
+
+    .dataset-action-btn.btn-info:hover {
+        background: linear-gradient(135deg, #0077dd, #0055bb);
+        border-color: #0066cc;
+        box-shadow: 0 6px 16px rgba(0, 102, 204, 0.3);
+        transform: translateY(-1px);
+    }
+
+    .dataset-action-btn.btn-info:active {
+        transform: translateY(0);
+    }
+
+    /* Icon styling */
+    .dataset-action-btn i {
+        font-size: 12px;
+        transition: transform 0.3s ease;
+    }
+
+    .dataset-action-btn:hover i {
+        transform: scale(1.15);
+    }
+
+    /* Tooltip hint text */
+    .dataset-action-btn[title] {
+        position: relative;
+    }
+</style>
+
+<!-- ── Approval summary cards ─────────────────────────────────────────── -->
+<div class="grid grid-4" style="margin-bottom:24px;">
+    <a href="{{ url_for('admin.datasets') }}" class="stat-card {{ 'hl-total' if not approval_filter }}" style="text-decoration:none;">
+        <div class="stat-icon teal"><i class="fas fa-database"></i></div>
+        <div class="stat-info"><h3>{{ counts.total }}</h3><p>Total Datasets</p></div>
+    </a>
+    <a href="{{ url_for('admin.datasets', approval='pending') }}" class="stat-card {{ 'hl-pending' if approval_filter == 'pending' }}" style="text-decoration:none;">
+        <div class="stat-icon orange"><i class="fas fa-hourglass-half"></i></div>
+        <div class="stat-info"><h3>{{ counts.pending }}</h3><p>Pending Review</p></div>
+    </a>
+    <a href="{{ url_for('admin.datasets', approval='approved') }}" class="stat-card {{ 'hl-approved' if approval_filter == 'approved' }}" style="text-decoration:none;">
+        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-info"><h3>{{ counts.approved }}</h3><p>Approved</p></div>
+    </a>
+    <a href="{{ url_for('admin.datasets', approval='rejected') }}" class="stat-card {{ 'hl-rejected' if approval_filter == 'rejected' }}" style="text-decoration:none;">
+        <div class="stat-icon red"><i class="fas fa-times-circle"></i></div>
+        <div class="stat-info"><h3>{{ counts.rejected }}</h3><p>Rejected</p></div>
+    </a>
+</div>
+
+<!-- ── Overview charts ─────────────────────────────────────────────────── -->
+<div class="grid grid-2" style="margin-bottom:24px;">
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-chart-bar"></i> Datasets &amp; Records by Category</h3></div>
+        <div class="card-body"><div style="height:260px;"><canvas id="categoryChart"></canvas></div></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-chart-pie"></i> Approval Status</h3></div>
+        <div class="card-body"><div style="height:260px;"><canvas id="statusChart"></canvas></div></div>
+    </div>
+</div>
+
+<!-- ── Dataset table ───────────────────────────────────────────────────── -->
+<div class="card" style="margin-bottom:24px;">
+    <div class="card-header"><h3><i class="fas fa-cloud-upload-alt"></i> Direct Admin Ingestion</h3></div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('admin.upload_dataset') }}" enctype="multipart/form-data" class="admin-upload-form" style="display:grid;gap:12px;align-items:end;">
+            <div class="form-group" style="margin:0;"><label>Dataset Name</label><input type="text" name="name" class="form-control" required placeholder="Enter dataset name"></div>
+            <div class="form-group" style="margin:0;"><label>Category</label><select name="category" class="form-control"><option value="weather">Weather</option><option value="satellite">Satellite</option>
+                <option value="sensors">Sensors</option><option value="historical">Historical</option></select></div>
+            <div class="form-group" style="margin:0;"><label>Data File</label><label class="admin-file-picker" id="adminFilePicker" tabindex="0"><i class="fas fa-cloud-arrow-up admin-file-icon"></i>
+                <span class="admin-file-label is-empty" id="adminFileLabel">Choose a climate data file</span><span class="admin-file-action">Browse</span>
+                <input type="file" name="file" id="adminFileInput" accept=".csv,.json,.xlsx,.xls,.txt,.tif,.tiff,.nc,.hdf5" required></label></div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-upload"></i> Ingest</button>
+        </form>
+        <small class="text-muted" style="display:block;margin-top:10px;">Admin uploads are parsed, stored, and approved automatically. Supported: CSV, JSON, Excel, TXT, GeoTIFF, NetCDF, HDF5.</small>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-list"></i> Datasets ({{ datasets|length }})</h3>
+        <div class="card-actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <form method="GET" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0;" class="filter-bar" id="datasetFilterForm">
+                {% if approval_filter %}<input type="hidden" name="approval" value="{{ approval_filter }}">{% endif %}
+                <div class="modern-input-wrap analyst-select-wrapper" style="flex:1;min-width:160px;">
+                    <i class="fas fa-folder input-icon"></i>
+                    <select name="category" class="form-control form-control-sm" onchange="this.form.submit();" style="width:100%;">
+                        <option value="">All Categories</option>
+                        {% for cat in ['weather', 'satellite', 'sensors', 'historical'] %}
+                        <option value="{{ cat }}" {{ 'selected' if category_filter == cat }}>{{ cat|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modern-input-wrap" style="flex:1;min-width:180px;">
+                    <i class="fas fa-search input-icon"></i>
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by name..." value="{{ search_query }}" style="width:100%;padding-left:42px;">
+                </div>
+                <button type="submit" class="btn btn-sm btn-outline"><i class="fas fa-search"></i></button>
+                {% if category_filter or search_query %}<a href="{{ url_for('admin.datasets', approval=approval_filter) }}" class="btn btn-sm btn-secondary">Clear</a>{% endif %}
+            </form>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Approval status tabs -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+            <a href="{{ url_for('admin.datasets', category=category_filter, search=search_query or none) }}" class="btn btn-sm {{ 'btn-primary' if not approval_filter else 'btn-outline' }}">All</a>
+            <a href="{{ url_for('admin.datasets', approval='pending', category=category_filter, search=search_query or none) }}" class="btn btn-sm {{ 'btn-primary' if approval_filter == 'pending' else 'btn-outline' }}">Pending</a>
+            <a href="{{ url_for('admin.datasets', approval='approved', category=category_filter, search=search_query or none) }}" class="btn btn-sm {{ 'btn-primary' if approval_filter == 'approved' else 'btn-outline' }}">Approved</a>
+            <a href="{{ url_for('admin.datasets', approval='rejected', category=category_filter, search=search_query or none) }}" class="btn btn-sm {{ 'btn-primary' if approval_filter == 'rejected' else 'btn-outline' }}">Rejected</a>
+        </div>
+
+        <table class="table" style="table-layout:fixed;width:100%;">
+            <thead><tr><th style="width:5%;">ID</th><th style="width:16%;">Name</th><th style="width:8%;">Category</th><th style="width:9%;">Uploaded By</th><th style="width:6%;">Records</th><th style="width:6%;">Size</th><th style="width:8%;">Status</th><th style="width:7%;">Created</th><th style="width:35%;">Actions</th></tr></thead>
+            <tbody>
+                {% for ds in datasets %}
+                {% set ap = ds.approval_status or 'approved' %}
+                <tr style="height:auto;vertical-align:middle;min-height:50px;">
+                    <td style="padding:8px 10px;"><strong>#{{ ds.id }}</strong></td>
+                    <td style="padding:8px 10px;overflow:hidden;text-overflow:ellipsis;">
+                        <strong style="display:block;font-size:13px;">{{ ds.name[:30] }}</strong>
+                        {% if ap == 'rejected' and ds.rejection_reason %}<small style="color:var(--danger);display:block;margin-top:2px;"><i class="fas fa-exclamation-circle"></i> {{ ds.rejection_reason[:25] }}</small>{% endif %}
+                    </td>
+                    <td style="padding:8px 10px;"><span class="badge badge-{{ 'teal' if ds.category == 'weather' else 'blue' if ds.category == 'satellite' else 'green' if ds.category == 'sensors' else 'gray' }}" style="font-size:11px;">{{ (ds.category or 'other')|capitalize }}</span></td>
+                    <td style="padding:8px 10px;"><small style="font-size:12px;">{{ uploader_names.get(ds.uploaded_by, 'N/A')[:15] }}</small></td>
+                    <td style="padding:8px 10px;text-align:center;"><strong style="font-size:13px;">{{ ds.record_count or 0 }}</strong></td>
+                    <td style="padding:8px 10px;text-align:center;"><small style="font-size:11px;">{{ format_file_size(ds.file_size or 0) }}</small></td>
+                    <td style="padding:8px 10px;">
+                        <span class="badge badge-{{ 'yellow' if ap == 'pending' else 'green' if ap == 'approved' else 'red' }}" style="font-size:11px;white-space:nowrap;">
+                            <i class="fas fa-{{ 'hourglass-half' if ap == 'pending' else 'check' if ap == 'approved' else 'times' }}"></i> {{ ap|capitalize }}
+                        </span>
+                    </td>
+                    <td style="padding:8px 10px;"><small style="font-size:10px;">{{ ds.created_at|fmtdate }}</small></td>
+                    <td style="padding:8px 10px;overflow:visible;">
+                        <div class="dataset-action-group">
+                            <a href="{{ url_for('admin.view_dataset', dataset_id=ds.id) }}" class="dataset-action-btn btn-view" title="View dataset details"><i class="fas fa-eye"></i><span>View</span></a>
+                            {% if ap == 'approved' %}
+                            <button type="button" class="dataset-action-btn btn-info show-file-path-btn" title="Show file location" data-id="{{ ds.id }}" data-file-path="{{ ds.file_path }}" data-hdfs-path="{{ ds.hdfs_path or '' }}" data-name="{{ ds.name }}"><i class="fas fa-folder-open"></i><span>Path</span></button>
+                            <form method="POST" action="{{ url_for('admin.open_dataset_file', dataset_id=ds.id) }}" style="display:inline;">
+                                <button type="submit" class="dataset-action-btn btn-success" title="Open file in explorer"><i class="fas fa-external-link-alt"></i><span>Open</span></button>
+                            </form>
+                            {% endif %}
+                            {% if ap != 'approved' %}
+                            <form method="POST" action="{{ url_for('admin.approve_dataset', dataset_id=ds.id) }}" style="display:inline;" onsubmit="return confirm('Approve this dataset? It will become available in the Analyst Panel.');">
+                                <button type="submit" class="dataset-action-btn btn-approve" title="Approve dataset"><i class="fas fa-check"></i><span>Approve</span></button>
+                            </form>
+                            {% endif %}
+                            {% if ap != 'rejected' %}
+                            <button type="button" class="dataset-action-btn btn-reject reject-btn" title="Reject dataset" data-id="{{ ds.id }}" data-name="{{ ds.name }}"><i class="fas fa-times"></i><span>Reject</span></button>
+                            {% endif %}
+                            <form method="POST" action="{{ url_for('admin.delete_dataset', dataset_id=ds.id) }}" style="display:inline;" onsubmit="return confirm('Delete this dataset?');">
+                                <button type="submit" class="dataset-action-btn btn-delete" title="Delete dataset"><i class="fas fa-trash"></i><span>Delete</span></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" class="text-center" style="padding:32px;color:var(--gray-400);">No datasets found{% if approval_filter %} with status "{{ approval_filter }}"{% endif %}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── Dataset detail (View) ───────────────────────────────────────────── -->
+{% if dataset is defined and dataset %}
+{% set ap = dataset.approval_status or 'approved' %}
+<div class="card" style="margin-top:24px;" id="datasetDetail">
+    <div class="card-header">
+        <h3><i class="fas fa-info-circle"></i> Dataset #{{ dataset.id }}: {{ dataset.name }}</h3>
+        <div class="card-actions" style="display:flex;gap:8px;align-items:center;">
+            <span class="badge badge-{{ 'yellow' if ap == 'pending' else 'green' if ap == 'approved' else 'red' }}" style="font-size:13px;">{{ ap|capitalize }}</span>
+            {% if ap == 'approved' %}
+            <button type="button" class="dataset-action-btn btn-info show-file-path-btn" title="Show file location" data-id="{{ dataset.id }}" data-file-path="{{ dataset.file_path }}" data-hdfs-path="{{ dataset.hdfs_path or '' }}" data-name="{{ dataset.name }}"><i class="fas fa-folder-open"></i><span>Show File Path</span></button>
+            <form method="POST" action="{{ url_for('admin.open_dataset_file', dataset_id=dataset.id) }}" style="display:inline;">
+                <button type="submit" class="dataset-action-btn btn-success" title="Open file location in explorer"><i class="fas fa-external-link-alt"></i><span>Open in Explorer</span></button>
+            </form>
+            {% endif %}
+            {% if ap != 'approved' %}
+            <form method="POST" action="{{ url_for('admin.approve_dataset', dataset_id=dataset.id) }}" style="display:inline;">
+                <button type="submit" class="dataset-action-btn btn-approve" title="Approve this dataset"><i class="fas fa-check"></i><span>Approve</span></button>
+            </form>
+            {% endif %}
+            {% if ap != 'rejected' %}
+            <button type="button" class="dataset-action-btn btn-reject reject-btn" title="Reject this dataset" data-id="{{ dataset.id }}" data-name="{{ dataset.name }}"><i class="fas fa-times"></i><span>Reject</span></button>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="grid grid-4" style="margin-bottom:20px;">
+            <div class="stat-card"><div class="stat-icon teal"><i class="fas fa-list"></i></div><div class="stat-info"><h3>{{ dataset.record_count or 0 }}</h3><p>Total Records</p></div></div>
+            <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-columns"></i></div><div class="stat-info"><h3>{{ dataset.column_count or 0 }}</h3><p>Columns</p></div></div>
+            <div class="stat-card"><div class="stat-icon green"><i class="fas fa-check-double"></i></div><div class="stat-info"><h3>
+                {{ validation.valid_records if validation else 0 }}/{{ validation.total_records if validation else 0 }}</h3><p>Valid Records</p></div></div>
+            <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-hdd"></i></div><div class="stat-info"><h3>
+                {{ format_file_size(dataset.file_size or 0) }}</h3><p>File Size ({{ (dataset.file_type or '?')|upper }})</p></div></div>
+        </div>
+
+        <div class="grid grid-2" style="margin-bottom:20px;">
+            <div>
+                <h4 style="margin-bottom:12px;">Details</h4>
+        {% if validation is defined and validation %}
+        <div class="alert alert-info" style="margin-bottom:20px;">
+            <i class="fas fa-clipboard-check"></i>
+            Data quality: <strong>{{ validation.completeness_percent }}% complete</strong>,
+            {{ validation.invalid_records }} invalid values,
+            {{ validation.missing_total }} missing field values across the climate columns.
+        </div>
+        {% endif %}
+                <table class="table">
+                    <tr><td style="width:150px;"><strong>Name</strong></td><td>{{ dataset.name }}</td></tr>
+                    <tr><td><strong>Category</strong></td><td>{{ (dataset.category or 'other')|capitalize }}</td></tr>
+                    <tr><td><strong>Source</strong></td><td>{{ dataset.source or 'N/A' }}</td></tr>
+                    <tr><td><strong>Uploaded By</strong></td><td>{{ uploader_name }}</td></tr>
+                    <tr><td><strong>Created</strong></td><td>{{ dataset.created_at|fmtdatetime }}</td></tr>
+                    <tr><td><strong>Reviewed</strong></td><td>{{ dataset.reviewed_at|fmtdatetime if dataset.reviewed_at else 'Not yet reviewed' }}</td></tr>
+                    {% if ap == 'approved' %}
+                    <tr><td><strong>File Path</strong></td><td style="word-break:break-all;font-family:monospace;font-size:11px;"><i class="fas fa-file"></i> {{ dataset.file_path or 'N/A' }}</td></tr>
+                    {% if dataset.hdfs_path %}
+                    <tr><td><strong>HDFS Path</strong></td><td style="word-break:break-all;font-family:monospace;font-size:11px;color:var(--primary);"><i class="fas fa-database"></i> {{ dataset.hdfs_path }}</td></tr>
+                    {% endif %}
+                    {% endif %}
+                    {% if ap == 'rejected' and dataset.rejection_reason %}
+                    <tr><td><strong>Rejection Reason</strong></td><td style="color:var(--danger);">{{ dataset.rejection_reason }}</td></tr>
+                    {% endif %}
+                    <tr><td><strong>Description</strong></td><td>{{ dataset.description or 'No description' }}</td></tr>
+                </table>
+            </div>
+            <div>
+                <h4 style="margin-bottom:12px;">Climate Summary</h4>
+                <table class="table">
+                    <tr><td style="width:180px;"><strong>Avg Temperature</strong></td><td>{{ '%.1f'|format(summary.avg_temp) if summary and summary.avg_temp is not none else 'N/A' }} &deg;C</td></tr>
+                    <tr><td><strong>Temp Range</strong></td>
+                        <td>{{ '%.1f'|format(summary.min_temp) if summary and summary.min_temp is not none else '-' }} to {{ '%.1f'|format(summary.max_temp) if summary and summary.max_temp is not none else '-' }} &deg;C</td></tr>
+                    <tr><td><strong>Avg Humidity</strong></td><td>{{ '%.1f'|format(summary.avg_humidity) if summary and summary.avg_humidity is not none else 'N/A' }} %</td></tr>
+                    <tr><td><strong>Avg Rainfall</strong></td><td>{{ '%.2f'|format(summary.avg_rainfall) if summary and summary.avg_rainfall is not none else 'N/A' }} mm</td></tr>
+                    <tr><td><strong>Avg Wind Speed</strong></td><td>{{ '%.1f'|format(summary.avg_wind) if summary and summary.avg_wind is not none else 'N/A' }} km/h</td></tr>
+                    <tr><td><strong>Avg CO&#8322;</strong></td><td>{{ '%.1f'|format(summary.avg_co2) if summary and summary.avg_co2 is not none else 'N/A' }} ppm</td></tr>
+                </table>
+            </div>
+        </div>
+
+        {% if trend is defined and trend and trend.labels %}
+        <h4 style="margin-bottom:12px;">Monthly Trend (this dataset)</h4>
+        <div style="height:280px;margin-bottom:20px;"><canvas id="trendChart"></canvas></div>
+        {% endif %}
+
+        {% if preview is defined and preview %}
+        <h4 style="margin-bottom:12px;">Data Preview (first {{ preview|length }} records)</h4>
+        <div style="overflow-x:auto;margin-bottom:20px;">
+            <table class="table" style="font-size:13px;">
+                <thead><tr><th>Date</th><th>Station</th><th>Temp (&deg;C)</th><th>Humidity (%)</th><th>Rainfall (mm)</th><th>Wind (km/h)</th><th>Pressure</th><th>CO&#8322;</th><th>AQI</th></tr></thead>
+                <tbody>
+                    {% for row in preview %}
+                    <tr>
+                        <td>{{ row.date or '-' }}</td>
+                        <td>{{ row.station_name or '-' }}</td>
+                        <td>{{ row.temperature if row.temperature is not none else '-' }}</td>
+                        <td>{{ row.humidity if row.humidity is not none else '-' }}</td>
+                        <td>{{ row.rainfall if row.rainfall is not none else '-' }}</td>
+                        <td>{{ row.wind_speed if row.wind_speed is not none else '-' }}</td>
+                        <td>{{ row.pressure if row.pressure is not none else '-' }}</td>
+                        <td>{{ row.co2_level if row.co2_level is not none else '-' }}</td>
+                        <td>{{ row.air_quality_index if row.air_quality_index is not none else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color:var(--gray-400);margin-bottom:20px;"><i class="fas fa-info-circle"></i> No parsed climate records in this dataset.</p>
+        {% endif %}
+
+        <h4 style="margin-bottom:12px;color:#FFF8E7;font-weight:700;">Update Dataset</h4>
+        <form method="POST" action="{{ url_for('admin.update_dataset', dataset_id=dataset.id) }}" class="grid grid-2">
+            <div class="modern-form-group">
+                <label><i class="fas fa-tag"></i> Name</label>
+                <div class="modern-input-wrap">
+                    <i class="fas fa-database input-icon"></i>
+                    <input type="text" name="name" class="form-control" value="{{ dataset.name }}" required>
+                </div>
+            </div>
+            <div class="modern-form-group">
+                <label><i class="fas fa-folder"></i> Category</label>
+                <div class="modern-input-wrap analyst-select-wrapper">
+                    <i class="fas fa-layer-group input-icon"></i>
+                    <select name="category" class="form-control">
+                        {% for cat in ['weather', 'satellite', 'sensors', 'historical'] %}
+                        <option value="{{ cat }}" {{ 'selected' if dataset.category == cat }}>{{ cat|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modern-form-group" style="grid-column:1/-1;">
+                <label><i class="fas fa-align-left"></i> Description</label>
+                <div class="modern-input-wrap">
+                    <i class="fas fa-paragraph input-icon"></i>
+                    <textarea name="description" class="form-control" rows="2">{{ dataset.description }}</textarea>
+                </div>
+            </div>
+            <div style="grid-column:1/-1;">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- ── Reject modal ────────────────────────────────────────────────────── -->
+<div id="rejectModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);">
+    <div class="card" style="width:480px;max-width:92vw;box-shadow:0 24px 48px rgba(0,0,0,0.8);">
+        <div class="card-header">
+            <h3 style="margin:0;font-size:16px;"><i class="fas fa-times-circle" style="color:#f87171;"></i> Reject Dataset</h3>
+            <button type="button" onclick="closeRejectModal()" class="btn btn-sm btn-outline"><i class="fas fa-times"></i></button>
+        </div>
+        <form method="POST" id="rejectForm" style="padding:20px;">
+            <p style="font-size:14px;color:#8CC1E9;margin-top:0;margin-bottom:16px;">Rejecting <strong id="rejectDsName" style="color:#FFF8E7;">
+                
+            </strong>. It will not be available to the Analyst for processing. The analyst will be notified with your reason.</p>
+            <div class="modern-form-group">
+                <label><i class="fas fa-comment"></i> Rejection Reason</label>
+                <div class="modern-input-wrap">
+                    <i class="fas fa-align-left input-icon"></i>
+                    <textarea name="reason" class="form-control" rows="3" placeholder="e.g. Data quality issues, duplicate upload, invalid format..." required></textarea>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeRejectModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger"><i class="fas fa-times"></i> Reject Dataset</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Chart/page config consumed by the JS below via data attributes -->
+<div id="chartConfig" style="display:none;"
+     data-categories='{{ category_chart|tojson }}'
+     data-counts='{{ counts|tojson }}'
+     data-reject-base="{{ url_for('admin.reject_dataset', dataset_id=0) }}"
+     {% if trend is defined and trend and trend.labels %}data-trend='{{ trend|tojson }}'{% endif %}></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script>
+// Styled file picker with keyboard and drag-and-drop support.
+(function() {
+    var picker = document.getElementById('adminFilePicker');
+    var input = document.getElementById('adminFileInput');
+    var label = document.getElementById('adminFileLabel');
+    if (!picker || !input || !label) return;
+    function updateLabel() {
+        var file = input.files && input.files[0];
+        label.textContent = file ? file.name : 'Choose a climate data file';
+        label.classList.toggle('is-empty', !file);
+    }
+    picker.addEventListener('click', function(e) { if (e.target !== input) input.click(); });
+    picker.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+    input.addEventListener('change', updateLabel);
+    ['dragenter', 'dragover'].forEach(function(type) { picker.addEventListener(type, function(e) { e.preventDefault(); picker.classList.add('is-dragging'); }); });
+    ['dragleave', 'drop'].forEach(function(type) { picker.addEventListener(type, function(e) { e.preventDefault(); picker.classList.remove('is-dragging'); }); });
+    picker.addEventListener('drop', function(e) { if (e.dataTransfer.files.length) { input.files = e.dataTransfer.files; updateLabel(); } });
+})();
+
+// ── Page config (read from data attributes, no template code in JS) ─
+function getPageConfig() {
+    var el = document.getElementById('chartConfig');
+    if (!el) return null;
+    var cfg = { categories: {}, counts: {}, trend: null, rejectBase: '' };
+    try { cfg.categories = JSON.parse(el.getAttribute('data-categories') || '{}'); } catch (e) {}
+    try { cfg.counts = JSON.parse(el.getAttribute('data-counts') || '{}'); } catch (e) {}
+    var trendAttr = el.getAttribute('data-trend');
+    if (trendAttr) { try { cfg.trend = JSON.parse(trendAttr); } catch (e) {} }
+    cfg.rejectBase = el.getAttribute('data-reject-base') || '';
+    return cfg;
+}
+
+// ── Reject modal ─────────────────────────────────────────────────────
+function openRejectModal(datasetId, datasetName) {
+    var cfg = getPageConfig();
+    var form = document.getElementById('rejectForm');
+    var nameEl = document.getElementById('rejectDsName');
+    var modal = document.getElementById('rejectModal');
+    if (!form || !modal) return;
+    if (cfg && cfg.rejectBase) {
+        form.action = cfg.rejectBase.replace('/0/', '/' + datasetId + '/');
+    } else {
+        form.action = '/admin/datasets/' + datasetId + '/reject';
+    }
+    if (nameEl) nameEl.textContent = datasetName;
+    modal.style.display = 'flex';
+}
+function closeRejectModal() {
+    var modal = document.getElementById('rejectModal');
+    if (modal) modal.style.display = 'none';
+}
+(function() {
+    var modal = document.getElementById('rejectModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) closeRejectModal();
+        });
+    }
+    var rejectBtns = document.querySelectorAll('.reject-btn');
+    for (var i = 0; i < rejectBtns.length; i++) {
+        (function(btn) {
+            btn.addEventListener('click', function() {
+                openRejectModal(btn.getAttribute('data-id'), btn.getAttribute('data-name'));
+            });
+        })(rejectBtns[i]);
+    }
+})();
+
+// ── Charts ───────────────────────────────────────────────────────────
+(function() {
+    if (typeof Chart === 'undefined') return;
+    var cfg = getPageConfig();
+    if (!cfg) return;
+
+    var keys = Object.keys(cfg.categories);
+    var catLabels = keys.map(function(k) { return k.charAt(0).toUpperCase() + k.slice(1); });
+    var catCounts = keys.map(function(k) { return cfg.categories[k].datasets; });
+    var recCounts = keys.map(function(k) { return cfg.categories[k].records; });
+
+    var catEl = document.getElementById('categoryChart');
+    if (catEl) {
+        new Chart(catEl, {
+            type: 'bar',
+            data: {
+                labels: catLabels,
+                datasets: [
+                    { label: 'Datasets', data: catCounts, backgroundColor: '#0d9488', borderRadius: 6, yAxisID: 'y' },
+                    { label: 'Records', data: recCounts, backgroundColor: '#60a5fa', borderRadius: 6, yAxisID: 'y1' }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y: { position: 'left', title: { display: true, text: 'Datasets' }, beginAtZero: true, ticks: { precision: 0 } },
+                    y1: { position: 'right', title: { display: true, text: 'Records' }, beginAtZero: true, grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+    }
+
+    var statusEl = document.getElementById('statusChart');
+    if (statusEl) {
+        new Chart(statusEl, {
+            type: 'doughnut',
+            data: {
+                labels: ['Approved', 'Pending', 'Rejected'],
+                datasets: [{ data: [cfg.counts.approved || 0, cfg.counts.pending || 0, cfg.counts.rejected || 0],
+                             backgroundColor: ['#10b981', '#f59e0b', '#ef4444'], borderWidth: 2 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '62%' }
+        });
+    }
+
+    var trendEl = document.getElementById('trendChart');
+    if (trendEl && cfg.trend && cfg.trend.labels && cfg.trend.labels.length) {
+        new Chart(trendEl, {
+            type: 'bar',
+            data: {
+                labels: cfg.trend.labels,
+                datasets: [
+                    { type: 'line', label: 'Avg Temperature (°C)', data: cfg.trend.temperatures, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', tension: 0.3, yAxisID: 'y', fill: true },
+                    { type: 'bar', label: 'Total Rainfall (mm)', data: cfg.trend.rainfall, backgroundColor: 'rgba(59,130,246,0.6)', borderRadius: 4, yAxisID: 'y1' }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y: { position: 'left', title: { display: true, text: 'Temperature (°C)' } },
+                    y1: { position: 'right', title: { display: true, text: 'Rainfall (mm)' }, beginAtZero: true, grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+    }
+})();
+
+// ── Scroll to detail view when opened ────────────────────────────────
+(function() {
+    var detail = document.getElementById('datasetDetail');
+    if (detail) detail.scrollIntoView({ behavior: 'smooth' });
+})();
+
+// ── File Path Modal Handler ────────────────────────────────────────────
+(function() {
+    var modal = document.getElementById('filePathModal');
+    var closeBtn = document.getElementById('closeFilePathModal');
+    var copyLocalBtn = document.getElementById('copyLocalPath');
+    var copyHdfsBtn = document.getElementById('copyHdfsBtn');
+    
+    if (!modal) return;
+    
+    document.querySelectorAll('.show-file-path-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var filePath = this.getAttribute('data-file-path');
+            var hdfsPath = this.getAttribute('data-hdfs-path');
+            var datasetName = this.getAttribute('data-name');
+            var datasetId = this.getAttribute('data-id');
+
+            document.getElementById('datasetNameInModal').textContent = datasetName;
+            document.getElementById('localPathDisplay').textContent = filePath;
+            document.getElementById('localPathInput').value = filePath;
+            
+            if (hdfsPath) {
+                document.getElementById('hdfsPathRow').style.display = '';
+                document.getElementById('hdfsPathDisplay').textContent = hdfsPath;
+                document.getElementById('hdfsPathInput').value = hdfsPath;
+            } else {
+                document.getElementById('hdfsPathRow').style.display = 'none';
+            }
+
+            modal.style.display = 'flex';
+        });
+    });
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+    }
+    
+    window.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+    
+    if (copyLocalBtn) {
+        copyLocalBtn.addEventListener('click', function() {
+            var pathInput = document.getElementById('localPathInput');
+            pathInput.select();
+            document.execCommand('copy');
+            var originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(function() {
+                copyLocalBtn.innerHTML = originalText;
+            }, 2000);
+        });
+    }
+    
+    if (copyHdfsBtn) {
+        copyHdfsBtn.addEventListener('click', function() {
+            var pathInput = document.getElementById('hdfsPathInput');
+            pathInput.select();
+            document.execCommand('copy');
+            var originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(function() {
+                copyHdfsBtn.innerHTML = originalText;
+            }, 2000);
+        });
+    }
+})();
+</script>
+
+<!-- File Path Modal -->
+<div id="filePathModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:2000;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+    <div style="background:linear-gradient(135deg, #07131d 0%, #0d2935 100%);border:1px solid rgba(126,231,208,0.2);border-radius:12px;padding:24px;max-width:600px;width:90%;box-shadow:0 24px 80px rgba(0,0,0,0.5);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <h3 style="margin:0;color:#e0f2ff;"><i class="fas fa-folder-open" style="color:#7ee7d0;margin-right:10px;"></i> File Location: <span id="datasetNameInModal" style="color:#7ee7d0;"></span></h3>
+            <button id="closeFilePathModal" style="background:none;border:none;color:#7ee7d0;font-size:20px;cursor:pointer;"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <div style="margin-bottom:20px;padding:12px;background:rgba(7,23,48,0.5);border:1px solid rgba(126,231,208,0.1);border-radius:8px;">
+            <p style="margin:0 0 8px 0;color:#b7c9d4;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;"><i class="fas fa-file"></i> Local Upload Folder</p>
+            <div style="display:flex;gap:8px;align-items:stretch;">
+                <input type="text" id="localPathInput" readonly style="flex:1;padding:10px;background:#0a1620;border:1px solid rgba(126,231,208,0.2);border-radius:6px;color:#d9edff;font-family:monospace;font-size:12px;cursor:pointer;">
+                <button id="copyLocalPath" style="padding:10px 16px;background:#0066cc;border:none;border-radius:6px;color:#e0f2ff;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:6px;"><i class="fas fa-copy"></i> Copy</button>
+            </div>
+            <p id="localPathDisplay" style="margin:8px 0 0 0;color:#7ee7d0;font-family:monospace;font-size:11px;word-break:break-all;"></p>
+        </div>
+        
+        <div id="hdfsPathRow" style="margin-bottom:20px;padding:12px;background:rgba(7,23,48,0.5);border:1px solid rgba(126,231,208,0.1);border-radius:8px;display:none;">
+            <p style="margin:0 0 8px 0;color:#b7c9d4;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;"><i class="fas fa-database"></i> HDFS Storage Path</p>
+            <div style="display:flex;gap:8px;align-items:stretch;">
+                <input type="text" id="hdfsPathInput" readonly style="flex:1;padding:10px;background:#0a1620;border:1px solid rgba(126,231,208,0.2);border-radius:6px;color:#d9edff;font-family:monospace;font-size:12px;cursor:pointer;">
+                <button id="copyHdfsBtn" style="padding:10px 16px;background:#0066cc;border:none;border-radius:6px;color:#e0f2ff;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:6px;"><i class="fas fa-copy"></i> Copy</button>
+            </div>
+            <p id="hdfsPathDisplay" style="margin:8px 0 0 0;color:#7ee7d0;font-family:monospace;font-size:11px;word-break:break-all;"></p>
+        </div>
+        
+        <div style="padding:12px;background:rgba(126,231,208,0.05);border:1px solid rgba(126,231,208,0.15);border-radius:8px;margin-bottom:20px;">
+            <p style="margin:0;color:#86a5c2;font-size:12px;"><i class="fas fa-info-circle" style="color:#7ee7d0;margin-right:6px;"></i> <strong>File Locations:</strong></p>
+            <ul style="margin:8px 0 0 0;padding-left:20px;color:#86a5c2;font-size:11px;">
+                <li>Local path: Where the file is stored in the project folder</li>
+                <li>HDFS path: Distributed storage path for fault-tolerant backup</li>
+            </ul>
+        </div>
+        
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <form method="POST" action="{{ url_for('admin.open_dataset_file', dataset_id=dataset.id) if dataset is defined else '' }}" style="display:inline;">
+                {% if dataset is defined and dataset %}
+                <button type="submit" class="btn btn-success" style="padding:10px 18px;display:flex;align-items:center;gap:8px;"><i class="fas fa-external-link-alt"></i> Open in Explorer</button>
+                {% endif %}
+            </form>
+            <button class="btn btn-outline" onclick="document.getElementById('filePathModal').style.display='none';" style="padding:10px 20px;">Close</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

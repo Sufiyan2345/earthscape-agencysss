@@ -1,0 +1,746 @@
+{% extends "analyst/base.html" %}
+{% block page_title %}Data Ingestion{% endblock %}
+{% block content %}
+<!-- Ingestion Stats -->
+<div class="grid grid-4" style="margin-bottom:20px;">
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="fas fa-database"></i></div>
+        <div class="stat-info"><h4>Total Records</h4><div class="stat-value">{{ total_records }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-cloud-sun"></i></div>
+        <div class="stat-info"><h4>Weather</h4><div class="stat-value">{{ category_counts.get('weather', 0) }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-satellite"></i></div>
+        <div class="stat-info"><h4>Satellite</h4><div class="stat-value">{{ category_counts.get('satellite', 0) }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon yellow"><i class="fas fa-microchip"></i></div>
+        <div class="stat-info"><h4>Sensors</h4><div class="stat-value">{{ category_counts.get('sensors', 0) }}</div></div>
+    </div>
+</div>
+
+<!-- Tab Navigation -->
+<div style="display:flex;gap:0;margin-bottom:0;border-bottom:2px solid var(--gray-200);">
+    <button class="tab-btn active" onclick="showTab('sources')" id="tab-sources"><i class="fas fa-download"></i> Live Sources</button>
+    <button class="tab-btn" onclick="showTab('historical')" id="tab-historical"><i class="fas fa-history"></i> Historical Data</button>
+    <button class="tab-btn" onclick="showTab('preprocess')" id="tab-preprocess"><i class="fas fa-filter"></i> Preprocess</button>
+    <button class="tab-btn" onclick="showTab('api')" id="tab-api"><i class="fas fa-code"></i> API Docs</button>
+</div>
+
+<!-- TAB 1: Live Source Ingestion Cards -->
+<div id="panel-sources" class="tab-panel">
+<div class="grid grid-3" style="margin-top:20px;">
+    <!-- Satellite Data -->
+    <div class="card">
+        <div class="card-header" style="background:var(--info);color:#fff;">
+            <h3><i class="fas fa-satellite"></i> Satellite Data</h3>
+        </div>
+        <div class="card-body">
+            <p style="font-size:13px;color:var(--gray-600);margin-bottom:12px;">
+                Import satellite remote sensing data from LANDSAT-9, SENTINEL-2, MODIS-TERRA, and GOES-16.
+            </p>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <span class="badge badge-{{ 'green' if backend_status.satellite.available else 'yellow' }}">{{ 'Live provider' if backend_status.satellite.available else 'Configure provider' }}</span>
+                <small class="text-muted">4 providers</small>
+            </div>
+            <form method="POST" action="{{ url_for('analyst.ingestion') }}" id="satelliteForm">
+                <input type="hidden" name="source" value="satellite">
+                <input type="hidden" name="action" value="ingest">
+                <div class="modern-form-group">
+                    <label><i class="fas fa-calendar-alt"></i> Start Date</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-calendar input-icon"></i>
+                        <input type="date" name="start_date" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-calendar-check"></i> End Date</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-calendar input-icon"></i>
+                        <input type="date" name="end_date" class="form-control" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" onclick="return showProgress(this)"><i class="fas fa-download"></i> Ingest Satellite Data</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Weather Stations -->
+    <div class="card">
+        <div class="card-header" style="background:var(--primary);color:#fff;">
+            <h3><i class="fas fa-thermometer-half"></i> Weather Stations</h3>
+        </div>
+        <div class="card-body">
+            <p style="font-size:13px;color:var(--gray-600);margin-bottom:12px;">
+                Collect data from global weather station networks: GHCN, SYNOP, METAR, and regional AWS.
+            </p>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <span class="badge badge-{{ 'green' if backend_status.weather.available else 'yellow' }}">{{ 'Live provider' if backend_status.weather.available else 'Configure provider' }}</span>
+                <small class="text-muted">5 regions</small>
+            </div>
+            <form method="POST" action="{{ url_for('analyst.ingestion') }}" id="weatherForm">
+                <input type="hidden" name="source" value="weather">
+                <input type="hidden" name="action" value="ingest">
+                <div class="modern-form-group">
+                    <label><i class="fas fa-map-marker-alt"></i> Station Region</label>
+                    <div class="modern-input-wrap analyst-select-wrapper">
+                        <i class="fas fa-globe input-icon"></i>
+                        <select name="region" class="form-control">
+                            <option value="all">All Regions</option>
+                            <option value="north_america">North America</option>
+                            <option value="europe">Europe</option>
+                            <option value="asia">Asia</option>
+                            <option value="africa">Africa</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" onclick="return showProgress(this)"><i class="fas fa-download"></i> Ingest Weather Data</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sensor Networks -->
+    <div class="card">
+        <div class="card-header" style="background:var(--warning);color:#fff;">
+            <h3><i class="fas fa-microchip"></i> Sensor Networks</h3>
+        </div>
+        <div class="card-body">
+            <p style="font-size:13px;color:var(--gray-600);margin-bottom:12px;">
+                Gather IoT environmental sensor data: temperature, humidity, air quality, and soil moisture.
+            </p>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <span class="badge badge-{{ 'green' if backend_status.kafka.available else 'yellow' }}">{{ 'Kafka broker ready' if backend_status.kafka.available else 'API/manual mode' }}</span>
+                <small class="text-muted">4 types</small>
+            </div>
+            <form method="POST" action="{{ url_for('analyst.ingestion') }}" id="sensorForm">
+                <input type="hidden" name="source" value="sensors">
+                <input type="hidden" name="action" value="ingest">
+                <div class="modern-form-group">
+                    <label><i class="fas fa-microchip"></i> Sensor Type</label>
+                    <div class="modern-input-wrap analyst-select-wrapper">
+                        <i class="fas fa-broadcast-tower input-icon"></i>
+                        <select name="sensor_type" class="form-control">
+                            <option value="temperature">Temperature Sensors</option>
+                            <option value="humidity">Humidity Sensors</option>
+                            <option value="air_quality">Air Quality Sensors</option>
+                            <option value="soil">Soil Moisture Sensors</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" onclick="return showProgress(this)"><i class="fas fa-download"></i> Ingest Sensor Data</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Sample Data Generator -->
+<div class="card" style="margin-top:20px;">
+    <div class="card-header"><h3><i class="fas fa-flask"></i> Sample Data Generator</h3></div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('analyst.ingestion') }}" style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;" id="sampleForm">
+            <input type="hidden" name="action" value="generate_sample">
+            <div class="form-group" style="margin:0;flex:1;min-width:200px;">
+                <label><i class="fas fa-tag"></i> Dataset Name</label>
+                <div class="modern-input-wrap">
+                    <i class="fas fa-database input-icon"></i>
+                    <input type="text" name="name" class="form-control" value="Sample Climate Data" placeholder="Enter name">
+                </div>
+            </div>
+            <div class="form-group" style="margin:0;min-width:120px;">
+                <label><i class="fas fa-hashtag"></i> Records</label>
+                <div class="modern-input-wrap">
+                    <i class="fas fa-list-ol input-icon"></i>
+                    <input type="number" name="records" class="form-control" value="500" min="10" max="10000">
+                </div>
+            </div>
+            <div class="form-group" style="margin:0;min-width:140px;">
+                <label><i class="fas fa-folder"></i> Category</label>
+                <div class="modern-input-wrap analyst-select-wrapper">
+                    <i class="fas fa-layer-group input-icon"></i>
+                    <select name="category" class="form-control">
+                        <option value="weather">Weather</option>
+                        <option value="satellite">Satellite</option>
+                        <option value="sensors">Sensors</option>
+                        <option value="historical">Historical</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" onclick="return showProgress(this)"><i class="fas fa-magic"></i> Generate</button>
+        </form>
+    </div>
+</div>
+</div>
+
+<!-- TAB 2: Historical Data -->
+<div id="panel-historical" class="tab-panel" style="display:none;">
+<div class="grid grid-2" style="margin-top:20px;">
+    <!-- Generate Historical Data -->
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-clock"></i> Generate Historical Simulation</h3></div>
+        <div class="card-body">
+            <p style="font-size:13px;color:var(--gray-600);margin-bottom:16px;">
+                Generate simulated historical climate data with realistic warming trends, seasonal cycles, and CO2 levels based on Mauna Loa observations.
+            </p>
+            <form method="POST" action="{{ url_for('analyst.ingestion') }}" id="historicalGenForm">
+                <input type="hidden" name="action" value="ingest">
+                <input type="hidden" name="source" value="historical">
+                <input type="hidden" name="historical_source" value="generate">
+                <div class="grid grid-2">
+                    <div class="modern-form-group">
+                        <label><i class="fas fa-history"></i> Start Year</label>
+                        <div class="modern-input-wrap">
+                            <i class="fas fa-calendar input-icon"></i>
+                            <input type="number" name="start_year" class="form-control" value="2000" min="1900" max="2025" required>
+                        </div>
+                    </div>
+                    <div class="modern-form-group">
+                        <label><i class="fas fa-history"></i> End Year</label>
+                        <div class="modern-input-wrap">
+                            <i class="fas fa-calendar input-icon"></i>
+                            <input type="number" name="end_year" class="form-control" value="2023" min="1901" max="2025" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-globe"></i> Region</label>
+                    <div class="modern-input-wrap analyst-select-wrapper">
+                        <i class="fas fa-map input-icon"></i>
+                        <select name="region" class="form-control">
+                            <option value="global">Global</option>
+                            <option value="north_america">North America</option>
+                            <option value="europe">Europe</option>
+                            <option value="asia">Asia</option>
+                            <option value="africa">Africa</option>
+                            <option value="oceanic">Oceanic</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" onclick="return showProgress(this)"><i class="fas fa-history"></i> Generate Historical Data</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Upload Historical File -->
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-file-import"></i> Upload Historical File</h3></div>
+        <div class="card-body">
+            <p style="font-size:13px;color:var(--gray-600);margin-bottom:16px;">
+                Import historical records from CSV, JSON, or Excel files. Data will be validated against climate value ranges and normalized automatically.
+            </p>
+            <form method="POST" action="{{ url_for('analyst.ingestion') }}" enctype="multipart/form-data" id="historicalUploadForm">
+                <input type="hidden" name="action" value="ingest">
+                <input type="hidden" name="source" value="historical">
+                <input type="hidden" name="historical_source" value="upload">
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label>Start Year</label>
+                        <input type="number" name="start_year" class="form-control" value="2000" min="1900" max="2025">
+                    </div>
+                    <div class="form-group">
+                        <label>End Year</label>
+                        <input type="number" name="end_year" class="form-control" value="2023" min="1901" max="2025">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Data File</label>
+                    <div class="upload-zone" id="histDropZone" style="padding:32px;">
+                        <div class="upload-zone-icon" style="width:72px;height:72px;margin-bottom:12px;">
+                            <i class="fas fa-file-import" style="font-size:28px;"></i>
+                        </div>
+                        <h4 style="font-size:16px;">Drag & Drop Historical File</h4>
+                        <p style="font-size:13px;">or click to browse</p>
+                        <small class="upload-zone-hint">CSV, JSON, XLSX, XLS, TXT</small>
+                        <input type="file" name="historical_file" id="histFileInput" accept=".csv,.json,.xlsx,.xls,.txt" hidden>
+                    </div>
+                    <div id="histFileName" style="display:none;margin-top:12px;">
+                        <div class="upload-file-info" id="histFileInfoBox">
+                            <div class="upload-file-icon" id="histFileTypeIcon"><i class="fas fa-file" id="histFileTypeIconI"></i></div>
+                            <div class="upload-file-details">
+                                <div class="upload-file-name" id="histFileNameText"></div>
+                                <div class="upload-file-meta" id="histFileMetaText"></div>
+                            </div>
+                            <button type="button" class="upload-file-remove" id="histRemoveFileBtn" title="Remove file"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" onclick="return showProgress(this)"><i class="fas fa-upload"></i> Upload & Import</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Historical Datasets -->
+<div class="card" style="margin-top:20px;">
+    <div class="card-header"><h3><i class="fas fa-archive"></i> Historical Datasets</h3><div class="data-bulk-actions">
+        <span class="badge badge-gray" id="historicalSelectionBadge">0 selected</span>
+        <button type="button" class="btn btn-sm btn-danger" id="openHistoricalDelete" disabled><i class="fas fa-trash-alt"></i> Delete selected</button></div></div>
+    <div class="card-body">
+        <div class="data-bulk-bar"><label><input type="checkbox" id="selectAllHistoricalDatasets"> Select all historical datasets</label>
+            <span id="historicalSelectionText">Choose datasets to enable bulk actions.</span></div>
+        <div class="dataset-table-wrap"><table class="table">
+            <thead><tr><th><span class="sr-only">Select</span></th><th>Name</th><th>Period</th><th>Records</th><th>Source</th><th>Size</th></tr></thead>
+            <tbody>
+                {% for ds in datasets if ds.category == 'historical' %}
+                <tr>
+                    <td><input type="checkbox" class="dataset-check historical-dataset-check" name="dataset_ids" 
+                        value="{{ ds.id }}" form="bulkDatasetForm" aria-label="Select dataset {{ ds.name }}"></td>
+                        <td><i class="fas fa-history" style="color:var(--gray-400);"></i> {{ ds.name }}</td>
+                    <td>{{ ds.description[:30] if ds.description else '-' }}</td>
+                    <td>{{ ds.record_count or 0 }}</td>
+                    <td><span class="badge badge-teal">{{ ds.source }}</span></td>
+                    <td>{{ ds.file_size }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:24px;">No historical datasets yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table></div>
+    </div>
+</div>
+</div>
+
+<!-- TAB 3: Preprocess Existing Datasets -->
+<div id="panel-preprocess" class="tab-panel" style="display:none;">
+<div class="card" style="margin-top:20px;">
+    <div class="card-header"><h3><i class="fas fa-filter"></i> Preprocess & Validate Datasets</h3>
+        <div class="data-bulk-actions"><span class="badge badge-gray" id="datasetSelectionBadge">0 selected</span>
+            <button type="button" class="btn btn-sm btn-danger" id="openDatasetDelete" disabled><i class="fas fa-trash-alt"></i> Delete selected</button></div></div>
+    <div class="card-body">
+        <p style="font-size:13px;color:var(--gray-600);margin-bottom:16px;">
+            Run data cleaning (missing value imputation, duplicate removal) and validation (climate range checking) on uploaded datasets.
+        </p>
+        <form method="POST" action="{{ url_for('analyst.ingestion') }}" id="bulkDatasetForm">
+            <input type="hidden" name="action" value="delete_datasets"></form>
+        <div class="data-bulk-bar"><label><input type="checkbox" id="selectAllDatasets"> Select all datasets</label>
+            <span id="datasetSelectionText">Choose datasets to enable bulk actions.</span></div>
+        <table class="table">
+            <thead>
+            <tr><th><span class="sr-only">Select</span></th><th>Dataset</th><th>Category</th><th>Records</th><th>Format</th><th>Approval</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+                {% for ds in datasets %}
+                {% set ap = ds.approval_status or 'approved' %}
+                <tr>
+                    <td><input type="checkbox" class="dataset-check" name="dataset_ids" value="{{ ds.id }}"
+                         form="bulkDatasetForm" aria-label="Select dataset {{ ds.name }}"></td>
+                         <td><i class="fas fa-{% if ds.file_type == 'csv' %}file-csv{% elif ds.file_type == 'json' %}file-code{% elif ds.file_type in ('xlsx','xls') %}file-excel{% else %}file{% endif %}" 
+                            style="color:var(--primary);"></i> {{ ds.name }}</td>
+                    <td><span class="badge badge-teal">{{ ds.category }}</span></td>
+                    <td>{{ ds.record_count or 0 }}</td>
+                    <td>{{ ds.file_type|upper }}</td>
+                    <td>
+                        <span class="badge badge-{{ 'yellow' if ap == 'pending' else 'green' if ap == 'approved' else 'red' }}"
+                              {% if ap == 'rejected' and ds.rejection_reason %}title="{{ ds.rejection_reason }}"{% endif %}>
+                            <i class="fas fa-{{ 'hourglass-half' if ap == 'pending' else 'check' if ap == 'approved' else 'times' }}"></i> {{ ap|capitalize }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if ap == 'approved' %}
+                        <form method="POST" action="{{ url_for('analyst.ingestion') }}" style="display:inline;">
+                            <input type="hidden" name="action" value="preprocess">
+                            <input type="hidden" name="dataset_id" value="{{ ds.id }}">
+                            <button type="submit" class="btn btn-sm btn-primary" title="Clean & validate"><i class="fas fa-filter"></i> Preprocess</button>
+                        </form>
+                        {% else %}
+                        <button type="button" class="btn btn-sm btn-secondary"
+                         disabled title="{{ 'Awaiting Admin approval' if ap == 'pending' else 'Rejected by Admin' }} - processing locked"><i class="fas fa-lock"></i> Locked</button>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('analyst.ingestion') }}" style="display:inline;" onsubmit="return confirm('Delete this dataset?')">
+                            <input type="hidden" name="action" value="delete_dataset">
+                            <input type="hidden" name="dataset_id" value="{{ ds.id }}">
+                            <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:24px;">No datasets available.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+
+<div class="data-confirm-modal" id="datasetDeleteModal" role="dialog" aria-modal="true">
+    <div class="data-confirm-dialog"><div class="data-confirm-head"><div class="data-confirm-icon"><i class="fas fa-trash-alt"></i></div>
+    <div><h3>Delete selected datasets?</h3><span>This action cannot be undone.</span></div></div><div class="data-confirm-body">You are about to remove 
+        <strong id="datasetModalCount">0</strong> dataset records from the active ingestion list.</div><div class="data-confirm-actions">
+            <button type="button" class="btn btn-sm btn-outline" id="cancelDatasetDelete">Cancel</button><button type="submit" form="bulkDatasetForm" class="btn btn-sm btn-danger">
+                <i class="fas fa-trash-alt"></i> Confirm delete</button></div></div></div>
+<style>
+.data-bulk-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.data-bulk-bar{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:12px 14px;border:1px solid rgba(126,231,208,.22);
+border-radius:8px;background:linear-gradient(120deg,rgba(7,19,31,.96),rgba(12,35,49,.86));color:var(--gray-500);font-size:12px}
+.data-bulk-bar label{display:flex;align-items:center;gap:8px;color:var(--white);font-weight:600;cursor:pointer}
+.data-bulk-bar input{accent-color:#7ee7d0;width:16px;height:16px}.data-bulk-actions button:disabled{opacity:.45;cursor:not-allowed}
+.dataset-table-wrap{overflow-x:auto}.dataset-table-wrap .table{min-width:760px}
+.dataset-table-wrap th:first-child,.dataset-table-wrap td:first-child{width:42px;text-align:center;padding-left:10px;padding-right:10px}
+.dataset-table-wrap th:last-child,.dataset-table-wrap td:last-child{width:160px;white-space:nowrap}
+.data-confirm-modal{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(2,8,14,.78);backdrop-filter:blur(8px)}
+.data-confirm-modal.is-open{display:flex}.data-confirm-dialog{width:min(440px,100%);overflow:hidden;border:1px solid rgba(126,231,208,.34);border-radius:12px;
+background:linear-gradient(145deg,#07131d,#0d2935);box-shadow:0 24px 80px rgba(0,0,0,.5)}
+.data-confirm-head{display:flex;align-items:center;gap:12px;padding:20px;border-bottom:1px solid rgba(126,231,208,.16)}
+.data-confirm-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:10px;background:rgba(251,113,133,.14);color:#fb7185;font-size:18px}
+.data-confirm-head h3{margin:0;color:#f5f9ff}.data-confirm-head span,.data-confirm-body{color:#b7c9d4}.data-confirm-body{padding:20px;line-height:1.55}
+.data-confirm-actions{display:flex;justify-content:flex-end;gap:8px;padding:0 20px 20px}
+</style>
+
+<!-- TAB 4: API Documentation -->
+<div id="panel-api" class="tab-panel" style="display:none;">
+<div class="card" style="margin-top:20px;">
+    <div class="card-header"><h3><i class="fas fa-code"></i> REST API Documentation</h3></div>
+    <div class="card-body">
+        <p style="font-size:13px;color:var(--gray-600);margin-bottom:16px;">
+            External systems can push data to EarthScape via REST API. All endpoints require an <code>X-API-Key</code> header.
+            <br>Demo API Key: <code>earthScape-demo-api-key-2024</code>
+        </p>
+
+        <!-- Endpoint 1: Real-time Push -->
+        <div style="border:1px solid var(--gray-200);border-radius:8px;padding:16px;margin-bottom:16px;">
+            <h4 style="margin-bottom:8px;"><span class="badge badge-green" style="font-size:11px;">POST</span> /analyst/api/ingest/realtime</h4>
+            <p style="font-size:13px;color:var(--gray-600);">Push a single real-time reading from a sensor, weather station, or satellite.</p>
+            <div style="background:var(--gray-50);padding:12px;border-radius:6px;font-family:monospace;font-size:12px;overflow-x:auto;">
+<pre style="margin:0;white-space:pre-wrap;">curl -X POST http://localhost:5000/analyst/api/ingest/realtime \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: earthScape-demo-api-key-2024" \
+  -d '{
+    "stream_name": "nyc-sensor-001",
+    "source_type": "sensor",
+    "readings": {
+      "temperature": 25.3,
+      "humidity": 65.2,
+      "rainfall": 0.0,
+      "wind_speed": 12.5,
+      "pressure": 1013.2,
+      "co2_level": 415.0,
+      "air_quality_index": 55
+    },
+    "latitude": 40.7128,
+    "longitude": -74.006,
+    "source_location": "New York City"
+  }'</pre>
+            </div>
+        </div>
+
+                <div style="border:1px solid var(--gray-200);border-radius:8px;padding:16px;margin-bottom:16px;">
+                        <h4 style="margin-bottom:8px;"><span class="badge badge-green" style="font-size:11px;">POST</span> /analyst/api/ingest/weather-live</h4>
+                        <p style="font-size:13px;color:var(--gray-600);">Fetch current weather from Open-Meteo and store it in the realtime and batch climate collections.</p>
+                        <div style="background:var(--gray-50);padding:12px;border-radius:6px;font-family:monospace;font-size:12px;overflow-x:auto;">
+<pre style="margin:0;white-space:pre-wrap;">curl -X POST http://localhost:5000/analyst/api/ingest/weather-live \
+    -H "Content-Type: application/json" \
+    -H "X-API-Key: earthScape-demo-api-key-2024" \
+    -d '{"location":"New York"}'</pre>
+                        </div>
+                </div>
+
+        <!-- Endpoint 2: Batch Import -->
+        <div style="border:1px solid var(--gray-200);border-radius:8px;padding:16px;margin-bottom:16px;">
+            <h4 style="margin-bottom:8px;"><span class="badge badge-green" style="font-size:11px;">POST</span> /analyst/api/ingest/batch</h4>
+            <p style="font-size:13px;color:var(--gray-600);">Import a batch of climate records (max 50,000 per request). Records are validated before ingestion.</p>
+            <div style="background:var(--gray-50);padding:12px;border-radius:6px;font-family:monospace;font-size:12px;overflow-x:auto;">
+<pre style="margin:0;white-space:pre-wrap;">curl -X POST http://localhost:5000/analyst/api/ingest/batch \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: earthScape-demo-api-key-2024" \
+  -d '{
+    "dataset_name": "My Station Data",
+    "category": "weather",
+    "records": [
+      {"date": "2026-01-01", "station_name": "Station-A", "temperature": 5.2, "humidity": 70},
+      {"date": "2026-01-02", "station_name": "Station-A", "temperature": 6.1, "humidity": 68}
+    ]
+  }'</pre>
+            </div>
+        </div>
+
+        <!-- Endpoint 3: Status -->
+        <div style="border:1px solid var(--gray-200);border-radius:8px;padding:16px;margin-bottom:16px;">
+            <h4 style="margin-bottom:8px;"><span class="badge badge-teal" style="font-size:11px;">GET</span> /analyst/api/ingest/status</h4>
+            <p style="font-size:13px;color:var(--gray-600);">Check the ingestion system status and statistics.</p>
+            <div style="background:var(--gray-50);padding:12px;border-radius:6px;font-family:monospace;font-size:12px;overflow-x:auto;">
+<pre style="margin:0;white-space:pre-wrap;">curl http://localhost:5000/analyst/api/ingest/status?api_key=earthScape-demo-api-key-2024</pre>
+            </div>
+        </div>
+
+        <!-- Validation Rules -->
+        <div style="border:1px solid var(--gray-200);border-radius:8px;padding:16px;">
+            <h4 style="margin-bottom:12px;"><i class="fas fa-shield-alt"></i> Data Validation Rules</h4>
+            <div class="grid grid-3">
+                <div style="font-size:12px;"><strong>Temperature:</strong> -90 to 60 °C</div>
+                <div style="font-size:12px;"><strong>Humidity:</strong> 0 to 100 %</div>
+                <div style="font-size:12px;"><strong>Rainfall:</strong> 0 to 2000 mm</div>
+                <div style="font-size:12px;"><strong>Wind Speed:</strong> 0 to 400 km/h</div>
+                <div style="font-size:12px;"><strong>Pressure:</strong> 300 to 1100 hPa</div>
+                <div style="font-size:12px;"><strong>CO2 Level:</strong> 0 to 10000 ppm</div>
+                <div style="font-size:12px;"><strong>AQI:</strong> 0 to 1000</div>
+                <div style="font-size:12px;"><strong>Visibility:</strong> 0 to 50 km</div>
+                <div style="font-size:12px;"><strong>Cloud Cover:</strong> 0 to 100 %</div>
+                <div style="font-size:12px;"><strong>UV Index:</strong> 0 to 20</div>
+                <div style="font-size:12px;"><strong>Soil Moisture:</strong> 0 to 100 %</div>
+                <div style="font-size:12px;"><strong>Snow Depth:</strong> 0 to 1000 cm</div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Ingestion History (always visible) -->
+<div class="card" style="margin-top:20px;">
+    <div class="card-header"><h3><i class="fas fa-history"></i> Ingestion History</h3><div class="data-bulk-actions">
+        <span class="badge badge-gray" id="logSelectionBadge">0 selected</span><button type="button" class="btn btn-sm btn-danger" id="openLogDelete" disabled>
+            <i class="fas fa-trash-alt"></i> Delete selected</button></div></div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('analyst.ingestion') }}" id="bulkLogForm"><input type="hidden" name="action" value="delete_ingestion_logs"></form>
+        <div class="data-bulk-bar"><label><input type="checkbox" id="selectAllLogs"> Select all history entries</label>
+            <span id="logSelectionText">Choose entries to enable bulk actions.</span></div>
+        <div class="dataset-table-wrap"><table class="table">
+            <thead>
+                <tr><th><span class="sr-only">Select</span></th><th>Date</th><th>Source</th><th>Records</th><th>Status</th><th>Duration</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+                {% for log in ingestion_logs %}
+                <tr>
+                    <td><input type="checkbox" class="log-check" name="log_ids" value="{{ log.id }}" form="bulkLogForm" aria-label="Select ingestion history entry"></td>
+                    <td>{{ log.timestamp }}</td>
+                    <td><i class="fas fa-{{ log.icon }}"></i> {{ log.source|capitalize }}</td>
+                    <td>{{ log.records }}</td>
+                    <td><span class="badge badge-{{ 'success' if log.status == 'completed' else 'warning' }}">{{ log.status|capitalize }}</span></td>
+                    <td>{{ log.duration }}</td>
+                    <td><form method="POST" action="{{ url_for('analyst.delete_ingestion_log') }}" onsubmit="return confirm('Delete this ingestion history entry?');">
+                        <input type="hidden" name="log_id" value="{{ log.id }}"><button type="submit" class="btn btn-sm btn-danger" title="Delete history entry"><i class="fas fa-trash"></i></button>
+                    </form></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align:center;color:var(--gray-400);padding:24px;">
+                        <i class="fas fa-inbox" style="font-size:24px;display:block;margin-bottom:8px;"></i>
+                        No ingestion history yet. Use the forms above to ingest data.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table></div>
+    </div>
+</div>
+
+    <div class="data-confirm-modal" id="logDeleteModal" role="dialog" aria-modal="true">
+        <div class="data-confirm-dialog"><div class="data-confirm-head"><div class="data-confirm-icon"><i class="fas fa-trash-alt"></i></div>
+        <div><h3>Delete selected history?</h3><span>This action cannot be undone.</span></div></div><div class="data-confirm-body">You are about to permanently remove 
+            <strong id="logModalCount">0</strong> ingestion history entries.</div><div class="data-confirm-actions">
+                <button type="button" class="btn btn-sm btn-outline" id="cancelLogDelete">Cancel</button>
+                <button type="submit" form="bulkLogForm" class="btn btn-sm btn-danger"><i class="fas fa-trash-alt"></i> Confirm delete</button></div></div></div>
+
+<!-- Supported Formats -->
+<div class="card" style="margin-top:20px;">
+    <div class="card-header"><h3><i class="fas fa-file-import"></i> Supported Data Formats</h3></div>
+    <div class="card-body">
+        <div class="grid grid-5">
+            <div style="padding:12px;border:1px solid var(--gray-200);border-radius:8px;text-align:center;">
+                <i class="fas fa-file-csv" style="font-size:24px;color:var(--primary);margin-bottom:8px;display:block;"></i>
+                <strong>CSV / TXT</strong>
+                <p style="font-size:11px;color:var(--gray-500);margin:4px 0 0;">Full parsing</p>
+            </div>
+            <div style="padding:12px;border:1px solid var(--gray-200);border-radius:8px;text-align:center;">
+                <i class="fas fa-file-code" style="font-size:24px;color:var(--info);margin-bottom:8px;display:block;"></i>
+                <strong>JSON</strong>
+                <p style="font-size:11px;color:var(--gray-500);margin:4px 0 0;">Array, GeoJSON, nested</p>
+            </div>
+            <div style="padding:12px;border:1px solid var(--gray-200);border-radius:8px;text-align:center;">
+                <i class="fas fa-file-excel" style="font-size:24px;color:var(--success);margin-bottom:8px;display:block;"></i>
+                <strong>XLSX / XLS</strong>
+                <p style="font-size:11px;color:var(--gray-500);margin:4px 0 0;">Multi-sheet</p>
+            </div>
+            <div style="padding:12px;border:1px solid var(--gray-200);border-radius:8px;text-align:center;">
+                <i class="fas fa-globe" style="font-size:24px;color:var(--warning);margin-bottom:8px;display:block;"></i>
+                <strong>NetCDF / HDF5</strong>
+                <p style="font-size:11px;color:var(--gray-500);margin:4px 0 0;">xarray/h5py</p>
+            </div>
+            <div style="padding:12px;border:1px solid var(--gray-200);border-radius:8px;text-align:center;">
+                <i class="fas fa-image" style="font-size:24px;color:var(--danger);margin-bottom:8px;display:block;"></i>
+                <strong>GeoTIFF</strong>
+                <p style="font-size:11px;color:var(--gray-500);margin:4px 0 0;">rasterio</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Progress Overlay -->
+<div id="progressOverlay" class="ingestion-progress-overlay" aria-live="polite" aria-busy="false">
+    <div class="ingestion-progress-card">
+        <div class="ingestion-loader"><span></span><span></span><span></span></div>
+        <div class="ingestion-progress-kicker"><i class="fas fa-satellite-dish"></i> SECURE DATA PIPELINE</div>
+        <h3 id="progressTitle">Processing climate data</h3>
+        <p id="progressText">Validating the selected source and preparing the ingestion stream.</p>
+        <div class="ingestion-progress-track"><div id="progressBar"></div></div>
+        <div class="ingestion-progress-meta"><span id="progressSource">Preparing upload</span><strong id="progressPercent">0%</strong></div>
+    </div>
+</div>
+<style>
+.ingestion-progress-overlay{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(1,8,15,.78);backdrop-filter:blur(8px);}
+.ingestion-progress-card{width:min(440px,100%);padding:34px 32px;border:1px solid rgba(87,210,195,.28);border-radius:18px;text-align:center;color:#e8f8f6;background:linear-gradient(145deg,#102b3c,#050e18 72%);box-shadow:0 28px 80px rgba(0,0,0,.58),inset 0 1px 0 rgba(255,255,255,.06);}
+.ingestion-loader{display:flex;justify-content:center;gap:8px;height:44px;margin-bottom:18px;align-items:center;}
+.ingestion-loader span{width:10px;height:10px;border-radius:50%;background:#57d2c3;box-shadow:0 0 16px #57d2c3;animation:ingestionPulse 1s ease-in-out infinite;}
+.ingestion-loader span:nth-child(2){animation-delay:.16s;background:#54a8ff;box-shadow:0 0 16px #54a8ff;}.ingestion-loader span:nth-child(3){animation-delay:.32s;}
+@keyframes ingestionPulse{0%,100%{transform:scale(.55);opacity:.45;}50%{transform:scale(1.35);opacity:1;}}
+.ingestion-progress-kicker{color:#7ee7d0;font-size:10px;font-weight:800;letter-spacing:.14em;margin-bottom:10px;}.ingestion-progress-kicker i{margin-right:5px;}
+.ingestion-progress-card h3{margin:0 0 8px;color:#f6fbff;font-size:21px;}.ingestion-progress-card p{margin:0;color:#9bb4c2;font-size:13px;line-height:1.55;}
+.ingestion-progress-track{height:9px;margin-top:22px;overflow:hidden;border:1px solid rgba(87,210,195,.2);border-radius:999px;background:#06131e;}.ingestion-progress-track div{height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,#2277b7,#57d2c3);box-shadow:0 0 14px rgba(87,210,195,.55);transition:width .35s ease;}
+.ingestion-progress-meta{display:flex;justify-content:space-between;gap:12px;margin-top:10px;color:#7895a5;font-size:11px;}.ingestion-progress-meta strong{color:#7ee7d0;}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showTab(name) {
+    document.querySelectorAll('.tab-panel').forEach(function(p) { p.style.display = 'none'; });
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.getElementById('panel-' + name).style.display = 'block';
+    document.getElementById('tab-' + name).classList.add('active');
+}
+
+function showProgress(btn) {
+    var overlay = document.getElementById('progressOverlay');
+    var bar = document.getElementById('progressBar');
+    var text = document.getElementById('progressText');
+    var title = document.getElementById('progressTitle');
+    var source = document.getElementById('progressSource');
+    var percent = document.getElementById('progressPercent');
+    var form = btn && btn.form;
+    var sourceValue = form ? form.querySelector('[name="source"]') : null;
+    var fileInput = form ? form.querySelector('input[type="file"]') : null;
+    var sourceName = sourceValue ? sourceValue.value : 'climate';
+    var fileName = fileInput && fileInput.files.length ? fileInput.files[0].name : '';
+    if (title) title.textContent = fileName ? 'Uploading climate file' : 'Processing climate data';
+    if (text) text.textContent = fileName ? 'Uploading ' + fileName + ' and validating its records.' : 'Connecting to the selected climate data source.';
+    if (source) source.textContent = sourceName.replace(/_/g, ' ').toUpperCase() + ' PIPELINE';
+    if (percent) percent.textContent = '0%';
+    overlay.setAttribute('aria-busy', 'true');
+    overlay.style.display = 'flex';
+    var w = 0;
+    var interval = setInterval(function() {
+        w += Math.random() * 15;
+        if (w > 90) w = 90;
+        bar.style.width = w + '%';
+        if (percent) percent.textContent = Math.round(w) + '%';
+    }, 300);
+    if (form) form.addEventListener('submit', function() { clearInterval(interval); bar.style.width = '100%'; if (percent) percent.textContent = '100%'; }, { once: true });
+    return true;
+}
+
+// Historical file upload drag & drop
+document.addEventListener('DOMContentLoaded', function() {
+    var datasetChecks = Array.prototype.slice.call(document.querySelectorAll('.dataset-check'));
+    var datasetSelectAll = document.getElementById('selectAllDatasets');
+    var historicalSelectAll = document.getElementById('selectAllHistoricalDatasets');
+    var datasetModal = document.getElementById('datasetDeleteModal');
+    function updateDatasetSelection() { var count = datasetChecks.filter(function(c) { return c.checked; }).length; document.getElementById('datasetSelectionBadge')
+    .textContent = count + ' selected'; document.getElementById('historicalSelectionBadge').textContent = count + ' selected';
+     document.getElementById('datasetSelectionText').textContent = count ? 'Ready to delete selected datasets.' : 'Choose datasets to enable bulk actions.';
+      document.getElementById('historicalSelectionText').textContent = count ? 'Ready to delete selected datasets.' : 'Choose datasets to enable bulk actions.';
+       document.getElementById('openDatasetDelete').disabled = !count; document.getElementById('openHistoricalDelete')
+       .disabled = !count; datasetSelectAll.checked = datasetChecks.length > 0 && count === datasetChecks.length; datasetSelectAll.indeterminate = count > 0 && count
+        < datasetChecks.length; historicalSelectAll.checked = datasetChecks.filter(function(c) { return c.classList.contains('historical-dataset-check'); })
+        .every(function(c) { return c.checked; }); }
+    function selectEveryDataset(checked) { datasetChecks.forEach(function(c) { c.checked = checked; }); updateDatasetSelection(); }
+    datasetSelectAll.addEventListener('change', function() { selectEveryDataset(datasetSelectAll.checked); }); historicalSelectAll.addEventListener('change',
+     function() { selectEveryDataset(historicalSelectAll.checked); }); datasetChecks.forEach(function(c) { c.addEventListener('change', updateDatasetSelection); });
+    function openDatasetModal() { document.getElementById('datasetModalCount').textContent = datasetChecks.filter(function(c) { return c.checked; })
+    .length; datasetModal.classList.add('is-open'); }
+    document.getElementById('openDatasetDelete').addEventListener('click', openDatasetModal); document.getElementById('openHistoricalDelete')
+    .addEventListener('click', openDatasetModal); document.getElementById('cancelDatasetDelete').addEventListener('click', function()
+     { datasetModal.classList.remove('is-open'); }); datasetModal.addEventListener('click', function(e) { if (e.target === datasetModal)
+         datasetModal.classList.remove('is-open'); }); document.addEventListener('keydown', function(e) { if (e.key === 'Escape') 
+         datasetModal.classList.remove('is-open'); }); updateDatasetSelection();
+    var logChecks = Array.prototype.slice.call(document.querySelectorAll('.log-check'));
+    var logSelectAll = document.getElementById('selectAllLogs');
+    var logModal = document.getElementById('logDeleteModal');
+    function updateLogSelection() { var count = logChecks.filter(function(c) { return c.checked; }).length; 
+    document.getElementById('logSelectionBadge').textContent = count + ' selected'; document.getElementById('logSelectionText')
+    .textContent = count ? 'Ready to delete selected history.' : 'Choose entries to enable bulk actions.'; document.getElementById('openLogDelete')
+    .disabled = !count; logSelectAll.checked = logChecks.length > 0 && count === logChecks.length; logSelectAll.indeterminate = count > 0 && count < logChecks.length; }
+    logSelectAll.addEventListener('change', function() { logChecks.forEach(function(c) { c.checked = logSelectAll.checked; }); 
+    updateLogSelection(); }); logChecks.forEach(function(c) { c.addEventListener('change', updateLogSelection); });
+    document.getElementById('openLogDelete').addEventListener('click', function() { document.getElementById('logModalCount')
+    .textContent = logChecks.filter(function(c) { return c.checked; }).length; logModal.classList.add('is-open'); });
+     document.getElementById('cancelLogDelete').addEventListener('click', function() { logModal.classList.remove('is-open'); }); 
+     logModal.addEventListener('click', function(e) { if (e.target === logModal) logModal.classList.remove('is-open'); });
+      document.addEventListener('keydown', function(e) { if (e.key === 'Escape') logModal.classList.remove('is-open'); }); updateLogSelection();
+    var dropZone = document.getElementById('histDropZone');
+    var fileInput = document.getElementById('histFileInput');
+    var fileNameDiv = document.getElementById('histFileName');
+    var fileInfoBox = document.getElementById('histFileInfoBox');
+    var fileNameText = document.getElementById('histFileNameText');
+    var fileMetaText = document.getElementById('histFileMetaText');
+    var fileTypeIcon = document.getElementById('histFileTypeIcon');
+    var fileTypeIconI = document.getElementById('histFileTypeIconI');
+    var removeFileBtn = document.getElementById('histRemoveFileBtn');
+
+    function getFileIconClass(ext) {
+        var map = {
+            'csv': 'fa-file-csv',
+            'json': 'fa-file-code',
+            'xlsx': 'fa-file-excel',
+            'xls': 'fa-file-excel',
+            'txt': 'fa-file-alt'
+        };
+        return map[ext.toLowerCase()] || 'fa-file';
+    }
+
+    function getFileIconColorClass(ext) {
+        var map = {
+            'csv': 'csv',
+            'json': 'json',
+            'xlsx': 'xlsx',
+            'xls': 'xls',
+            'txt': 'txt'
+        };
+        return map[ext.toLowerCase()] || 'txt';
+    }
+
+    function showFileInfo(file) {
+        fileNameDiv.style.display = 'block';
+        fileNameText.textContent = file.name;
+        var ext = file.name.split('.').pop();
+        var size = file.size < 1024*1024 ? (file.size/1024).toFixed(1) + ' KB' : (file.size/1024/1024).toFixed(1) + ' MB';
+        fileMetaText.textContent = ext.toUpperCase() + ' format \u2022 ' + size;
+        fileTypeIcon.className = 'upload-file-icon ' + getFileIconColorClass(ext);
+        fileTypeIconI.className = 'fas ' + getFileIconClass(ext);
+    }
+
+    function clearFile() {
+        fileInput.value = '';
+        fileNameDiv.style.display = 'none';
+    }
+
+    if (removeFileBtn) {
+        removeFileBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            clearFile();
+        });
+    }
+
+    if (dropZone && fileInput) {
+        dropZone.addEventListener('click', function() { fileInput.click(); });
+        dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('dragover'); });
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                showFileInfo(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput.addEventListener('change', function() { if (fileInput.files.length) showFileInfo(fileInput.files[0]); });
+    }
+});
+</script>
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+.tab-btn { padding:10px 20px; border:none; background:none; cursor:pointer; font-size:14px; font-weight:600; color:var(--gray-500); 
+    border-bottom:3px solid transparent; transition:all 0.2s; }
+.tab-btn:hover { color:var(--primary); }
+.tab-btn.active { color:var(--primary); border-bottom-color:var(--primary); }
+</style>
+{% endblock %}

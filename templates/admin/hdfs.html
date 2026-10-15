@@ -1,0 +1,387 @@
+{% extends "admin/base.html" %}
+{% block page_title %}HDFS Storage Management{% endblock %}
+{% block content %}
+<!-- Tab Navigation -->
+<div style="display:flex;gap:4px;margin-bottom:20px;border-bottom:2px solid var(--gray-200);padding-bottom:0;">
+    <button class="tab-btn active" onclick="switchTab('health')" id="tab-health">Health Overview</button>
+    <button class="tab-btn" onclick="switchTab('nodes')" id="tab-nodes">DataNodes</button>
+    <button class="tab-btn" onclick="switchTab('browser')" id="tab-browser">File Browser</button>
+    <button class="tab-btn" onclick="switchTab('partitions')" id="tab-partitions">Partitions</button>
+    <button class="tab-btn" onclick="switchTab('tiers')" id="tab-tiers">Storage Tiers</button>
+</div>
+
+<!-- ═══ TAB 1: Health Overview ═══ -->
+<div id="panel-health">
+    <div class="grid grid-4" style="margin-bottom:20px;">
+        <div class="stat-card">
+            <div class="stat-icon teal"><i class="fas fa-server"></i></div>
+            <div class="stat-info"><h3>{{ health.alive_nodes }}/{{ health.total_nodes }}</h3><p>DataNodes Alive</p></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="fas fa-database"></i></div>
+            <div class="stat-info"><h3>{{ total_files }}</h3><p>Files Stored</p></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="fas fa-cubes"></i></div>
+            <div class="stat-info"><h3>{{ total_blocks }}</h3><p>Blocks Distributed</p></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange"><i class="fas fa-hdd"></i></div>
+            <div class="stat-info"><h3>{{ format_file_size(total_size) }}</h3><p>Total Data Size</p></div>
+        </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-bottom:20px;">
+        <div class="card">
+            <div class="card-header"><h3><i class="fas fa-heartbeat"></i> Cluster Health</h3></div>
+            <div class="card-body">
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+                    <div class="health-circle" style="width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                        <div style="width:60px;height:60px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;">{{ health.health_pct }}%</div>
+                    </div>
+                    <div>
+                        <div style="font-weight:600;font-size:16px;">{{ health_label }}</div>
+                        <div style="color:var(--gray-500);">{{ health.alive_nodes }} alive, {{ health.dead_nodes }} dead</div>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div><span style="color:var(--gray-500);">Total Capacity:</span><br><strong>{{ format_file_size(health.total_capacity) }}</strong></div>
+                    <div><span style="color:var(--gray-500);">Used Space:</span><br><strong>{{ format_file_size(health.total_used) }}</strong></div>
+                    <div><span style="color:var(--gray-500);">Remaining:</span><br><strong>{{ format_file_size(health.total_remaining) }}</strong></div>
+                    <div><span style="color:var(--gray-500);">Total Blocks:</span><br><strong>{{ health.total_blocks }}</strong></div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><h3><i class="fas fa-chart-pie"></i> Disk Usage</h3></div>
+            <div class="card-body">
+                <div class="progress" style="height:24px;margin-bottom:12px;">
+                    <div class="progress-bar disk-usage-bar" data-width="{{ disk_info.usage_percent }}">{{ disk_info.usage_percent }}%</div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div><span style="color:var(--gray-500);">Total Disk:</span><br><strong>{{ disk_info.capacity }}</strong></div>
+                    <div><span style="color:var(--gray-500);">Free Space:</span><br><strong>{{ disk_info.remaining }}</strong></div>
+                    <div><span style="color:var(--gray-500);">Directories:</span><br><strong>{{ total_dirs }}</strong></div>
+                    <div><span style="color:var(--gray-500);">Files Tracked:</span><br><strong>{{ total_files }}</strong></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-bolt"></i> Quick Actions</h3></div>
+        <div class="card-body" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" onclick="document.getElementById('mkdirModal').style.display='flex'"><i class="fas fa-folder-plus"></i> Create Directory</button>
+            <button class="btn btn-outline btn-sm" onclick="switchTab('nodes')"><i class="fas fa-server"></i> Manage DataNodes</button>
+            <button class="btn btn-outline btn-sm" onclick="switchTab('browser')"><i class="fas fa-folder-open"></i> Browse Files</button>
+            <button class="btn btn-outline btn-sm" onclick="switchTab('partitions')"><i class="fas fa-layer-group"></i> View Partitions</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ TAB 2: DataNodes ═══ -->
+<div id="panel-nodes" style="display:none;">
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-server"></i> DataNode Status</h3></div>
+        <div class="card-body">
+            <table class="table">
+                <thead><tr><th>Node</th><th>Host:Port</th><th>Status</th><th>Rack</th><th>Capacity</th><th>Used</th><th>Blocks</th><th>Last Heartbeat</th><th>Actions</th></tr></thead>
+                <tbody>
+                    {% for node in nodes %}
+                    <tr>
+                        <td><strong><i class="fas fa-server node-status-icon" data-status="{{ node.status }}"></i> {{ node.node_name }}</strong></td>
+                        <td>{{ node.host }}:{{ node.port }}</td>
+                        <td><span class="badge badge-{{ 'green' if node.status == 'alive' else 'red' }}">{{ node.status|upper }}</span></td>
+                        <td>{{ node.rack }}</td>
+                        <td>{{ format_file_size(node.capacity) }}</td>
+                        <td>
+                            {{ format_file_size(node.used) }}
+                            <div class="progress node-usage-bar" data-pct="{{ ((node.used / node.capacity * 100) if node.capacity else 0)|round(1) }}" style="height:6px;margin-top:4px;"><div class="progress-bar"></div></div>
+                        </td>
+                        <td>{{ node.block_count }}</td>
+                        <td><small>{{ node.last_heartbeat[:19] if node.last_heartbeat else 'N/A' }}</small></td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin.hdfs_datanode_toggle', node_id=node.id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-outline" title="Toggle alive/dead"><i class="fas fa-power-off"></i></button>
+                            </form>
+                            <form method="POST" action="{{ url_for('admin.hdfs_datanode_heartbeat', node_id=node.id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-outline" title="Send heartbeat"><i class="fas fa-heartbeat"></i></button>
+                            </form>
+                            <button class="btn btn-sm btn-outline show-node-blocks-btn" data-node-id="{{ node.id }}" title="View blocks"><i class="fas fa-cubes"></i></button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div id="nodeBlocksResult" style="display:none;" class="card">
+        <div class="card-header"><h3><i class="fas fa-cubes"></i> Node Blocks</h3><button class="btn btn-sm btn-outline" onclick="document.getElementById('nodeBlocksResult').style.display='none'"><i class="fas fa-times"></i>
+        </button></div>
+        <div class="card-body"><div id="nodeBlocksContent">Loading...</div></div>
+    </div>
+</div>
+
+<!-- ═══ TAB 3: File Browser ═══ -->
+<div id="panel-browser" style="display:none;">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-folder-open"></i> {{ current_path|default('/') }}</h3>
+            <div class="card-actions">
+                <form method="GET" action="{{ url_for('admin.hdfs_browse') }}" class="inline-form">
+                    <input type="text" name="path" value="{{ current_path|default('/') }}" class="form-control form-control-sm" placeholder="/path/to/dir" style="width:250px;">
+                    <button type="submit" class="btn btn-sm btn-outline"><i class="fas fa-go-to-column"></i> Go</button>
+                </form>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if current_path and current_path != '/' %}
+            <a href="{{ url_for('admin.hdfs_browse', path=parent_path) }}" class="btn btn-sm btn-outline" style="margin-bottom:12px;"><i class="fas fa-arrow-up"></i> Parent Directory</a>
+            {% endif %}
+            <table class="table">
+                <thead><tr><th>Name</th><th>Type</th><th>Size</th><th>Owner</th><th>Modified</th><th>Actions</th></tr></thead>
+                <tbody>
+                    {% for f in files|default([]) %}
+                    <tr>
+                        <td><i class="fas fa-{{ 'folder text-warning' if f.is_dir else 'file text-muted' }}"></i>
+                            {% if f.is_dir %}<a href="{{ url_for('admin.hdfs_browse', path=f.path) }}"><strong>{{ f.name }}</strong></a>
+                            {% else %}<strong>{{ f.name }}</strong>{% endif %}
+                        </td>
+                        <td><span class="badge badge-{{ 'blue' if f.is_dir else 'gray' }}">{{ 'Dir' if f.is_dir else 'File' }}</span></td>
+                        <td>{{ format_file_size(f.size) if f.size else '-' }}</td>
+                        <td>{{ f.owner|default('climate_user') }}</td>
+                        <td><small>{{ f.modified|default('N/A') }}</small></td>
+                        <td>
+                            <div style="display:flex;gap:4px;">
+                                {% if not f.is_dir %}
+                                <button class="btn btn-sm btn-outline show-file-info-btn" data-path="{{ f.path }}" title="Info + Blocks"><i class="fas fa-info-circle"></i></button>
+                                {% endif %}
+                                <form method="POST" action="{{ url_for('admin.hdfs_delete') }}" style="display:inline;" class="hdfs-delete-form" data-name="{{ f.name }}">
+                                    <input type="hidden" name="path" value="{{ f.path }}">
+                                    <input type="hidden" name="recursive" value="1">
+                                    <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center">Directory is empty</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div id="fileInfoResult" style="display:none;" class="card">
+        <div class="card-header"><h3><i class="fas fa-info-circle"></i> File Details</h3><button class="btn btn-sm btn-outline" onclick="document.getElementById('fileInfoResult').style.display='none'">
+            <i class="fas fa-times"></i></button></div>
+        <div class="card-body"><div id="fileInfoContent">Loading...</div></div>
+    </div>
+</div>
+
+<!-- ═══ TAB 4: Partitions ═══ -->
+<div id="panel-partitions" style="display:none;">
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-layer-group"></i> Data Partitions</h3></div>
+        <div class="card-body">
+            <table class="table">
+                <thead><tr><th>Partition Key</th><th>Type</th><th>Value</th><th>HDFS Path</th><th>Records</th><th>Size</th><th>Parent</th><th>Status</th></tr></thead>
+                <tbody>
+                    {% for p in partitions|default([]) %}
+                    <tr>
+                        <td><strong>{{ p.partition_key }}</strong></td>
+                        <td><span class="badge badge-blue">{{ p.partition_type }}</span></td>
+                        <td>{{ p.partition_value }}</td>
+                        <td><code>{{ p.hdfs_path }}</code></td>
+                        <td>{{ p.record_count }}</td>
+                        <td>{{ format_file_size(p.total_size) }}</td>
+                        <td>{{ p.parent_partition|default('-') }}</td>
+                        <td><span class="badge badge-{{ 'green' if p.status == 'active' else 'gray' }}">{{ p.status }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" class="text-center">No partitions defined</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ TAB 5: Storage Tiers ═══ -->
+<div id="panel-tiers" style="display:none;">
+    <div class="grid grid-3">
+        <div class="card">
+            <div class="card-header" style="border-left:4px solid var(--danger);"><h3><i class="fas fa-fire"></i> Hot Tier</h3></div>
+            <div class="card-body">
+                <p style="color:var(--gray-500);font-size:13px;">Data accessed within last 7 days</p>
+                <h3>{{ tier_stats.hot.count }} files</h3>
+                <p>{{ format_file_size(tier_stats.hot.size) }}</p>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header" style="border-left:4px solid var(--warning);"><h3><i class="fas fa-sun"></i> Warm Tier</h3></div>
+            <div class="card-body">
+                <p style="color:var(--gray-500);font-size:13px;">Data accessed 7-30 days ago</p>
+                <h3>{{ tier_stats.warm.count }} files</h3>
+                <p>{{ format_file_size(tier_stats.warm.size) }}</p>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header" style="border-left:4px solid var(--info);"><h3><i class="fas fa-snowflake"></i> Cold Tier</h3></div>
+            <div class="card-body">
+                <p style="color:var(--gray-500);font-size:13px;">Data older than 30 days</p>
+                <h3>{{ tier_stats.cold.count }} files</h3>
+                <p>{{ format_file_size(tier_stats.cold.size) }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Directory Modal -->
+<div id="mkdirModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+    <div class="card" style="width:400px;margin:20px;">
+        <div class="card-header"><h3><i class="fas fa-folder-plus"></i> Create Directory</h3><button class="btn btn-sm btn-outline" onclick="document.getElementById('mkdirModal').style.display='none'">
+            <i class="fas fa-times"></i></button></div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('admin.hdfs_mkdir') }}">
+                <div class="form-group"><label>Directory Path</label><input type="text" name="path" class="form-control" placeholder="/climate/new_directory" required></div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-folder-plus"></i> Create</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="hdfs-cfg" style="display:none;"
+     data-health-pct="{{ health.health_pct }}"
+     data-health-color="{{ health_color }}"
+     data-disk-bg="{{ disk_bg }}"
+     data-file-info-url="{{ url_for('admin.hdfs_file_info') }}"
+     data-blocks-base="{{ url_for('admin.hdfs_datanode_blocks', node_id=0) }}"></div>
+
+<style>
+.tab-btn { padding:10px 20px; border:none; background:none; cursor:pointer; font-weight:600; font-size:14px; color:var(--gray-500); border-bottom:3px solid transparent; transition:all 0.2s; }
+.tab-btn.active { color:var(--primary); border-bottom-color:var(--primary); }
+.tab-btn:hover { color:var(--primary); }
+.health-circle { background: conic-gradient(var(--gray-300) 0%, var(--gray-200) 0%); }
+.node-status-icon[data-status="alive"] { color: var(--success); }
+.node-status-icon[data-status="dead"] { color: var(--danger); }
+.disk-usage-bar { background: var(--primary); }
+.node-usage-bar .progress-bar { background: var(--primary); }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function switchTab(name) {
+    var panels = ['health','nodes','browser','partitions','tiers'];
+    for (var i = 0; i < panels.length; i++) {
+        var p = document.getElementById('panel-' + panels[i]);
+        var t = document.getElementById('tab-' + panels[i]);
+        if (p) p.style.display = panels[i] === name ? 'block' : 'none';
+        if (t) { if (panels[i] === name) t.classList.add('active'); else t.classList.remove('active'); }
+    }
+}
+
+/* Initialize dynamic styles from data attributes */
+document.addEventListener('DOMContentLoaded', function() {
+    var cfg = document.getElementById('hdfs-cfg');
+    if (!cfg) return;
+    var healthPct = parseFloat(cfg.getAttribute('data-health-pct')) || 0;
+    var healthColor = cfg.getAttribute('data-health-color') || 'var(--success)';
+    var diskBg = cfg.getAttribute('data-disk-bg') || 'var(--primary)';
+    /* Health circle conic-gradient */
+    var hc = document.querySelector('.health-circle');
+    if (hc) {
+        hc.style.background = 'conic-gradient(' + healthColor + ' ' + healthPct + '%, var(--gray-200) 0%)';
+    }
+    /* Disk usage bar */
+    var dub = document.querySelector('.disk-usage-bar');
+    if (dub) {
+        var w = dub.getAttribute('data-width');
+        dub.style.width = w + '%';
+        dub.style.background = diskBg;
+    }
+    /* Node usage bars */
+    var nubs = document.querySelectorAll('.node-usage-bar');
+    for (var i = 0; i < nubs.length; i++) {
+        var bar = nubs[i];
+        var pctVal = bar.getAttribute('data-pct');
+        var inner = bar.querySelector('.progress-bar');
+        if (inner) inner.style.width = pctVal + '%';
+    }
+    /* Node block buttons */
+    var btns = document.querySelectorAll('.show-node-blocks-btn');
+    for (var i = 0; i < btns.length; i++) {
+        btns[i].addEventListener('click', function() { showNodeBlocks(this.getAttribute('data-node-id')); });
+    }
+    /* File info buttons */
+    var fibs = document.querySelectorAll('.show-file-info-btn');
+    for (var i = 0; i < fibs.length; i++) {
+        fibs[i].addEventListener('click', function() { showFileInfo(this.getAttribute('data-path')); });
+    }
+    /* Delete confirmation forms */
+    var dforms = document.querySelectorAll('.hdfs-delete-form');
+    for (var i = 0; i < dforms.length; i++) {
+        dforms[i].addEventListener('submit', function(e) {
+            if (!confirm('Delete ' + this.getAttribute('data-name') + '?')) e.preventDefault();
+        });
+    }
+});
+
+function showFileInfo(path) {
+    var cfg = document.getElementById('hdfs-cfg');
+    var el = document.getElementById('fileInfoResult');
+    var content = document.getElementById('fileInfoContent');
+    el.style.display = 'block';
+    content.innerHTML = 'Loading...';
+    fetch(cfg.getAttribute('data-file-info-url') + '?path=' + encodeURIComponent(path))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) { content.innerHTML = '<p>' + data.error + '</p>'; return; }
+            var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
+            html += '<div><strong>Path:</strong> ' + data.path + '</div>';
+            html += '<div><strong>Size:</strong> ' + (data.size || 0) + ' bytes</div>';
+            html += '<div><strong>Checksum (MD5):</strong> <code>' + (data.checksum || 'N/A') + '</code></div>';
+            html += '<div><strong>Compression:</strong> ' + (data.compression || 'none') + '</div>';
+            html += '<div><strong>Replication:</strong> ' + (data.replication_factor || 3) + '</div>';
+            html += '<div><strong>Block Size:</strong> ' + ((data.block_size || 134217728) / 1048576) + ' MB</div>';
+            html += '</div>';
+            if (data.blocks && data.blocks.length > 0) {
+                html += '<h4 style="margin-top:16px;">Block Locations (' + data.blocks.length + ' replicas)</h4>';
+                html += '<table class="table"><thead><tr><th>Block ID</th><th>Index</th><th>DataNode</th><th>Rack</th><th>Size</th><th>Checksum</th><th>Status</th></tr></thead><tbody>';
+                for (var i = 0; i < data.blocks.length; i++) {
+                    var b = data.blocks[i];
+                    var status = b.node_status === 'alive' ? '<span class="badge badge-green">OK</span>' : '<span class="badge badge-red">Node Down</span>';
+                    html += '<tr><td><code>' + b.block_id + '</code></td><td>' + b.block_index + '</td><td>' + (b.node_name || 'N/A') + '</td><td>' + (b.rack || '-') + '</td><td>' + b.length_bytes + '</td><td><code>' 
+                        + (b.checksum || '-') + '</code></td><td>' + status + '</td></tr>';
+                }
+                html += '</tbody></table>';
+            }
+            content.innerHTML = html;
+        })
+        .catch(function(e) { content.innerHTML = '<p>Error: ' + e.message + '</p>'; });
+}
+
+function showNodeBlocks(nodeId) {
+    var cfg = document.getElementById('hdfs-cfg');
+    var el = document.getElementById('nodeBlocksResult');
+    var content = document.getElementById('nodeBlocksContent');
+    el.style.display = 'block';
+    content.innerHTML = 'Loading...';
+    fetch(cfg.getAttribute('data-blocks-base').replace('/0/', '/' + nodeId + '/'))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.length === 0) { content.innerHTML = '<p>No blocks on this node.</p>'; return; }
+            var html = '<table class="table"><thead><tr><th>Block ID</th><th>File</th><th>Index</th><th>Size</th><th>Checksum</th></tr></thead><tbody>';
+            for (var i = 0; i < data.length; i++) {
+                var b = data[i];
+                html += '<tr><td><code>' + b.block_id + '</code></td><td>' + (b.file_name || b.file_path || 'N/A') + '</td><td>' + b.block_index + '</td><td>' + b.length_bytes + '</td><td><code>' + (b.checksum || '-')
+                     + '</code></td></tr>';
+            }
+            html += '</tbody></table>';
+            content.innerHTML = html;
+        })
+        .catch(function(e) { content.innerHTML = '<p>Error: ' + e.message + '</p>'; });
+}
+</script>
+{% endblock %}

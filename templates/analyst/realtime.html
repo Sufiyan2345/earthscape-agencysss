@@ -1,0 +1,422 @@
+{% extends "analyst/base.html" %}
+{% block page_title %}Realtime Climate Data Processing{% endblock %}
+{% block content %}
+<div class="grid grid-4">
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-signal"></i></div><div class="stat-info">
+        <h3 id="activeStreams">{{ active_streams }}</h3><p>Active Streams</p></div></div>
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-database"></i></div><div class="stat-info">
+        <h3 id="totalReadings">{{ total_readings }}</h3><p>Total Readings</p></div></div>
+    <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-thermometer-half"></i></div><div class="stat-info">
+        <h3 id="currentTemp">{{ current_temp }}°C</h3><p>Current Temp</p></div></div>
+    <div class="stat-card"><div class="stat-icon red"><i class="fas fa-exclamation"></i></div><div class="stat-info">
+        <h3 id="anomalies">{{ anomalies }}</h3><p>Anomalies Detected</p></div></div>
+</div>
+
+<!-- Batch-Realtime Sync Bar -->
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-header">
+        <h3><i class="fas fa-sync-alt"></i> Batch-Realtime Integration</h3>
+        <div class="card-actions">
+            <form method="POST" action="{{ url_for('analyst.sync_to_batch') }}" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-arrow-right"></i> Sync to Batch</button>
+            </form>
+            <button class="btn btn-sm btn-outline" onclick="loadBaselines()"><i class="fas fa-chart-line"></i> Load Baselines</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="grid grid-3">
+            <div style="text-align:center;padding:8px;">
+                <h4 style="font-size:20px;color:var(--primary);" id="syncTotal">{{ sync_stats.total_realtime_readings }}</h4>
+                <p class="text-muted" style="font-size:12px;">Realtime Readings</p>
+            </div>
+            <div style="text-align:center;padding:8px;">
+                <h4 style="font-size:20px;color:var(--success);" id="syncedBatch">{{ sync_stats.synced_to_batch }}</h4>
+                <p class="text-muted" style="font-size:12px;">Synced to Batch</p>
+            </div>
+            <div style="text-align:center;padding:8px;">
+                <h4 style="font-size:20px;color:var(--warning);" id="pendingSync">{{ sync_stats.pending_sync }}</h4>
+                <p class="text-muted" style="font-size:12px;">Pending Sync</p>
+            </div>
+        </div>
+        <div id="baselinesPanel" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-200);">
+            <h4 style="font-size:13px;color:var(--gray-500);margin-bottom:8px;">Alert Thresholds (from Batch Analysis)</h4>
+            <div id="baselinesContent" class="grid grid-4" style="font-size:12px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Auto-refresh indicator -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+        <span id="liveIndicator" style="width:10px;height:10px;border-radius:50%;background:var(--success);display:inline-block;animation:pulse 2s infinite;"></span>
+        <span style="font-size:13px;color:var(--gray-500);" id="refreshStatus">Live processing active</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+        <label style="font-size:13px;display:flex;align-items:center;gap:6px;">
+            <input type="checkbox" id="autoRefresh" checked> Auto-refresh (3s)
+        </label>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <!-- Live processing charts -->
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-line"></i> Live Climate Data Processing</h3>
+            <div class="card-actions">
+                <select id="streamSelect" class="form-control form-control-sm" style="width:auto;">
+                    {% for stream in streams %}
+                    <option value="{{ stream.id }}">{{ stream.stream_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Metric chart buttons -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;" id="metricBtns">
+                <button type="button" class="btn btn-sm btn-primary metric-btn" data-metric="temperature">Temperature</button>
+                <button type="button" class="btn btn-sm btn-outline metric-btn" data-metric="humidity">Humidity</button>
+                <button type="button" class="btn btn-sm btn-outline metric-btn" data-metric="pressure">Pressure</button>
+                <button type="button" class="btn btn-sm btn-outline metric-btn" data-metric="wind_speed">Wind Speed</button>
+                <button type="button" class="btn btn-sm btn-outline metric-btn" data-metric="co2_level">CO&#8322;</button>
+                <button type="button" class="btn btn-sm btn-outline metric-btn" data-metric="rainfall">Rainfall</button>
+            </div>
+            <canvas id="realtimeChart" height="230"></canvas>
+
+            <!-- Current values dashboard -->
+            <div class="grid grid-3" style="margin-top:16px;" id="currentValues">
+                <div style="text-align:center;padding:10px;background:var(--gray-50);border-radius:8px;">
+                    <div style="font-size:18px;font-weight:700;color:#ef4444;" id="cvTemp">-</div><div style="font-size:11px;color:var(--gray-500);">Temperature (&deg;C)</div></div>
+                <div style="text-align:center;padding:10px;background:var(--gray-50);border-radius:8px;">
+                    <div style="font-size:18px;font-weight:700;color:#3b82f6;" id="cvHumidity">-</div><div style="font-size:11px;color:var(--gray-500);">Humidity (%)</div></div>
+                <div style="text-align:center;padding:10px;background:var(--gray-50);border-radius:8px;">
+                    <div style="font-size:18px;font-weight:700;color:#8b5cf6;" id="cvPressure">-</div>
+                    <div style="font-size:11px;color:var(--gray-500);">Pressure (hPa)</div></div>
+                <div style="text-align:center;padding:10px;background:var(--gray-50);border-radius:8px;">
+                    <div style="font-size:18px;font-weight:700;color:#0d9488;" id="cvWind">-</div><div style="font-size:11px;color:var(--gray-500);">Wind (km/h)</div></div>
+                <div style="text-align:center;padding:10px;background:var(--gray-50);border-radius:8px;">
+                    <div style="font-size:18px;font-weight:700;color:#f59e0b;" id="cvCo2">-</div><div style="font-size:11px;color:var(--gray-500);">CO&#8322; (ppm)</div></div>
+                <div style="text-align:center;padding:10px;background:var(--gray-50);border-radius:8px;">
+                    <div style="font-size:18px;font-weight:700;color:#06b6d4;" id="cvRain">-</div><div style="font-size:11px;color:var(--gray-500);">Rainfall (mm)</div></div>
+            </div>
+
+            <div style="margin-top:16px;">
+                <h4 style="font-size:14px;margin-bottom:8px;">Recent Readings</h4>
+                <table class="table">
+                    <thead><tr><th>Time</th><th>Temp</th><th>Humidity</th><th>Rain</th><th>Wind</th><th>Pressure</th><th>CO&#8322;</th></tr></thead>
+                    <tbody id="readingsBody">
+                        {% for r in latest_readings[:10] %}
+                        <tr>
+                            <td><small>{{ r.timestamp|fmtdatetime if r.timestamp else 'N/A' }}</small></td>
+                            <td>{{ r.temperature if r.temperature is not none else '-' }}&deg;C</td>
+                            <td>{{ r.humidity if r.humidity is not none else '-' }}%</td>
+                            <td>{{ r.rainfall if r.rainfall is not none else '-' }}mm</td>
+                            <td>{{ r.wind_speed if r.wind_speed is not none else '-' }}km/h</td>
+                            <td>{{ r.pressure if r.pressure is not none else '-' }}</td>
+                            <td>{{ r.co2_level if r.co2_level is not none else '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% if not latest_readings %}
+                        <tr><td colspan="7" class="text-center text-muted" style="padding:16px;">No readings yet. Simulate or enter data below.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Anomaly Detection Results -->
+            {% if anomaly_results is defined and anomaly_results and anomaly_results.anomalies %}
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-200);">
+                <h4 style="font-size:14px;color:var(--danger);margin-bottom:8px;"><i class="fas fa-exclamation-triangle"></i>
+                     Detected Anomalies ({{ anomaly_results.summary.anomalies_found }})</h4>
+                <table class="table">
+                    <thead><tr><th>Time</th><th>Metric</th><th>Value</th><th>Type</th><th>Severity</th></tr></thead>
+                    <tbody>
+                        {% for a in anomaly_results.anomalies[:10] %}
+                        <tr>
+                            <td><small>{{ a.timestamp|fmtdatetime if a.timestamp else 'N/A' }}</small></td>
+                            <td>{{ a.metric }}</td>
+                            <td>{{ a.value }}</td>
+                            <td><span class="badge badge-{{ 'red' if a.severity == 'critical' else 'yellow' if a.severity == 'moderate' else 'gray' }}">{{ a.type }}</span></td>
+                            <td>{{ a.severity }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Processing actions + streams -->
+    <div>
+    <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h3><i class="fas fa-cogs"></i> Process Realtime Data</h3></div>
+        <div class="card-body">
+            {% if streams %}
+            <form method="POST" id="manualForm" action="{{ url_for('analyst.add_manual_reading', stream_id=streams[0].id) }}">
+                <div class="form-group">
+                    <label>Target Stream</label>
+                    <select name="target_stream" class="form-control" id="manualStreamSelect">
+                        {% for stream in streams %}
+                        <option value="{{ stream.id }}">{{ stream.stream_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="grid grid-3">
+                    <div class="form-group"><label>Temp (&deg;C)</label><input type="number" step="0.1" name="temperature" class="form-control" placeholder="25.4"></div>
+                    <div class="form-group"><label>Humidity (%)</label><input type="number" step="0.1" name="humidity" class="form-control" placeholder="60"></div>
+                    <div class="form-group"><label>Pressure (hPa)</label><input type="number" step="0.1" name="pressure" class="form-control" placeholder="1013"></div>
+                    <div class="form-group"><label>Wind (km/h)</label><input type="number" step="0.1" name="wind_speed" class="form-control" placeholder="12"></div>
+                    <div class="form-group"><label>CO&#8322; (ppm)</label><input type="number" step="0.1" name="co2_level" class="form-control" placeholder="415"></div>
+                    <div class="form-group"><label>Rain (mm)</label><input type="number" step="0.1" name="rainfall" class="form-control" placeholder="0"></div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;"><i class="fas fa-play"></i> Submit Reading for Processing</button>
+            </form>
+            <div style="display:flex;gap:8px;margin-top:12px;">
+                <form method="POST" id="simForm" action="{{ url_for('analyst.simulate_reading', stream_id=streams[0].id) }}" style="flex:1;">
+                    <button type="submit" class="btn btn-outline" style="width:100%;"><i class="fas fa-random"></i> Simulate 1 Reading</button>
+                </form>
+                <form method="POST" id="simBatchForm" action="{{ url_for('analyst.simulate_batch', stream_id=streams[0].id) }}" style="flex:1;display:flex;align-items:center;gap:8px;min-width:0;">
+                    <input type="number" name="count" value="10" min="1" max="50" class="form-control" style="width:90px;min-width:90px;flex:0 0 90px;text-align:center;font-size:14px;padding:10px 8px;" title="Number of readings" inputmode="numeric">
+                    <button type="submit" class="btn btn-outline" style="flex:1;min-width:0;"><i class="fas fa-bolt"></i> Process Burst</button>
+                </form>
+            </div>
+            {% else %}
+            <p class="text-muted" style="text-align:center;padding:12px;">Create a stream below to start processing realtime data.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-list"></i> Data Streams</h3></div>
+        <div class="card-body">
+            {% for stream in streams %}
+            <div class="stream-item" style="padding:12px 0;border-bottom:1px solid var(--gray-100);">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <h4 style="font-size:15px;">{{ stream.stream_name }}</h4>
+                    <span class="badge badge-{{ 'green' if stream.status == 'active' else 'yellow' }}">{{ stream.status|capitalize }}</span>
+                </div>
+                <p style="font-size:13px;color:var(--gray-500);">Source: {{ stream.source_type }} | Location: {{ stream.source_location or 'N/A' }}</p>
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--gray-400);">
+                    <span><i class="fas fa-clock"></i> {{ stream.last_reading[:16] if stream.last_reading else 'No readings' }}</span>
+                    <span><i class="fas fa-database"></i> {{ stream.reading_count or 0 }} readings</span>
+                </div>
+                <div style="margin-top:8px;display:flex;gap:8px;">
+                    <a href="{{ url_for('analyst.stream_readings', stream_id=stream.id) }}" class="btn btn-sm btn-outline"><i class="fas fa-eye"></i> View</a>
+                    <form method="POST" action="{{ url_for('analyst.toggle_stream', stream_id=stream.id) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-sm {{ 'btn-warning' if stream.status == 'active' else 'btn-success' }}">
+                            <i class="fas {{ 'fa-pause' if stream.status == 'active' else 'fa-play' }}"></i> {{ 'Pause' if stream.status == 'active' else 'Resume' }}
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('analyst.delete_stream', stream_id=stream.id) }}" style="display:inline;"
+                     onsubmit="return confirm('Delete this stream and all its readings?')">
+                        <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-muted">No streams yet. Create one below.</p>
+            {% endfor %}
+            <form method="POST" action="{{ url_for('analyst.create_stream') }}" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-200);">
+                <h4 style="font-size:14px;margin-bottom:12px;"><i class="fas fa-plus"></i> Create New Stream</h4>
+                <div class="form-group"><label>Stream Name</label><input type="text" name="stream_name" 
+                    class="form-control" placeholder="e.g., Station Alpha Temp Sensor" required></div>
+                <div class="grid grid-2">
+                    <div class="form-group"><label>Source Type</label><select name="source_type" 
+                        class="form-control"><option value="sensor">IoT Sensor</option>
+                        <option value="satellite">Satellite</option><option value="weather_station">Weather Station</option><option value="api">API Feed</option></select></div>
+                    <div class="form-group"><label>Location</label><input type="text" name="source_location" class="form-control" placeholder="e.g., North Region"></div>
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group"><label>Latitude</label><input type="number" name="latitude" class="form-control" step="0.0001" value="0"></div>
+                    <div class="form-group"><label>Longitude</label><input type="number" name="longitude" class="form-control" step="0.0001" value="0"></div>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Create Stream</button>
+            </form>
+        </div>
+    </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script id="rtData" data-base="{{ url_for('analyst.realtime') }}"></script>
+<script>
+var METRICS = {
+    temperature: { label: 'Temperature (°C)', color: '#ef4444' },
+    humidity:    { label: 'Humidity (%)',     color: '#3b82f6' },
+    pressure:    { label: 'Pressure (hPa)',   color: '#8b5cf6' },
+    wind_speed:  { label: 'Wind Speed (km/h)', color: '#0d9488' },
+    co2_level:   { label: 'CO₂ (ppm)',        color: '#f59e0b' },
+    rainfall:    { label: 'Rainfall (mm)',    color: '#06b6d4' }
+};
+var currentMetric = 'temperature';
+var refreshInterval = null;
+var chartInstance = null;
+
+function getBaseUrl() { return document.getElementById('rtData').getAttribute('data-base') || ''; }
+function getStreamId() {
+    var sel = document.getElementById('streamSelect');
+    return sel && sel.value ? sel.value : null;
+}
+
+function initChart() {
+    var ctx = document.getElementById('realtimeChart');
+    if (!ctx) return;
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: METRICS[currentMetric].label, data: [], 
+            borderColor: METRICS[currentMetric].color, backgroundColor: METRICS[currentMetric].color + '1a', fill: true, tension: 0.35, pointRadius: 2 }] },
+        options: { responsive: true, animation: { duration: 0 }, plugins: { legend: { display: true } }, scales: { y: { beginAtZero: false } } }
+    });
+}
+
+function fmt(v) { return (v === null || v === undefined) ? '-' : v; }
+
+function refreshData() {
+    var streamId = getStreamId();
+    if (!streamId) return;
+    fetch(getBaseUrl() + '/' + streamId + '/data')
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            var data = resp.readings || [];
+            if (!data.length) return;
+
+            var latest = data[0];
+            if (latest.temperature !== null && latest.temperature !== undefined) {
+                document.getElementById('currentTemp').textContent = latest.temperature + '°C';
+            }
+            document.getElementById('cvTemp').textContent = fmt(latest.temperature);
+            document.getElementById('cvHumidity').textContent = fmt(latest.humidity);
+            document.getElementById('cvPressure').textContent = fmt(latest.pressure);
+            document.getElementById('cvWind').textContent = fmt(latest.wind_speed);
+            document.getElementById('cvCo2').textContent = fmt(latest.co2_level);
+            document.getElementById('cvRain').textContent = fmt(latest.rainfall);
+            if (resp.anomalies && resp.anomalies.length > 0) {
+                document.getElementById('anomalies').textContent = resp.anomalies.length;
+            }
+
+            // Chart (data comes newest-first; reverse for chronological display)
+            if (chartInstance) {
+                var series = data.slice(0, 30).reverse();
+                chartInstance.data.labels = series.map(function(d) { return d.timestamp ? d.timestamp.substring(11, 19) : ''; });
+                chartInstance.data.datasets[0].data = series.map(function(d) { return d[currentMetric]; });
+                chartInstance.data.datasets[0].label = METRICS[currentMetric].label;
+                chartInstance.data.datasets[0].borderColor = METRICS[currentMetric].color;
+                chartInstance.data.datasets[0].backgroundColor = METRICS[currentMetric].color + '1a';
+                chartInstance.update();
+            }
+
+            // Readings table
+            var tbody = document.getElementById('readingsBody');
+            if (tbody) {
+                var html = '';
+                data.slice(0, 10).forEach(function(r) {
+                    html += '<tr><td><small>' + (r.timestamp ? r.timestamp.substring(0, 16).replace('T', ' ') : 'N/A') + '</small></td>';
+                    html += '<td>' + fmt(r.temperature) + '°C</td><td>' + fmt(r.humidity) + '%</td>';
+                    html += '<td>' + fmt(r.rainfall) + 'mm</td><td>' + fmt(r.wind_speed) + 'km/h</td>';
+                    html += '<td>' + fmt(r.pressure) + '</td><td>' + fmt(r.co2_level) + '</td></tr>';
+                });
+                tbody.innerHTML = html;
+            }
+            document.getElementById('refreshStatus').textContent = 'Last processed: ' + new Date().toLocaleTimeString();
+        })
+        .catch(function() {
+            document.getElementById('refreshStatus').textContent = 'Refresh failed - retrying...';
+        });
+}
+
+function loadBaselines() {
+    fetch(getBaseUrl() + '/batch-baselines')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) return;
+            var panel = document.getElementById('baselinesPanel');
+            var content = document.getElementById('baselinesContent');
+            panel.style.display = 'block';
+            var html = '';
+            if (data.temperature) {
+                html += '<div style="text-align:center;padding:6px;"><strong>Temp</strong><br>' 
+                    + data.temperature.mean + '°C<br><small>Alert: ' + data.temperature.alert_low + '–' + data.temperature.alert_high + '</small></div>';
+            }
+            if (data.rainfall) {
+                html += '<div style="text-align:center;padding:6px;"><strong>Rainfall</strong><br>' 
+                    + data.rainfall.mean + 'mm<br><small>Flood: >' + data.rainfall.flood_threshold + 'mm</small></div>';
+            }
+            if (data.air_quality) {
+                html += '<div style="text-align:center;padding:6px;"><strong>AQI</strong><br>' 
+                    + data.air_quality.mean + '<br><small>Alert: >' + data.air_quality.alert_threshold + '</small></div>';
+            }
+            if (data.wind_speed) {
+                html += '<div style="text-align:center;padding:6px;"><strong>Wind</strong><br>' + data.wind_speed.mean + ' km/h</div>';
+            }
+            content.innerHTML = html;
+        })
+        .catch(function() {});
+}
+
+function startAutoRefresh() {
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(refreshData, 3000);
+    refreshData();
+}
+
+function stopAutoRefresh() {
+    if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = null; }
+}
+
+// Sync the processing-panel forms with the selected stream
+function syncFormStreams(streamId) {
+    ['manualForm', 'simForm', 'simBatchForm'].forEach(function(id) {
+        var f = document.getElementById(id);
+        if (f) f.action = f.action.replace(/\/\d+\//, '/' + streamId + '/');
+    });
+    var manualSel = document.getElementById('manualStreamSelect');
+    if (manualSel) manualSel.value = streamId;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    initChart();
+    refreshData();
+
+    // Metric chart switching
+    var btns = document.querySelectorAll('.metric-btn');
+    btns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            currentMetric = btn.getAttribute('data-metric');
+            btns.forEach(function(b) { b.className = 'btn btn-sm btn-outline metric-btn'; });
+            btn.className = 'btn btn-sm btn-primary metric-btn';
+            refreshData();
+        });
+    });
+
+    // Stream selection
+    var streamSel = document.getElementById('streamSelect');
+    if (streamSel) {
+        streamSel.addEventListener('change', function() {
+            syncFormStreams(this.value);
+            refreshData();
+        });
+    }
+    var manualSel = document.getElementById('manualStreamSelect');
+    if (manualSel) {
+        manualSel.addEventListener('change', function() {
+            var f = document.getElementById('manualForm');
+            if (f) f.action = f.action.replace(/\/\d+\//, '/' + this.value + '/');
+        });
+    }
+
+    var checkbox = document.getElementById('autoRefresh');
+    if (checkbox) {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) { startAutoRefresh(); document.getElementById('refreshStatus').textContent = 'Live processing active'; }
+            else { stopAutoRefresh(); document.getElementById('refreshStatus').textContent = 'Auto-refresh paused'; }
+        });
+    }
+    startAutoRefresh();
+});
+</script>
+<style>
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+</style>
+{% endblock %}

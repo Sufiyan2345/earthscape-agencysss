@@ -1,0 +1,530 @@
+{% extends "admin/base.html" %}
+{# Defensive: fill any missing/null summary keys so a stale backend can never crash the page #}
+{% set _defaults = {'avg_temp': 0, 'avg_rainfall': 0, 'avg_humidity': 0, 'avg_wind': 0, 'avg_co2': 0, 'avg_aqi': 0, 'avg_pressure': 0, 'avg_visibility': 0, 'avg_uv_index': 0, 'avg_soil_moisture': 0, 'total_records': 0} %}
+{% set summary = _defaults.update(summary|default({})) or _defaults %}
+{% block page_title %}Data Analytics Dashboard{% endblock %}
+{% block extra_css %}
+<style>
+.geo-workspace{overflow:hidden;border:1px solid rgba(126,231,208,.2);background:linear-gradient(135deg,rgba(7,19,31,.98),rgba(12,35,49,.92));}
+.geo-workspace .card-header{border-bottom:1px solid rgba(126,231,208,.16);}
+.geo-subtitle{font-size:12px;color:var(--gray-500);margin-top:2px;}
+.geo-status{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--accent);}
+.geo-status i{font-size:8px;animation:geoPulse 1.8s infinite;}
+@keyframes geoPulse{50%{opacity:.35;}}
+.geo-layout{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:14px;padding:14px;}
+.geo-map-frame{position:relative;min-height:380px;border:1px solid rgba(126,231,208,.22);border-radius:10px;overflow:hidden;background:#091722;box-shadow:inset 0 0 40px rgba(84,168,255,.08);}
+.geo-map-frame:after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(126,231,208,.05) 1px,transparent 1px),linear-gradient(rgba(126,231,208,.05) 1px,transparent 1px);
+background-size:42px 42px;mix-blend-mode:screen;}
+#stationMap{height:380px;}
+.geo-map-frame .leaflet-container{filter:saturate(.8) contrast(1.08) brightness(.72);}
+.city-scan{overflow:hidden;border:1px solid rgba(84,168,255,.28);background:linear-gradient(145deg,#07131d,#0b2230 58%,#07131d);}
+.city-scan .card-header{border-bottom:1px solid rgba(126,231,208,.18);}
+.city-scan-subtitle{font-size:12px;color:var(--gray-500);margin-top:2px;}
+.city-scan-status{font-size:11px;letter-spacing:.08em;color:#7ee7d0;}
+.city-scan-toolbar{display:flex;align-items:center;gap:10px;}
+.city-scan-select-wrap{display:inline-flex;align-items:center;gap:8px;padding:0 6px 0 0;color:rgba(214,236,242,.9);font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;}
+.city-scan-select{min-width:170px;padding:8px 32px 8px 12px;border:1px solid rgba(120,140,180,.52);border-radius:10px;background:linear-gradient(135deg,#050b12,#02070c);color:#ffffff;font-size:12px;font-weight:600;letter-spacing:.02em;appearance:none;-webkit-appearance:none;-moz-appearance:none;color-scheme:dark;background-image:linear-gradient(45deg,transparent 50%,#ffffff 50%),linear-gradient(135deg,#ffffff 50%,transparent 50%);background-position:calc(100% - 16px) calc(50% - 2px),calc(100% - 11px) calc(50% - 2px);background-size:5px 5px,5px 5px;background-repeat:no-repeat;box-shadow:inset 0 0 0 1px rgba(126,231,208,.06),0 0 0 1px rgba(18,30,44,.3);}
+.city-scan-select option{background:#02070c;color:#ffffff;}
+.city-scan-select option:checked,.city-scan-select option:hover{background:linear-gradient(135deg,#163a65,#0a1320);color:#ffffff;}
+.city-scan-select:focus{outline:2px solid rgba(126,231,208,.25);outline-offset:1px;border-color:rgba(126,231,208,.42);box-shadow:0 0 0 3px rgba(126,231,208,.12),inset 0 0 0 1px rgba(126,231,208,.08);}
+.city-scan-fullscreen-btn{position:absolute;top:14px;right:14px;z-index:5;width:32px;height:32px;border:1px solid rgba(126,231,208,.28);border-radius:8px;background:rgba(7,19,31,.72);color:#dffcf6;display:grid;place-items:center;cursor:pointer;box-shadow:inset 0 0 12px rgba(84,168,255,.08);transition:all .18s ease;}
+.city-scan-fullscreen-btn:hover{transform:translateY(-1px);border-color:rgba(126,231,208,.5);box-shadow:0 0 16px rgba(126,231,208,.15);}
+.city-scan.is-fullscreen{position:fixed;inset:0;z-index:2000;background:linear-gradient(145deg,#07131d,#0b2230 58%,#07131d);border-radius:0;}
+.city-scan.is-fullscreen .city-scan-body{height:calc(100vh - 72px);padding:14px 18px 18px;}
+.city-scan.is-fullscreen .city-scan-frame{height:100%;min-height:0;}
+.city-scan-body{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:14px;padding:14px;}
+.city-scan-frame{position:relative;height:390px;overflow:hidden;border:1px solid rgba(126,231,208,.24);border-radius:10px;background:radial-gradient(circle at 50% 45%,rgba(84,168,255,.15),transparent 42%),#050d15;}
+#cityScanCanvas{display:block;width:100%;height:100%;}
+.city-scan-overlay{position:absolute;inset:12px;pointer-events:none;border:1px solid rgba(126,231,208,.15);border-radius:7px;}
+.city-scan-overlay:before,.city-scan-overlay:after{content:'';position:absolute;background:rgba(126,231,208,.42);}
+.city-scan-overlay:before{width:26px;height:1px;left:-1px;top:18px;box-shadow:calc(100% - 24px) 0 rgba(126,231,208,.42);}.city-scan-overlay:after{height:26px;width:1px;left:18px;top:-1px;
+    box-shadow:0 calc(100% - 24px) rgba(126,231,208,.42);}
+.city-scan-metrics{display:flex;flex-direction:column;gap:10px;}.city-scan-metric{padding:14px;border:1px solid rgba(126,231,208,.16);border-radius:8px;background:rgba(4,14,23,.76);}
+.city-scan-metric strong{display:block;color:#f5f9ff;font-size:24px;line-height:1.1;}.city-scan-metric span{font-size:11px;color:var(--gray-500);}.city-scan-note{font-size:11px;line-height:1.5;color:var(--gray-500);padding:4px;}
+@media(max-width:800px){.city-scan-body{grid-template-columns:1fr}.city-scan-metrics{display:grid;grid-template-columns:repeat(2,1fr)}.city-scan-note{grid-column:1/-1}}
+.radar-sweep{position:absolute;z-index:402;inset:-35%;border-radius:50%;pointer-events:none;background:conic-gradient(from 0deg,transparent 0deg,transparent 314deg,rgba(126,231,208,.04) 330deg,rgba(126,231,208,.48) 354deg,
+    transparent 360deg);animation:radarSpin 7s linear infinite;mix-blend-mode:screen;}
+.radar-core{position:absolute;z-index:403;left:50%;top:50%;width:12px;height:12px;margin:-6px;border-radius:50%;background:#7ee7d0;box-shadow:0 0 0 5px rgba(126,231,208,.15),0 0 18px #7ee7d0;pointer-events:none;}
+@keyframes radarSpin{to{transform:rotate(360deg);}}
+.geo-side{display:flex;flex-direction:column;gap:10px;}
+.geo-stat{padding:14px;border:1px solid rgba(126,231,208,.16);border-radius:9px;background:rgba(6,19,29,.72);}
+.geo-stat strong{display:block;font-size:25px;color:var(--white);line-height:1.1;}
+.geo-stat span,.geo-legend{font-size:11px;color:var(--gray-500);}
+.geo-legend{padding:12px 14px;border-top:1px solid rgba(126,231,208,.12);}
+.geo-legend-row{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.geo-dot{width:9px;height:9px;border-radius:50%;display:inline-block;box-shadow:0 0 8px currentColor;}
+@media(max-width:800px){.geo-layout{grid-template-columns:1fr}.geo-side{display:grid;grid-template-columns:repeat(2,1fr)}.geo-legend{grid-column:1/-1}}
+.geo-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}.geo-controls select{min-width:125px;width:auto;}
+.station-name-label{background:transparent;border:0;white-space:nowrap;pointer-events:none;}
+.station-name-label span{display:block;padding:3px 6px;border:1px solid rgba(126,231,208,.45);border-radius:4px;background:rgba(4,14,23,.82);
+box-shadow:0 2px 8px rgba(0,0,0,.35);color:#e7fffa;font-size:10px;font-weight:700;text-shadow:0 1px 2px #000;transform:translate(9px,-4px);}.station-name-label .anomaly-label{border-color:#fb7185;color:#ffd8df;}
+.modern-filter-bar{padding:22px;background:linear-gradient(135deg,#06121e 0%,#081d2d 52%,#03080f 100%);border:1px solid rgba(84,168,255,.26);border-radius:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 14px 30px rgba(0,0,0,.24);}
+.modern-filter-group{min-width:0;}
+.modern-filter-group>label{display:flex;align-items:center;gap:7px;margin-bottom:8px;color:#a8d9f4;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;}
+.modern-filter-group>label i{color:#7ee7d0;font-size:12px;}
+.modern-filter-group select.form-control,.modern-filter-group input.form-control{min-height:42px;border:1px solid rgba(84,168,255,.28);border-radius:10px;background:linear-gradient(135deg,rgba(11,34,54,.98),rgba(4,13,24,.98));color:#eaf8f7;font-size:13px;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 6px 14px rgba(0,0,0,.2);transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;}
+.modern-filter-group select.form-control:focus,.modern-filter-group input.form-control:focus{outline:none;border-color:#57d2c3;background:#0b2940;box-shadow:0 0 0 3px rgba(84,168,255,.14),inset 0 1px 0 rgba(255,255,255,.06);}
+.modern-filter-group select.form-control option{background:#10232e;color:#eaf8f7;padding:8px;}
+.modern-filter-group select.form-control[multiple]{height:148px;padding:8px 10px;line-height:1.55;scrollbar-color:#277d82 #0a1b26;}
+.modern-filter-group select.form-control[multiple] option{border-radius:6px;padding:3px 8px;}
+.modern-filter-group select.form-control[multiple] option:checked{background:linear-gradient(90deg,#167b7c,#225c70);color:#fff;}
+.modern-input-wrap{position:relative;display:block;width:100%;}
+.modern-input-wrap .input-icon{position:absolute;left:14px;top:50%;z-index:3;transform:translateY(-50%);color:#7ee7d0;pointer-events:none;font-size:12px;}
+.modern-input-wrap input[type="date"]{padding-left:38px !important;padding-right:12px !important;position:relative;appearance:none;-webkit-appearance:none;-moz-appearance:none;color-scheme:dark;}
+.modern-input-wrap input[type="date"]::-webkit-calendar-picker-indicator{position:absolute;right:10px;width:14px;height:14px;opacity:0;cursor:pointer;}
+.modern-input-wrap input[type="date"]::-webkit-clear-button,
+.modern-input-wrap input[type="date"]::-webkit-inner-spin-button{display:none;}
+.modern-input-wrap.analyst-select-wrapper select.form-control{padding-left:42px !important;appearance:none;-webkit-appearance:none;}
+.modern-input-wrap.analyst-select-wrapper::after{right:14px;color:#7ee7d0;}
+.modern-date-range{display:grid;grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr);align-items:center;gap:8px;}
+.modern-date-range .form-control{width:100%;padding:0 38px 0 38px;background-image:none;}
+.modern-date-range .date-sep{color:#7ee7d0;text-align:center;font-weight:700;}
+.btn-apply-modern{min-height:42px;border:1px solid rgba(126,231,208,.18);border-radius:10px;background:linear-gradient(135deg,#1167a6,#147f87);color:#fff;font-weight:800;letter-spacing:.02em;box-shadow:0 8px 18px rgba(17,103,166,.2);transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;}
+.btn-apply-modern:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 11px 22px rgba(17,103,166,.3);}
+@media(max-width:800px){.modern-filter-bar{padding:16px;}.modern-date-range{grid-template-columns:1fr;gap:6px;}.modern-date-range .date-sep{display:none;}}
+</style>
+{% endblock %}
+{% block content %}
+<!-- Summary Stats -->
+<div class="grid grid-4 mb-1">
+    <div class="stat-card">
+        <div class="stat-icon red"><i class="fas fa-thermometer-half"></i></div>
+        <div class="stat-info"><h4>Avg Temperature</h4><div class="stat-value">{{ "%.1f"|format(summary.avg_temp) }}°C</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-tint"></i></div>
+        <div class="stat-info"><h4>Avg Rainfall</h4><div class="stat-value">{{ "%.1f"|format(summary.avg_rainfall) }}mm</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="fas fa-tint"></i></div>
+        <div class="stat-info"><h4>Avg Humidity</h4><div class="stat-value">{{ "%.1f"|format(summary.avg_humidity) }}%</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon orange"><i class="fas fa-wind"></i></div>
+        <div class="stat-info"><h4>Avg Wind Speed</h4><div class="stat-value">{{ "%.1f"|format(summary.avg_wind) }} km/h</div></div>
+    </div>
+</div>
+<div class="grid grid-4 mb-1">
+    <div class="stat-card">
+        <div class="stat-icon purple"><i class="fas fa-smog"></i></div>
+        <div class="stat-info"><h4>Avg CO2</h4><div class="stat-value">{{ "%.1f"|format(summary.avg_co2) }} ppm</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-heartbeat"></i></div>
+        <div class="stat-info"><h4>Avg AQI</h4><div class="stat-value">{{ "%.0f"|format(summary.avg_aqi) }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-compress-arrows-alt"></i></div>
+        <div class="stat-info"><h4>Avg Pressure</h4><div class="stat-value">{{ "%.0f"|format(summary.avg_pressure) }} hPa</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="fas fa-eye"></i></div>
+        <div class="stat-info"><h4>Avg Visibility</h4><div class="stat-value">{{ "%.1f"|format(summary.avg_visibility) }} km</div></div>
+    </div>
+</div>
+<div class="grid grid-3 mb-3">
+    <div class="stat-card">
+        <div class="stat-icon orange"><i class="fas fa-sun"></i></div>
+        <div class="stat-info"><h4>Avg UV Index</h4><div class="stat-value">{{ "%.1f"|format(summary.avg_uv_index) }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-seedling"></i></div>
+        <div class="stat-info"><h4>Avg Soil Moisture</h4><div class="stat-value">{{ "%.1f"|format(summary.avg_soil_moisture) }}%</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple"><i class="fas fa-database"></i></div>
+        <div class="stat-info"><h4>Total Records</h4><div class="stat-value">{{ "{:,}".format(summary.total_records or 0) }}</div></div>
+    </div>
+</div>
+<div class="card mb-3" id="filteredVizState">
+    <div class="card-header"><h3><i class="fas fa-filter"></i> Filtered View</h3><span class="badge badge-gray" id="filteredRefresh">Live</span></div>
+    <div class="card-body"><div class="grid grid-4">
+        <div><strong id="filteredRecords">{{ summary.total_records or 0 }}</strong><small> Records</small></div>
+        <div><strong id="filteredAnomalies">0</strong><small> Anomalies</small></div>
+        <div><strong id="filteredTemp">{{ "%.1f"|format(summary.avg_temp or 0) }}°C</strong><small> Avg Temperature</small></div>
+        <div><strong id="filteredRain">{{ "%.1f"|format(summary.avg_rainfall or 0) }}mm</strong><small> Avg Rainfall</small></div>
+    </div></div>
+</div>
+
+<!-- Interactive Chart Controls -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h3><i class="fas fa-chart-area"></i> Interactive Climate Visualization</h3>
+        <div class="card-actions">
+            <span class="badge badge-gray">Admin view — same data as the Analyst panel</span>
+            <button class="btn btn-sm btn-outline" onclick="exportMainChart()"><i class="fas fa-download"></i> Export PNG</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="GET" id="analyticsFilterForm" onsubmit="event.preventDefault(); loadMainChart();">
+            <div class="modern-filter-bar">
+                <div class="modern-filter-group">
+                    <label><i class="fas fa-sliders-h"></i> Variables</label>
+                    <select id="varSelect" class="form-control" multiple size="4">
+                        <option value="temperature" selected>Temperature</option>
+                        <option value="humidity" selected>Humidity</option>
+                        <option value="rainfall">Rainfall</option>
+                        <option value="wind_speed">Wind Speed</option>
+                        <option value="pressure">Pressure</option>
+                        <option value="co2_level">CO2 Level</option>
+                        <option value="air_quality_index">Air Quality</option>
+                        <option value="visibility">Visibility</option>
+                        <option value="uv_index">UV Index</option>
+                        <option value="soil_moisture">Soil Moisture</option>
+                    </select>
+                    <div style="display:flex;gap:6px;margin-top:6px;">
+                        <button type="button" class="btn btn-sm btn-outline" id="selectAllVarsBtn" style="flex:1;"><i class="fas fa-check-double"></i> All</button>
+                        <button type="button" class="btn btn-sm btn-outline" id="clearVarsBtn" style="flex:1;"><i class="fas fa-times"></i> Clear</button>
+                    </div>
+                </div>
+                <div class="modern-filter-group">
+                    <label><i class="fas fa-chart-line"></i> Chart Type</label>
+                    <div class="modern-input-wrap analyst-select-wrapper">
+                        <i class="fas fa-palette input-icon"></i>
+                        <select id="chartType" class="form-control">
+                            <option value="line">Line Chart</option>
+                            <option value="area">Area Chart</option>
+                            <option value="stepped">Stepped Line</option>
+                            <option value="bar">Bar Chart</option>
+                            <option value="radar">Radar Chart</option>
+                        </select>
+                    </div>
+                    <label style="margin-top:14px;"><i class="fas fa-clock"></i> Group By</label>
+                    <div class="modern-input-wrap analyst-select-wrapper">
+                        <i class="fas fa-calendar-alt input-icon"></i>
+                        <select id="groupBy" class="form-control">
+                            <option value="month">Month</option>
+                            <option value="year">Year</option>
+                            <option value="day">Day</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modern-filter-group">
+                    <label><i class="fas fa-calendar"></i> Date Range</label>
+                    <div class="modern-date-range">
+                        <div class="modern-input-wrap">
+                            <input type="date" id="startDate" class="form-control">
+                        </div>
+                        <span class="date-sep">—</span>
+                        <div class="modern-input-wrap">
+                            <input type="date" id="endDate" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modern-filter-group">
+                    <label><i class="fas fa-map-marker-alt"></i> Region</label>
+                    <div class="modern-input-wrap analyst-select-wrapper">
+                        <i class="fas fa-globe-asia input-icon"></i>
+                        <select id="regionSelect" class="form-control">
+                            <option value="">All Regions</option>
+                            {% for r in regions %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-apply-modern" style="width:100%;justify-content:center;margin-top:14px;">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Update Chart</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+        <div style="height:350px;margin-top:16px;"><canvas id="mainChart"></canvas></div>
+    </div>
+</div>
+
+<!-- Regional Comparison -->
+<div class="grid grid-2 mb-3">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-map-marked-alt"></i> Regional Comparison</h3>
+            <div class="card-actions">
+                <div class="analyst-select-wrapper analyst-select-glass">
+                    <select id="regionalVar" class="form-control form-control-sm" onchange="loadRegionalChart()">
+                        <option value="avg_temp">Temperature</option>
+                        <option value="avg_humidity">Humidity</option>
+                        <option value="total_rainfall">Rainfall</option>
+                        <option value="avg_aqi">Air Quality</option>
+                        <option value="avg_wind">Wind Speed</option>
+                        <option value="avg_pressure">Pressure</option>
+                        <option value="avg_co2">CO2 Level</option>
+                        <option value="avg_visibility">Visibility</option>
+                        <option value="avg_uv">UV Index</option>
+                        <option value="avg_soil_moisture">Soil Moisture</option>
+                    </select>
+                </div>
+                <button class="btn btn-sm btn-outline" onclick="EarthScapeCharts.export('regionalChart','regional-comparison.png')"><i class="fas fa-download"></i></button>
+            </div>
+        </div>
+        <div class="card-body"><div style="height:280px;"><canvas id="regionalChart"></canvas></div></div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-globe"></i> Regional Distribution</h3>
+            <div class="card-actions">
+                <div class="analyst-select-wrapper analyst-select-glass">
+                    <select id="regionalChartType" class="form-control form-control-sm" onchange="loadRegionalChart()">
+                        <option value="bar">Bar Chart</option>
+                        <option value="radar">Radar</option>
+                        <option value="polarArea">Polar Area</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="card-body"><div style="height:280px;"><canvas id="regionalPieChart"></canvas></div></div>
+    </div>
+</div>
+
+<!-- Multi-Variable Environmental Charts -->
+<div class="grid grid-2 mb-3">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-smog"></i> CO2 & Air Quality Trends</h3>
+            <button class="btn btn-sm btn-outline" onclick="EarthScapeCharts.export('co2AqiChart','co2-aqi-trends.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body"><div style="height:250px;"><canvas id="co2AqiChart"></canvas></div></div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-wind"></i> Wind & Pressure Patterns</h3>
+            <button class="btn btn-sm btn-outline" onclick="EarthScapeCharts.export('windPressureChart','wind-pressure.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body"><div style="height:250px;"><canvas id="windPressureChart"></canvas></div></div>
+    </div>
+</div>
+
+<!-- Regional Data Table -->
+<div class="card">
+    <div class="card-header"><h3><i class="fas fa-table"></i> Regional Data Summary</h3></div>
+    <div class="card-body">
+        <table class="table">
+            <thead><tr><th>Station</th><th>Lat/Lng</th><th>Avg Temp</th><th>Avg Humidity</th><th>Total Rainfall</th><th>Avg AQI</th><th>Readings</th></tr></thead>
+            <tbody>
+                {% for r in regional %}
+                <tr>
+                    <td><strong>{{ r.station_name }}</strong></td>
+                    <td><small>{{ "%.2f"|format(r.latitude) if r.latitude else 'N/A' }}, {{ "%.2f"|format(r.longitude) if r.longitude else 'N/A' }}</small></td>
+                    <td>{{ "%.1f"|format(r.avg_temp) if r.avg_temp is not none else 'N/A' }}°C</td>
+                    <td>{{ "%.1f"|format(r.avg_humidity) if r.avg_humidity is not none else 'N/A' }}%</td>
+                    <td>{{ "%.1f"|format(r.total_rainfall) if r.total_rainfall is not none else 'N/A' }}mm</td>
+                    <td>{{ "%.0f"|format(r.avg_aqi) if r.avg_aqi is not none else 'N/A' }}</td>
+                    <td>{{ r.readings }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-center">No regional data available</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mb-3 geo-workspace"><div class="card-header"><div><h3><i class="fas fa-satellite"></i> Satellite Radar Monitor</h3>
+    <div class="geo-subtitle">Live station coverage and filtered climate observations</div></div><div class="geo-controls"><label class="geo-status" for="mapMetric"><i class="fas fa-circle"></i> MAP DATA</label>
+        <select id="mapMetric" class="form-control form-control-sm"><option value="temperature">Temperature</option><option value="rainfall">Rainfall</option><option value="humidity">Humidity</option>
+            <option value="wind_speed">Wind speed</option><option value="pressure">Pressure</option><option value="co2_level">CO2</option><option value="air_quality_index">Air quality</option>
+            <option value="visibility">Visibility</option><option value="uv_index">UV index</option><option value="soil_moisture">Soil moisture</option></select><label class="geo-status" for="mapSkin"><i class="fas fa-layer-group">
+
+            </i> SKIN</label><select id="mapSkin" class="form-control form-control-sm"><option value="satellite">Satellite</option><option value="street">Street</option><option value="terrain">Terrain</option>
+                <option value="dark">Night</option></select></div></div><div class="geo-layout"><div class="geo-map-frame"><div id="stationMap"></div><div class="radar-sweep"></div><div class="radar-core"></div></div>
+                <aside class="geo-side"><div class="geo-stat"><strong id="stationCount">0</strong><span>Mapped stations</span></div><div class="geo-stat"><strong id="mapAnomalyCount">0</strong><span>Flagged anomalies</span></div>
+                    <div class="geo-stat"><strong id="mapCoverage">--</strong><span>Coverage status</span></div><div class="geo-legend">RADAR KEY<div class="geo-legend-row">
+                        <i class="geo-dot" style="color:#7ee7d0;background:#7ee7d0;"></i> Monitoring station</div><div class="geo-legend-row"><i class="geo-dot" style="color:#fb7185;background:#fb7185;">
+
+                        </i> Review anomaly data</div></div></aside></div></div>
+<div class="card mb-3"><div class="card-header"><h3><i class="fas fa-exclamation-triangle"></i> Filtered Anomalies</h3></div>
+<div class="card-body"><div id="filteredAnomalyList">No anomalies in the selected view.</div></div></div>
+<div class="card mb-3 city-scan"><div class="card-header"><div><h3><i class="fas fa-cube"></i> 3D City Radar Scan</h3>
+    <div class="city-scan-subtitle">Select a metric to display a focused live city scan</div></div>
+    <div class="city-scan-toolbar"><div class="city-scan-status" id="cityScanStatus">READY</div>
+        <label class="city-scan-select-wrap" for="cityScanMetricSelect"><span>View</span>
+            <select id="cityScanMetricSelect" class="city-scan-select" aria-label="Select city scan metric">
+                <option value="">Select metric</option>
+                <option value="temperature">Temperature</option>
+                <option value="rainfall">Rainfall</option>
+                <option value="humidity">Humidity</option>
+                <option value="wind_speed">Wind speed</option>
+                <option value="pressure">Pressure</option>
+                <option value="co2_level">CO2</option>
+                <option value="air_quality_index">Air quality</option>
+                <option value="visibility">Visibility</option>
+                <option value="uv_index">UV index</option>
+                <option value="soil_moisture">Soil moisture</option>
+            </select>
+        </label>
+    </div></div><div class="city-scan-body"><div class="city-scan-frame">
+        <canvas id="cityScanCanvas"></canvas>
+        <button class="city-scan-fullscreen-btn" type="button" aria-label="Open full screen" title="Open full screen"><i class="fas fa-expand"></i></button>
+        <div class="city-scan-overlay"></div>
+    </div><aside class="city-scan-metrics"><div class="city-scan-metric"><strong id="cityScanCount">0</strong>
+            <span>Scan nodes</span></div><div class="city-scan-metric"><strong id="cityScanAnomalies">0</strong><span>Priority signals</span></div><div class="city-scan-metric"><strong id="cityScanMetric">--</strong>
+                <span>Active metric</span></div><div class="city-scan-detail" id="cityScanDetail">
+                    <div class="city-scan-detail-empty"><i class="fas fa-globe-americas"></i><span>Choose a metric to load the live city scan.</span></div></div>
+                <div class="city-scan-note">Focused radar mode keeps the globe clean and shows only the selected climate layer at a time.</div></aside></div></div>
+<script id="analyticsCfg" type="application/json" data-chart-url="{{ url_for('admin.analytics_chart_data') }}" 
+data-regional-url="{{ url_for('admin.analytics_regional_data') }}" data-state-url="{{ url_for('admin.analytics_visualization_state') }}"></script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}?v=20260813"></script>
+<script src="{{ url_for('static', filename='js/city_scan.js') }}?v=20260824"></script>
+<script>
+var cfgEl = document.getElementById('analyticsCfg');
+var chartUrl = cfgEl.getAttribute('data-chart-url');
+var regionalUrl = cfgEl.getAttribute('data-regional-url');
+var stateUrl = cfgEl.getAttribute('data-state-url');
+var regionalDataCache = null;
+var stationMap = null;
+var stationMarkers = [];
+var stationLabels = [];
+var mapLayers = {};
+var latestAnomalyNames = {};
+
+function getSelectedVars() {
+    var sel = document.getElementById('varSelect');
+    var vars = [];
+    for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].selected) vars.push(sel.options[i].value);
+    }
+    return vars.length > 0 ? vars : ['temperature'];
+}
+
+function loadMainChart() {
+    var vars = getSelectedVars();
+    var chartType = document.getElementById('chartType').value;
+    var groupBy = document.getElementById('groupBy').value;
+    var startDate = document.getElementById('startDate').value;
+    var endDate = document.getElementById('endDate').value;
+    var region = document.getElementById('regionSelect').value;
+    var params = new URLSearchParams();
+    vars.forEach(function(v) { params.append('variables', v); });
+    params.append('group_by', groupBy);
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    if (region) params.append('region', region);
+    EarthScapeCharts.renderFromAPI('mainChart', chartUrl + '?' + params.toString(), vars, chartType);
+}
+
+function loadRegionalChart() {
+    if (!regionalDataCache) return;
+    var variable = document.getElementById('regionalVar').value;
+    var chartType = document.getElementById('regionalChartType').value;
+    EarthScapeCharts.renderRegional('regionalChart', regionalDataCache, variable, chartType);
+    var pieType = chartType === 'bar' ? 'bar' : chartType;
+    EarthScapeCharts.renderRegional('regionalPieChart', regionalDataCache, variable, pieType === 'radar' ? 'polarArea' : pieType);
+}
+
+function exportMainChart() {
+    EarthScapeCharts.export('mainChart', 'climate-analysis.png');
+}
+
+function loadFilteredState() {
+    var params = new URLSearchParams();
+    var start = document.getElementById('startDate').value;
+    var end = document.getElementById('endDate').value;
+    var region = document.getElementById('regionSelect').value;
+    if (start) params.set('start_date', start);
+    if (end) params.set('end_date', end);
+    if (region) params.set('region', region);
+    fetch(stateUrl + '?' + params.toString()).then(function(r) { return r.json(); }).then(function(state) {
+        var s = state.summary || {};
+        document.getElementById('filteredRecords').textContent = s.total_records || 0;
+        document.getElementById('filteredAnomalies').textContent = (state.anomalies || []).length;
+        document.getElementById('mapAnomalyCount').textContent = (state.anomalies || []).length;
+        document.getElementById('filteredTemp').textContent = s.avg_temp == null ? 'N/A' : Number(s.avg_temp).toFixed(1) + '°C';
+        document.getElementById('filteredRain').textContent = s.avg_rainfall == null ? 'N/A' : Number(s.avg_rainfall).toFixed(1) + 'mm';
+        var list = document.getElementById('filteredAnomalyList');
+        list.innerHTML = (state.anomalies || []).slice(0, 20).map(function(a) {
+            return '<div style="padding:5px 0;border-bottom:1px solid var(--gray-200);">' +
+                (a.date || 'N/A') + ' · ' + (a.station_name || 'Unknown') + ' · temp z=' + (a.temp_z_score || '-') + ' · rain z=' + (a.rain_z_score || '-') + '</div>';
+        }).join('') || 'No anomalies in the selected view.';
+        latestAnomalyNames = {};
+        (state.anomalies || []).forEach(function(a) { if (a.station_name) latestAnomalyNames[a.station_name] = true; });
+        window.latestStations = state.stations || [];
+        renderStationMap(window.latestStations);
+        document.getElementById('stationCount').textContent = (state.stations || []).length;
+        document.getElementById('mapCoverage').textContent = state.stations && state.stations.length ? 'Ready' : 'No data';
+    }).catch(function() { document.getElementById('filteredRefresh').textContent = 'Unavailable'; });
+}
+
+function renderStationMap(stations) {
+    if (!window.L) return;
+    window.latestStations = Array.isArray(stations) ? stations : (window.latestStations || []);
+    if (!stationMap) {
+        stationMap = L.map('stationMap').setView([20, 0], 2);
+        mapLayers.satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom: 18, attribution: 'Tiles &copy; Esri'});
+        mapLayers.street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '&copy; OpenStreetMap'});
+        mapLayers.terrain = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {maxZoom: 17, attribution: '&copy; OpenTopoMap'});
+        mapLayers.dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {maxZoom: 19, attribution: '&copy; CARTO'});
+        mapLayers.satellite.addTo(stationMap);
+        L.circle([20, 0], {radius: 900000, color: '#7ee7d0', weight: 1, opacity: .35, fill: false, dashArray: '6 8'}).addTo(stationMap);
+    }
+
+    var selectedSkin = (document.getElementById('mapSkin') || {}).value || 'satellite';
+    var selectedLayer = mapLayers[selectedSkin] || mapLayers.satellite;
+    Object.keys(mapLayers).forEach(function(key) { if (stationMap.hasLayer(mapLayers[key])) stationMap.removeLayer(mapLayers[key]); });
+    if (selectedLayer) selectedLayer.addTo(stationMap);
+
+    stationMarkers.forEach(function(m) { stationMap.removeLayer(m); });
+    stationMarkers = [];
+    stationLabels.forEach(function(m) { stationMap.removeLayer(m); });
+    stationLabels = [];
+
+    var metric = (document.getElementById('mapMetric') || {}).value || 'temperature';
+    var metricNames = {temperature:'Temperature', rainfall:'Rainfall', humidity:'Humidity', wind_speed:'Wind speed', pressure:'Pressure', co2_level:'CO2', air_quality_index:'Air quality', visibility:'Visibility', uv_index:'UV index', soil_moisture:'Soil moisture'};
+
+    window.latestStations.forEach(function(s) {
+        if (s.latitude == null || s.longitude == null) return;
+        var point = [Number(s.latitude), Number(s.longitude)];
+        var value = s[metric] == null ? 'N/A' : s[metric];
+        var flagged = !!latestAnomalyNames[s.station_name];
+        var marker = L.circleMarker(point, {radius: flagged ? 11 : 8, color: flagged ? '#fb7185' : '#7ee7d0', weight: flagged ? 3 : 2, fillColor: flagged ? '#fb7185' : '#54a8ff', fillOpacity: .9}).addTo(stationMap);
+        marker.bindPopup('<strong>' + (s.station_name || 'Unknown station') + '</strong><br>' + (metricNames[metric] || metric) + ': ' + value + '<br>Date: ' + (s.date || 'N/A'));
+        stationMarkers.push(marker);
+        stationLabels.push(L.marker(point, {icon: L.divIcon({className: 'station-name-label', html: '<span class="' + (flagged ? 'anomaly-label' : '') + '">' + (s.station_name || 'Unknown station') + '</span>', iconSize: null, iconAnchor: [0, 0]}), interactive: false}).addTo(stationMap));
+    });
+
+    if (window.latestStations.length) {
+        stationMap.fitBounds(window.latestStations.filter(function(s) { return s.latitude != null && s.longitude != null; }).map(function(s) { return [Number(s.latitude), Number(s.longitude)]; }), {padding: [30, 30], maxZoom: 8});
+    }
+}
+
+function bindMapControls() {
+    var mapMetric = document.getElementById('mapMetric');
+    var mapSkin = document.getElementById('mapSkin');
+    if (mapMetric) mapMetric.addEventListener('change', function() { loadFilteredState(); });
+    if (mapSkin) mapSkin.addEventListener('change', function() { renderStationMap(window.latestStations || []); });
+}
+
+bindMapControls();
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('selectAllVarsBtn').addEventListener('click', function() {
+        var sel = document.getElementById('varSelect');
+        for (var i = 0; i < sel.options.length; i++) sel.options[i].selected = true;
+        loadMainChart();
+    });
+    document.getElementById('clearVarsBtn').addEventListener('click', function() {
+        var sel = document.getElementById('varSelect');
+        for (var i = 0; i < sel.options.length; i++) sel.options[i].selected = false;
+        loadMainChart();
+    });
+
+    loadMainChart();
+    var leafletCss = document.createElement('link'); leafletCss.rel = 'stylesheet'; leafletCss.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(leafletCss);
+    var leafletScript = document.createElement('script'); leafletScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; leafletScript.onload = loadFilteredState; document.head.appendChild(leafletScript);
+    loadFilteredState();
+    setInterval(function() { loadMainChart(); loadFilteredState(); }, 60000);
+    fetch(regionalUrl)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            regionalDataCache = data;
+            loadRegionalChart();
+        })
+        .catch(function() {
+            EarthScapeCharts.message('regionalChart', 'Failed to load regional data');
+            EarthScapeCharts.message('regionalPieChart', 'Failed to load regional data');
+        });
+    EarthScapeCharts.renderFromAPI('co2AqiChart', chartUrl + '?variables=co2_level&variables=air_quality_index&group_by=month', ['co2_level', 'air_quality_index'], 'line');
+    EarthScapeCharts.renderFromAPI('windPressureChart', chartUrl + '?variables=wind_speed&variables=pressure&group_by=month', ['wind_speed', 'pressure'], 'line');
+});
+</script>
+{% endblock %}

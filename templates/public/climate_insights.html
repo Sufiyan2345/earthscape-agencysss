@@ -1,0 +1,871 @@
+{% extends "public/base.html" %}
+{% block title %}Climate Insights - EarthScape Climate{% endblock %}
+
+{% block content %}
+{% set indicators = indicators|default({'avg_temp': 0, 'avg_rainfall': 0, 'avg_co2': 0, 'avg_aqi': 0, 'avg_humidity': 0, 'total_records': 0}) %}
+
+<!-- Advanced Professional Sci-Fi Dark UI & Cyberpunk Gradient Charts CSS -->
+<style>
+.es-insights-wrapper {
+    background-color: #030712;
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Hero Section */
+.es-insights-hero {
+    position: relative;
+    width: 100%;
+    min-height: 420px;
+    padding: 120px 5% 80px 5%;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(3, 7, 18, 0.4) 0%, rgba(3, 7, 18, 0.95) 100%), 
+                url('https://www.spacex.com/assets/images/mission/STARSHIP_CAPABILITIES_INTERPLANETARYDESTINATIONS_Mars_01_2023_01_Desktop_Darkerv2.jpg') center/cover no-repeat;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid rgba(140, 193, 233, 0.15);
+}
+
+.es-breadcrumb {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 18px;
+    background: rgba(3, 7, 18, 0.75);
+    border: 1px solid rgba(140, 193, 233, 0.35);
+    border-radius: 30px;
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: #8cc1e9;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+}
+
+.es-insights-hero h1 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: clamp(2.6rem, 5vw, 4rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 14px;
+    color: #ffffff;
+    text-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
+    position: relative;
+    z-index: 2;
+}
+
+.es-insights-hero p {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.7);
+    max-width: 650px;
+    margin: 0 auto;
+    line-height: 1.6;
+    font-weight: 300;
+    position: relative;
+    z-index: 2;
+}
+
+/* Container */
+.es-container {
+    width: 100%;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 80px 5%;
+    box-sizing: border-box;
+}
+
+/* Modern Content Cards Grid */
+.es-insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 30px;
+    margin-bottom: 80px;
+}
+
+.es-content-card {
+    background: linear-gradient(145deg, rgba(8, 18, 32, 0.95) 0%, rgba(4, 11, 22, 0.98) 100%);
+    border: 1px solid rgba(140, 193, 233, 0.15);
+    border-radius: 16px;
+    padding: 35px 30px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+}
+
+.es-content-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, #6366f1, #38bdf8);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.es-content-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(99, 102, 241, 0.5);
+    box-shadow: 0 20px 45px rgba(99, 102, 241, 0.2);
+}
+
+.es-content-card:hover::before {
+    opacity: 1;
+}
+
+.es-card-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    margin-bottom: 18px;
+    text-transform: uppercase;
+    width: max-content;
+}
+
+.es-content-card h3 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    color: #ffffff;
+    letter-spacing: 0.02em;
+}
+
+.es-content-card p {
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.68);
+    line-height: 1.7;
+    font-weight: 300;
+    margin-bottom: 25px;
+    flex-grow: 1;
+}
+
+.es-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(140, 193, 233, 0.1);
+    padding-top: 16px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.es-card-footer span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.es-card-footer i {
+    color: #8cc1e9;
+}
+
+/* Key Climate Indicators Section */
+.es-stats-section {
+    background: linear-gradient(180deg, rgba(4, 11, 22, 0.8) 0%, rgba(8, 18, 32, 0.95) 100%);
+    border-top: 1px solid rgba(140, 193, 233, 0.15);
+    border-bottom: 1px solid rgba(140, 193, 233, 0.15);
+    padding: 80px 5%;
+}
+
+.es-section-header {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 50px auto;
+}
+
+.es-section-icon {
+    width: 50px;
+    height: 50px;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(140, 193, 233, 0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8cc1e9;
+    font-size: 18px;
+    margin: 0 auto 20px auto;
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+}
+
+.es-section-header h2 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    color: #ffffff;
+}
+
+.es-section-header p {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.65);
+    font-weight: 300;
+}
+
+.es-stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 25px;
+    max-width: 1300px;
+    margin: 0 auto;
+}
+
+.es-stat-card {
+    background: linear-gradient(145deg, rgba(8, 18, 32, 0.9) 0%, rgba(4, 11, 22, 0.95) 100%);
+    border: 1px solid rgba(140, 193, 233, 0.15);
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.es-stat-card:hover {
+    border-color: rgba(99, 102, 241, 0.5);
+    transform: translateY(-4px);
+    box-shadow: 0 15px 30px rgba(99, 102, 241, 0.15);
+}
+
+.es-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin: 0 auto 16px auto;
+    border: 1px solid rgba(140, 193, 233, 0.3);
+}
+
+.es-stat-icon.red { background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
+.es-stat-icon.blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3); }
+.es-stat-icon.teal { background: rgba(13, 148, 136, 0.15); color: #2dd4bf; border-color: rgba(13, 148, 136, 0.3); }
+.es-stat-icon.green { background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
+
+.es-stat-card h3 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 6px;
+    font-family: 'Science Gothic', sans-serif;
+}
+
+.es-stat-card p {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+}
+
+/* Explore Live Data Dashboard Section with Interactive UI & Selectors */
+.es-explore-section {
+    padding: 90px 5%;
+    max-width: 1300px;
+    margin: 0 auto;
+}
+
+.es-explore-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 35px;
+}
+
+.es-explore-header h2 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: clamp(1.8rem, 3vw, 2.4rem);
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #ffffff;
+}
+
+.es-explore-header p {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.9rem;
+    font-weight: 300;
+}
+
+/* Custom Control Filters & Dropdowns - Professional Trading UI Theme */
+.es-controls-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.es-control-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, rgba(13, 25, 45, 0.9) 0%, rgba(6, 13, 25, 0.95) 100%);
+    border: 1px solid rgba(140, 193, 233, 0.25);
+    padding: 8px 16px;
+    border-radius: 12px;
+    backdrop-filter: blur(12px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 4px 20px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.es-control-box:hover {
+    border-color: rgba(99, 102, 241, 0.6);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 25px rgba(99, 102, 241, 0.25);
+}
+
+.es-control-box label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #8cc1e9;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.es-control-box label i {
+    font-size: 11px;
+    color: #6366f1;
+}
+
+.es-control-box select {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 500;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+    padding-right: 18px;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238cc1e9' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: 12px;
+}
+
+.es-control-box select option {
+    background: #081220;
+    color: #ffffff;
+    padding: 10px;
+}
+
+/* Cyberpunk Glassmorphic Chart Cards Matching Reference Image */
+.es-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(540px, 1fr));
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+@media (max-width: 1100px) {
+    .es-charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.es-chart-card {
+    background: linear-gradient(145deg, rgba(8, 18, 32, 0.95) 0%, rgba(4, 11, 22, 0.98) 100%);
+    border: 1px solid rgba(140, 193, 233, 0.18);
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    position: relative;
+    overflow: hidden;
+}
+
+.es-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.es-chart-title {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.es-chart-container {
+    height: 300px;
+    position: relative;
+    width: 100%;
+}
+
+.es-empty-state {
+    display: none;
+    padding: 60px;
+    text-align: center;
+    background: rgba(8, 18, 32, 0.8);
+    border: 1px solid rgba(140, 193, 233, 0.2);
+    border-radius: 16px;
+}
+
+.es-empty-state i {
+    font-size: 44px;
+    color: #8cc1e9;
+    margin-bottom: 15px;
+    display: block;
+}
+
+.es-empty-state h3 {
+    margin-bottom: 8px;
+    color: #ffffff;
+    font-family: 'Science Gothic', sans-serif;
+}
+
+.es-empty-state p {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+}
+</style>
+
+<div class="es-insights-wrapper">
+
+    <!-- Hero Section -->
+    <section class="es-insights-hero">
+        <div class="es-breadcrumb">
+            <a href="{{ url_for('public.index') }}" style="color: inherit; text-decoration: none;">Home</a> &bull; Climate Insights
+        </div>
+        <h1>Climate Insights</h1>
+        <p>Latest findings, trends, and analysis from our advanced climate monitoring network.</p>
+    </section>
+
+    <!-- Content Cards Grid -->
+    <div class="es-container" style="padding-bottom: 0;">
+        <div class="es-insights-grid">
+            
+            <!-- Card 1 -->
+            <div class="es-content-card">
+                <span class="es-card-badge" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);">Trending</span>
+                <h3>Global Temperature Rise Accelerating</h3>
+                <p>Our latest analysis shows that global average temperatures have risen by 1.2°C since pre-industrial levels, with the rate of increase accelerating over the past two decades. The data from our 50+ monitoring stations confirms this trend.</p>
+                <div class="es-card-footer">
+                    <span><i class="fas fa-calendar"></i> Aug 5, 2026</span>
+                    <span><i class="fas fa-user"></i> Dr. Rachel Chen</span>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="es-content-card">
+                <span class="es-card-badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);">Research</span>
+                <h3>AI-Powered Flood Prediction Shows Promise</h3>
+                <p>Our new ML-based flood risk model has achieved 87% accuracy in predicting flood events 72 hours in advance. The model uses rainfall patterns, terrain data, and historical records to assess risk levels.</p>
+                <div class="es-card-footer">
+                    <span><i class="fas fa-calendar"></i> Jul 28, 2026</span>
+                    <span><i class="fas fa-user"></i> Dr. Sarah Patel</span>
+                </div>
+            </div>
+            <!-- Card 3 -->
+            <div class="es-content-card">
+                <span class="es-card-badge" style="background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.3);">Data</span>
+                <h3>Air Quality Improvements in Urban Areas</h3>
+                <p>Recent data from our sensor network shows a 12% improvement in urban air quality indices over the past year, attributed to reduced industrial emissions and increased green transportation initiatives.</p>
+                <div class="es-card-footer">
+                    <span><i class="fas fa-calendar"></i> Jul 20, 2026</span>
+                    <span><i class="fas fa-user"></i> James Miller</span>
+                </div>
+            </div>
+            <!-- Card 4 -->
+            <div class="es-content-card">
+                <span class="es-card-badge" style="background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);">Report</span>
+                <h3>Annual Climate Summary Published</h3>
+                <p>Our comprehensive annual climate analysis is now available. The report covers temperature anomalies, precipitation patterns, extreme weather events, and greenhouse gas concentrations across all monitored regions.</p>
+                <div class="es-card-footer">
+                    <span><i class="fas fa-calendar"></i> Jul 15, 2026</span>
+                    <span><i class="fas fa-user"></i> EarthScape Team</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <!-- Key Climate Indicators Section -->
+    <section class="es-stats-section">
+        <div class="es-section-header">
+            <div class="es-section-icon"><i class="fas fa-chart-bar"></i></div>
+            <h2>Key Climate Indicators</h2>
+            <p>Live averages computed from our monitoring database</p>
+        </div>
+        <div class="es-stats-row">
+            <div class="es-stat-card">
+                <div class="es-stat-icon red"><i class="fas fa-thermometer-half"></i></div>
+                <h3>{{ indicators.avg_temp|default(0) }}°C</h3>
+                <p>Avg Temperature</p>
+            </div>
+            <div class="es-stat-card">
+                <div class="es-stat-icon blue"><i class="fas fa-tint"></i></div>
+                <h3>{{ indicators.avg_rainfall|default(0) }} mm</h3>
+                <p>Avg Rainfall</p>
+            </div>
+            <div class="es-stat-card">
+                <div class="es-stat-icon teal"><i class="fas fa-smog"></i></div>
+                <h3>{{ indicators.avg_co2|default(0) }} ppm</h3>
+                <p>Avg CO₂ Level</p>
+            </div>
+            <div class="es-stat-card">
+                <div class="es-stat-icon green"><i class="fas fa-wind"></i></div>
+                <h3>{{ indicators.avg_aqi|default(0) }}</h3>
+                <p>Avg Air Quality Index</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Explore Live Climate Data Dashboard -->
+    <section id="exploreSection" class="es-explore-section" data-chart-url="{{ url_for('public.climate_insights_chart_data') }}">
+        
+        <div class="es-explore-header">
+            <div>
+                <h2>Explore Live Climate Data</h2>
+                <p>Interactive cyberpunk-styled charts from our monitoring network — free to browse, read-only.</p>
+            </div>
+            
+            <div class="es-controls-group">
+                <!-- Chart Style / Mode Selector Dropdown (Trading UI Options) -->
+                <div class="es-control-box">
+                    <label for="chartTypeSelect"><i class="fas fa-chart-line"></i> Style</label>
+                    <select id="chartTypeSelect">
+                        <option value="area">Neon Area</option>
+                        <option value="line">Pro Line</option>
+                        <option value="bar">Terminal Bars</option>
+                        <option value="candlestick">Trading Candles</option>
+                        <option value="stepline">Step Line</option>
+                    </select>
+                </div>
+
+                <!-- Year Filter Dropdown -->
+                <div class="es-control-box">
+                    <label for="yearSelect"><i class="fas fa-calendar-alt"></i> Year</label>
+                    <select id="yearSelect">
+                        <option value="">All (Last 24 Mo)</option>
+                        {% for y in years|default([]) %}
+                        <option value="{{ y }}">{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="exploreEmpty" class="es-empty-state">
+            <i class="fas fa-chart-line"></i>
+            <h3>No climate data available yet</h3>
+            <p>Charts will appear here once monitoring data is recorded.</p>
+        </div>
+        <div id="exploreCharts">
+            <div class="es-charts-grid">
+                <!-- Temperature Chart Card -->
+                <div class="es-chart-card">
+                    <div class="es-chart-header">
+                        <h3 class="es-chart-title"><i class="fas fa-thermometer-half" style="color:#f87171;"></i> Monthly Temperature Trend (°C)</h3>
+                    </div>
+                    <div class="es-chart-container">
+                        <canvas id="pubTempChart"></canvas>
+                    </div>
+                </div>
+                <!-- Rainfall Chart Card -->
+                <div class="es-chart-card">
+                    <div class="es-chart-header">
+                        <h3 class="es-chart-title"><i class="fas fa-tint" style="color:#60a5fa;"></i> Monthly Rainfall (mm)</h3>
+                    </div>
+                    <div class="es-chart-container">
+                        <canvas id="pubRainChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="es-charts-grid" style="margin-bottom: 0;">
+                <!-- AQI Chart Card -->
+                <div class="es-chart-card">
+                    <div class="es-chart-header">
+                        <h3 class="es-chart-title"><i class="fas fa-wind" style="color:#2dd4bf;"></i> Air Quality Index Trend</h3>
+                    </div>
+                    <div class="es-chart-container">
+                        <canvas id="pubAqiChart"></canvas>
+                    </div>
+                </div>
+                <!-- Regional Chart Card -->
+                <div id="regionalCard" class="es-chart-card">
+                    <div class="es-chart-header">
+                        <h3 class="es-chart-title"><i class="fas fa-map-marked-alt" style="color:#818cf8;"></i> Avg Temperature by Station (°C)</h3>
+                    </div>
+                    <div class="es-chart-container">
+                        <canvas id="pubRegionalChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script>
+(function() {
+    var section = document.getElementById('exploreSection');
+    var chartUrl = section ? section.dataset.chartUrl : '';
+    if (!chartUrl || typeof Chart === 'undefined') return;
+
+    var charts = {};
+    var cachedData = null;
+
+    // Default global Chart.js configuration for dark cyberpunk UI theme matching the mockup
+    Chart.defaults.color = 'rgba(255, 255, 255, 0.6)';
+    Chart.defaults.borderColor = 'rgba(140, 193, 233, 0.1)';
+
+    function destroyAll() {
+        Object.keys(charts).forEach(function(k) {
+            if (charts[k]) {
+                charts[k].destroy();
+                charts[k] = null;
+            }
+        });
+    }
+
+    // Helper to create glowing cyberpunk vertical gradients for charts
+    function createGradient(ctx, chartArea, colorStart, colorEnd) {
+        if (!chartArea) return colorStart;
+        var gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+        gradient.addColorStop(0, colorStart);
+        gradient.addColorStop(1, colorEnd);
+        return gradient;
+    }
+
+    function renderCharts(d) {
+        destroyAll();
+        var chartType = document.getElementById('chartTypeSelect').value;
+        
+        // Map advanced trading UI types to Chart.js primitives
+        var isArea = (chartType === 'area');
+        var isStep = (chartType === 'stepline');
+        var isCandleLike = (chartType === 'candlestick');
+        
+        var actualType = 'line';
+        if (chartType === 'bar' || isCandleLike) {
+            actualType = 'bar';
+        }
+
+        var commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            tension: isStep ? 0 : (isCandleLike ? 0 : 0.4),
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(8, 18, 32, 0.95)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#8cc1e9',
+                    borderColor: 'rgba(140, 193, 233, 0.3)',
+                    borderWidth: 1,
+                    padding: 12,
+                    boxPadding: 6,
+                    usePointStyle: true,
+                    callbacks: isCandleLike ? {
+                        label: function(context) {
+                            var val = context.parsed.y;
+                            var high = (val * 1.05).toFixed(2);
+                            var low = (val * 0.95).toFixed(2);
+                            var open = (val * 0.98).toFixed(2);
+                            var close = val.toFixed(2);
+                            return [
+                                'High: ' + high,
+                                'Open: ' + open,
+                                'Close: ' + close,
+                                'Low: ' + low
+                            ];
+                        }
+                    } : {}
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { size: 11 } }
+                },
+                y: {
+                    grid: { color: 'rgba(140, 193, 233, 0.08)' },
+                    ticks: { font: { size: 11 } }
+                }
+            }
+        };
+
+        // Helper creator for dataset configuration with financial/trading color styling simulation
+        function buildDataset(dataArr, primaryColor) {
+            if (isCandleLike) {
+                // Simulate professional green/red trading candles or dual-tone bars based on value momentum
+                return {
+                    data: dataArr,
+                    backgroundColor: function(context) {
+                        const index = context.dataIndex;
+                        if (index === 0) return primaryColor;
+                        const prev = context.dataset.data[index - 1];
+                        const curr = context.dataset.data[index];
+                        return curr >= prev ? '#10b981' : '#ef4444'; // Green for bull / Red for bear movement
+                    },
+                    borderRadius: 2,
+                    borderWidth: 1
+                };
+            }
+
+            return {
+                data: dataArr,
+                borderColor: primaryColor,
+                backgroundColor: function(context) {
+                    const chart = context.chart;
+                    const {ctx, chartArea} = chart;
+                    if (!chartArea) return primaryColor + '33';
+                    return createGradient(ctx, chartArea, primaryColor + '00', primaryColor + (isArea ? '73' : '26'));
+                },
+                fill: isArea,
+                stepped: isStep,
+                borderWidth: isArea ? 2.5 : 2,
+                pointRadius: isArea ? 3 : 2,
+                pointBackgroundColor: primaryColor,
+                borderRadius: (actualType === 'bar') ? 4 : 0
+            };
+        }
+
+        // 1. Temperature Chart
+        var elTemp = document.getElementById('pubTempChart');
+        if (elTemp) {
+            var ctxTemp = elTemp.getContext('2d');
+            charts['pubTempChart'] = new Chart(ctxTemp, {
+                type: actualType,
+                data: {
+                    labels: d.labels,
+                    datasets: [buildDataset(d.temperature, '#f87171')]
+                },
+                options: commonOptions
+            });
+        }
+
+        // 2. Rainfall Chart
+        var elRain = document.getElementById('pubRainChart');
+        if (elRain) {
+            var ctxRain = elRain.getContext('2d');
+            charts['pubRainChart'] = new Chart(ctxRain, {
+                type: actualType,
+                data: {
+                    labels: d.labels,
+                    datasets: [buildDataset(d.rainfall, '#60a5fa')]
+                },
+                options: commonOptions
+            });
+        }
+
+        // 3. AQI Chart
+        var elAqi = document.getElementById('pubAqiChart');
+        if (elAqi) {
+            var ctxAqi = elAqi.getContext('2d');
+            charts['pubAqiChart'] = new Chart(ctxAqi, {
+                type: actualType,
+                data: {
+                    labels: d.labels,
+                    datasets: [buildDataset(d.aqi, '#2dd4bf')]
+                },
+                options: commonOptions
+            });
+        }
+
+        // 4. Regional Station Chart
+        var regionalCard = document.getElementById('regionalCard');
+        var hasRegional = d.regional && d.regional.length > 0;
+        if (regionalCard) {
+            regionalCard.style.display = hasRegional ? '' : 'none';
+        }
+        if (hasRegional) {
+            var regionalRows = d.regional.slice().sort(function(a, b) { return (b.readings || 0) - (a.readings || 0); }).slice(0, 30);
+            var readings = regionalRows.map(function(r) { return r.readings; });
+            var elReg = document.getElementById('pubRegionalChart');
+            if (elReg) {
+                charts['pubRegionalChart'] = new Chart(elReg.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: regionalRows.map(function(r) { return r.station; }),
+                        datasets: [{
+                            data: regionalRows.map(function(r) { return r.avg_temp; }),
+                            backgroundColor: '#818cf8',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: Object.assign({}, commonOptions, {
+                        indexAxis: 'y',
+                        scales: Object.assign({}, commonOptions.scales, {x: {beginAtZero: false, grid: {color: 'rgba(140, 193, 233, 0.08)'}}, y: {grid: {display: false}, ticks: {font: {size: 10}}}}),
+                        plugins: Object.assign({}, commonOptions.plugins, {
+                            tooltip: {
+                                callbacks: {
+                                    afterLabel: function(ctx) {
+                                        return 'Readings: ' + (readings[ctx.dataIndex] || 0);
+                                    }
+                                }
+                            }
+                        })
+                    })
+                });
+            }
+        }
+    }
+
+    function loadData(year) {
+        var url = chartUrl + (year ? ('?year=' + encodeURIComponent(year)) : '');
+        fetch(url)
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                cachedData = d;
+                var hasData = d.labels && d.labels.length > 0;
+                document.getElementById('exploreCharts').style.display = hasData ? '' : 'none';
+                document.getElementById('exploreEmpty').style.display = hasData ? 'none' : '';
+                if (!hasData) return;
+                renderCharts(d);
+            })
+            .catch(function() {});
+    }
+
+    var yearSelect = document.getElementById('yearSelect');
+    if (yearSelect) {
+        yearSelect.addEventListener('change', function() {
+            loadData(this.value);
+        });
+    }
+
+    var chartTypeSelect = document.getElementById('chartTypeSelect');
+    if (chartTypeSelect) {
+        chartTypeSelect.addEventListener('change', function() {
+            if (cachedData) {
+                renderCharts(cachedData);
+            }
+        });
+    }
+
+    loadData('');
+})();
+</script>
+{% endblock %}

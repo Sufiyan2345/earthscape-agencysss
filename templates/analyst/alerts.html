@@ -1,0 +1,144 @@
+{% extends "analyst/base.html" %}
+{% block page_title %}Alerts Monitoring{% endblock %}
+{% block content %}
+<!-- Severity overview: spot significant events at a glance -->
+<div class="grid grid-4" style="margin-bottom:20px;">
+    <div class="stat-card">
+        <div class="stat-icon red"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="stat-info"><h4>High Severity</h4><div class="stat-value">{{ severity_counts.get('high', 0) }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon orange"><i class="fas fa-exclamation-circle"></i></div>
+        <div class="stat-info"><h4>Medium Severity</h4><div class="stat-value">{{ severity_counts.get('medium', 0) }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-info-circle"></i></div>
+        <div class="stat-info"><h4>Low Severity</h4><div class="stat-value">{{ severity_counts.get('low', 0) }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="fas fa-envelope-open-text"></i></div>
+        <div class="stat-info"><h4>Unread</h4><div class="stat-value">{{ unread_count }}</div></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-bell"></i> Climate Alerts Monitor ({{ alerts|length }})</h3>
+        <div class="card-actions">
+            <a href="?mark_all_read=true" class="btn btn-sm btn-outline"><i class="fas fa-check-double"></i> Mark All Read</a>
+            <form method="POST" action="{{ url_for('analyst.check_alerts_now') }}" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-outline"><i class="fas fa-search"></i> Check Now</button>
+            </form>
+            <a href="{{ url_for('analyst.alert_preferences') }}" class="btn btn-sm btn-outline"><i class="fas fa-cog"></i> Preferences</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="alert-filters" style="margin-bottom:16px;">
+            <a href="?filter=all" class="btn btn-sm {{ 'btn-primary' if filter_type == 'all' else 'btn-outline' }}">All</a>
+            <a href="?filter=high" class="btn btn-sm {{ 'btn-danger' if filter_type == 'high' else 'btn-outline' }}">High</a>
+            <a href="?filter=medium" class="btn btn-sm {{ 'btn-warning' if filter_type == 'medium' else 'btn-outline' }}">Medium</a>
+            <a href="?filter=low" class="btn btn-sm {{ 'btn-info' if filter_type == 'low' else 'btn-outline' }}">Low</a>
+        </div>
+        <p style="margin-bottom:16px;color:var(--gray-500);font-size:13px;">
+            <i class="fas fa-eye"></i> Monitoring view — alert creation, thresholds and resolving are managed by the Admin panel.
+        </p>
+        {% for alert in alerts %}
+        <div class="alert alert-{{ 'danger' if alert.severity == 'high' else 'warning' if alert.severity == 'medium' else 'info' }} {{ 'alert-unread' if not alert.is_read else '' }}" style="margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div style="flex:1;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                        <span class="badge badge-{{ 'red' if alert.severity == 'high' else 'yellow' if alert.severity == 'medium' else 'gray' }}">{{ alert.severity|upper }}</span>
+                        <span class="badge badge-{{ 'green' if alert.category == 'weather' else 'blue' if alert.category == 'air_quality' else 'orange' }}">{{ alert.category|replace('_', ' ')|title }}</span>
+                        {% if not alert.is_read %}<span class="badge badge-teal">UNREAD</span>{% endif %}
+                        {% if alert.is_resolved %}<span class="badge badge-green">RESOLVED</span>{% endif %}
+                    </div>
+                    <strong>{{ alert.title }}</strong>
+                    <p style="margin:4px 0;font-size:14px;color:var(--gray-500);">{{ alert.message }}</p>
+                    <small class="text-muted"><i class="fas fa-clock"></i> {{ alert.created_at|fmtdatetime }}</small>
+                    {% if alert.location %}<small class="text-muted" style="margin-left:8px;"><i class="fas fa-map-marker-alt"></i> {{ alert.location }}</small>{% endif %}
+                    {% if alert.threshold_value is not none and alert.actual_value is not none %}
+                    <small class="text-muted" style="margin-left:8px;"><i class="fas fa-chart-line"></i> Threshold: {{ alert.threshold_value }} / Actual: {{ alert.actual_value }}</small>
+                    {% endif %}
+                </div>
+                <div style="display:flex;gap:4px;flex-shrink:0;">
+                    <a href="{{ url_for('analyst.view_alert', alert_id=alert.id) }}" class="btn btn-sm btn-primary" title="View Details"><i class="fas fa-eye"></i></a>
+                    {% if not alert.is_read %}
+                    <form method="POST" action="{{ url_for('analyst.read_alert', alert_id=alert.id) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-outline" title="Mark Read"><i class="fas fa-check"></i></button>
+                    </form>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('analyst.delete_alert', alert_id=alert.id) }}" style="display:inline;" onsubmit="return confirm('Delete this alert?')">
+                        <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state"><i class="fas fa-bell-slash"></i><h4>No alerts</h4><p>All systems are running smoothly — no significant climate events detected.</p></div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Active Thresholds (read-only — configured by Admin) -->
+<div class="card" style="margin-top:16px;">
+    <div class="card-header"><h3><i class="fas fa-sliders-h"></i> Active Alert Thresholds</h3>
+        <div class="card-actions"><span class="badge badge-gray">Configured by Admin</span></div>
+    </div>
+    <div class="card-body">
+        <div class="grid grid-4">
+            <div class="stat-card"><div class="stat-icon red"><i class="fas fa-temperature-high"></i></div>
+                <div class="stat-info"><h4>Max Temperature</h4><div class="stat-value">{{ thresholds.get('temperature_max', 45) }} °C</div></div></div>
+            <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-temperature-low"></i></div>
+                <div class="stat-info"><h4>Min Temperature</h4><div class="stat-value">{{ thresholds.get('temperature_min', -30) }} °C</div></div></div>
+            <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-cloud-rain"></i></div>
+                <div class="stat-info"><h4>Max Rainfall</h4><div class="stat-value">{{ thresholds.get('rainfall_max', 200) }} mm</div></div></div>
+            <div class="stat-card"><div class="stat-icon teal"><i class="fas fa-wind"></i></div>
+                <div class="stat-info"><h4>Max Wind Speed</h4><div class="stat-value">{{ thresholds.get('wind_speed_max', 120) }} km/h</div></div></div>
+            <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-smog"></i></div>
+                <div class="stat-info"><h4>Max AQI</h4><div class="stat-value">{{ thresholds.get('air_quality_max', 300) }}</div></div></div>
+            <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-tint"></i></div>
+                <div class="stat-info"><h4>Max Humidity</h4><div class="stat-value">{{ thresholds.get('humidity_max', 95) }} %</div></div></div>
+            <div class="stat-card"><div class="stat-icon green"><i class="fas fa-cloud"></i></div>
+                <div class="stat-info"><h4>Max CO2</h4><div class="stat-value">{{ thresholds.get('co2_max', 500) }} ppm</div></div></div>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+    <div class="card-header">
+        <h3><i class="fas fa-broadcast-tower"></i> Alert Delivery Settings</h3>
+        <div class="card-actions"><span class="badge badge-teal">Live alerting</span></div>
+    </div>
+    <div class="card-body">
+        <p style="margin-bottom:14px;color:var(--gray-500);font-size:13px;">
+            These settings are shared with the admin system and control how urgent climate events reach the monitoring team.
+        </p>
+        <div class="grid grid-4">
+            <div class="modern-form-group">
+                <label><i class="fas fa-envelope"></i> Email Alerts</label>
+                <div class="modern-input-wrap">
+                    <input type="checkbox" {% if delivery_config.get('email_enabled', True) %}checked{% endif %} disabled style="width:18px;height:18px;">
+                </div>
+            </div>
+            <div class="modern-form-group">
+                <label><i class="fas fa-bell"></i> In-App Alerts</label>
+                <div class="modern-input-wrap">
+                    <input type="checkbox" {% if delivery_config.get('in_app_enabled', True) %}checked{% endif %} disabled style="width:18px;height:18px;">
+                </div>
+            </div>
+            <div class="modern-form-group">
+                <label><i class="fas fa-sync-alt"></i> Real-Time Polling</label>
+                <div class="modern-input-wrap">
+                    <input type="checkbox" {% if delivery_config.get('realtime_enabled', True) %}checked{% endif %} disabled style="width:18px;height:18px;">
+                </div>
+            </div>
+            <div class="modern-form-group">
+                <label><i class="fas fa-clock"></i> Refresh Interval</label>
+                <div class="modern-input-wrap">
+                    <input type="text" class="form-control" value="{{ delivery_config.get('refresh_interval', 30000) }} ms" disabled>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

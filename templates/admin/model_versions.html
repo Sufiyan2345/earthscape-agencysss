@@ -1,0 +1,60 @@
+{% extends "admin/base.html" %}
+{% block page_title %}Model Version History{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+    <h2 style="font-size:22px;font-weight:700;margin:0;"><i class="fas fa-code-branch"></i> Model Version History</h2>
+    <a href="{{ url_for('admin.machine_learning') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to ML</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table">
+            <thead>
+                <tr><th>Model</th><th>Type</th><th>Version</th><th>Accuracy</th><th>Data Source</th><th>Records</th><th>Metrics</th><th>Trained</th><th>Status</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+                {% for v in versions %}
+                <tr>
+                    <td><strong>{{ v.model_name }}</strong></td>
+                    <td><span class="badge badge-teal">{{ v.model_type|replace('_', ' ')|title }}</span></td>
+                    <td>v{{ v.version }}</td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <div style="width:50px;background:var(--gray-100);border-radius:4px;height:6px;"><div data-acc-bar="{{ v.accuracy }}" style="background:var(--primary);height:100%;border-radius:4px;width:0;"></div></div>
+                            <span style="font-size:13px;">{{ (v.accuracy or 0)|round(1) }}%</span>
+                        </div>
+                    </td>
+                    <td><span class="badge badge-{{ 'success' if v.data_parsed.get('source') == 'real_database' else 'warning' }}">{{ v.data_parsed.get('source', 'N/A') }}</span></td>
+                    <td>{{ v.data_parsed.get('records', 'N/A') }}</td>
+                    <td><small>{{ v.metrics_parsed }}</small></td>
+                    <td><small>{{ v.created_at|fmtdatetime }}</small></td>
+                    <td>
+                        {% if v.is_active %}
+                        <span class="badge badge-success">Active</span>
+                        {% else %}
+                        <span class="badge badge-secondary">Archived</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not v.is_active %}
+                        <form method="POST" action="{{ url_for('admin.rollback_model_version', version_id=v.id) }}" onsubmit="return confirm('Activate this model version?');">
+                            <button type="submit" class="btn btn-sm btn-outline" title="Rollback to this version"><i class="fas fa-undo"></i></button>
+                        </form>
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" class="text-center">No model versions yet. Retrain models to create versions.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.querySelectorAll('[data-acc-bar]').forEach(function(el) {
+    el.style.width = el.getAttribute('data-acc-bar') + '%';
+});
+</script>
+{% endblock %}

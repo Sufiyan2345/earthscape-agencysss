@@ -1,0 +1,212 @@
+{% extends "analyst/base.html" %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<!-- 10 Required Cards -->
+<div class="grid grid-4 mb-3">
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-cloud-sun"></i></div><div class="stat-info"><h3>{{ weather_records }}</h3><p>Weather Records</p></div></div>
+    <div class="stat-card"><div class="stat-icon teal"><i class="fas fa-satellite"></i></div><div class="stat-info"><h3>{{ satellite_records }}</h3><p>Satellite Records</p></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-microchip"></i></div><div class="stat-info"><h3>{{ sensor_records }}</h3><p>Sensor Records</p></div></div>
+    <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-satellite-dish"></i></div><div class="stat-info"><h3>{{ realtime_records }}</h3><p>Realtime Records</p></div></div>
+</div>
+<div class="grid grid-4 mb-3">
+    <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-thermometer-half"></i></div><div class="stat-info"><h3>{{ avg_temp }}°C</h3><p>Average Temperature</p></div></div>
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-tint"></i></div><div class="stat-info"><h3>{{ avg_rainfall }}mm</h3><p>Rainfall</p></div></div>
+    <div class="stat-card"><div class="stat-icon teal"><i class="fas fa-smog"></i></div><div class="stat-info"><h3>{{ avg_co2 }}ppm</h3><p>CO₂ Level</p></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-heartbeat"></i></div><div class="stat-info"><h3>{{ avg_aqi }}</h3><p>Air Quality</p></div></div>
+</div>
+<div class="grid grid-4 mb-3">
+    <div class="stat-card"><div class="stat-icon red"><i class="fas fa-bell"></i></div><div class="stat-info"><h3>{{ active_alerts }}</h3><p>Active Climate Alerts</p></div></div>
+    <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-brain"></i></div><div class="stat-info"><h3>{{ predictions }}</h3><p>Predictions</p></div></div>
+</div>
+
+<!-- 6 Required Charts -->
+<div class="grid grid-2 mb-3">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-area"></i> Temperature Trend</h3>
+            <button class="btn btn-sm btn-glow" onclick="EarthScapeCharts.export('tempChart','temperature-trends.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body"><canvas id="tempChart" height="250"></canvas></div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-tint"></i> Rainfall Trend</h3>
+            <button class="btn btn-sm btn-glow" onclick="EarthScapeCharts.export('rainChart','rainfall-trends.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body"><canvas id="rainChart" height="250"></canvas></div>
+    </div>
+</div>
+
+<div class="grid grid-2 mb-3">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-tint"></i> Humidity Trend</h3>
+            <button class="btn btn-sm btn-glow" onclick="EarthScapeCharts.export('humidityChart','humidity-trends.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body"><canvas id="humidityChart" height="200"></canvas></div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-smog"></i> CO₂ Trend</h3>
+            <button class="btn btn-sm btn-glow" onclick="EarthScapeCharts.export('co2Chart','co2-trends.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body"><canvas id="co2Chart" height="200"></canvas></div>
+    </div>
+</div>
+
+<div class="grid grid-2 mb-3">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-exclamation-triangle"></i> Climate Anomalies</h3>
+            <button class="btn btn-sm btn-glow" onclick="EarthScapeCharts.export('anomalyChart','climate-anomalies.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body"><canvas id="anomalyChart" height="200"></canvas></div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-line"></i> Prediction Trend</h3>
+            <button class="btn btn-sm btn-glow" onclick="EarthScapeCharts.export('predChart','prediction-trends.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body"><canvas id="predChart" height="200"></canvas></div>
+    </div>
+</div>
+
+<!-- 3 Required Tables -->
+<div class="grid grid-2 mb-3">
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-table"></i> Recent Climate Data</h3>
+            <a href="{{ url_for('analyst.climate_data') }}" class="btn btn-sm btn-outline">View All</a>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead><tr><th>Date</th><th>Location</th><th>Temp</th><th>Rainfall</th><th>Humidity</th></tr></thead>
+                <tbody>
+                    {% for r in recent_climate %}
+                    <tr>
+                        <td>{{ r.get('date','') }}</td>
+                        <td>{{ r.get('station_name','') }}</td>
+                        <td>{{ r.get('temperature','') }}</td>
+                        <td>{{ r.get('rainfall','') }}</td>
+                        <td>{{ r.get('humidity','') }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center">No climate data</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-brain"></i> Recent Predictions</h3></div>
+        <div class="card-body">
+            <table class="table">
+                <thead><tr><th>Model</th><th>Type</th><th>Result</th><th>Created</th></tr></thead>
+                <tbody>
+                    {% for p in recent_predictions %}
+                    <tr>
+                        <td>{{ p.get('model_name','') }}</td>
+                        <td><span class="badge badge-teal">{{ p.get('model_type','') }}</span></td>
+                        <td>{{ p.get('result_summary','')[:40] }}</td>
+                        <td><small>{{ p.get('created_at','')[:10] }}</small></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center">No predictions</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-2 mb-3">
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-bell"></i> Recent Alerts</h3>
+            <a href="{{ url_for('analyst.alerts') }}" class="btn btn-sm btn-outline">View All</a>
+        </div>
+        <div class="card-body">
+            {% for alert in latest_alerts %}
+            <div style="padding:12px 0;border-bottom:1px solid var(--gray-100);">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <span class="badge badge-{{ 'red' if alert.severity == 'high' else 'yellow' if alert.severity == 'medium' else 'gray' }}">{{ alert.severity }}</span>
+                        <strong style="margin-left:8px;">{{ alert.title }}</strong>
+                    </div>
+                    <small class="text-muted">{{ alert.created_at|fmtdate if alert.created_at else '' }}</small>
+                </div>
+                <p class="text-muted" style="font-size:13px;margin-top:4px;">{{ alert.message[:80] }}{% if alert.message|length > 80 %}...{% endif %}</p>
+            </div>
+            {% else %}
+            <p class="text-muted">No recent alerts</p>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-history"></i> Recent Activity</h3></div>
+        <div class="card-body">
+            {% for act in recent_activities %}
+            <div style="padding:8px 0;border-bottom:1px solid var(--gray-100);display:flex;gap:12px;align-items:center;">
+                <i class="fas fa-{{ 'database' if act.action == 'upload' else 'cogs' if 'job' in act.action else 'chart-line' }}" style="color:var(--primary);font-size:16px;"></i>
+                <div>
+                    <p style="font-size:13px;margin:0;">{{ act.action }} — {{ act.details[:50] if act.details else '' }}</p>
+                    <small class="text-muted">{{ act.created_at[:16] if act.created_at else '' }}</small>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-muted">No recent activity</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script id="dashData" type="application/json" data-labels="{{ chart_labels }}" data-temps="{{ temperature_data }}" data-rainfall="{{ rainfall_data }}" data-humidity="{{ humidity_data }}" data-co2="{{ co2_data }}" 
+data-anomaly="{{ anomaly_counts }}" data-pred="{{ prediction_trend }}"></script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}?v=20260813"></script>
+<script>
+(function() {
+    function initAnalystCharts() {
+        var el = document.getElementById('dashData');
+        if (!el) return;
+        var labels = JSON.parse(el.getAttribute('data-labels') || '[]');
+        var temps = JSON.parse(el.getAttribute('data-temps') || '[]');
+        var rainfall = JSON.parse(el.getAttribute('data-rainfall') || '[]');
+        var humidity = JSON.parse(el.getAttribute('data-humidity') || '[]');
+        var co2 = JSON.parse(el.getAttribute('data-co2') || '[]');
+        var anomalies = JSON.parse(el.getAttribute('data-anomaly') || '[]');
+        var predTrend = JSON.parse(el.getAttribute('data-pred') || '[]');
+
+        if (labels.length > 0) {
+            EarthScapeCharts.create('tempChart', EarthScapeCharts.timeSeries(labels, [{ label: 'Temperature (°C)', data: temps, borderColor: '#0d9488', backgroundColor: 'rgba(13,148,136,0.1)', fill: true, tension: 0.4 }]));
+            EarthScapeCharts.create('rainChart', EarthScapeCharts.bar(labels, [{ label: 'Rainfall (mm)', data: rainfall, backgroundColor: 'rgba(13,148,136,0.7)', borderColor: '#0d9488', borderWidth: 1, borderRadius: 6 }]));
+            EarthScapeCharts.create('humidityChart', EarthScapeCharts.timeSeries(labels, [{ label: 'Humidity (%)', data: humidity, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4 }]));
+            EarthScapeCharts.create('co2Chart', EarthScapeCharts.timeSeries(labels, [{ label: 'CO₂ (ppm)', data: co2, borderColor: '#0891b2', backgroundColor: 'rgba(8,145,178,0.1)', fill: true, tension: 0.4 }]));
+        }
+
+        // Always render the anomaly chart; if no anomalies were detected, show
+        // zero-valued bars over the trend months so the panel is never blank.
+        var aLabels = anomalies.length ? anomalies.map(function(d){return d.month;}) : labels;
+        var aCounts = anomalies.length ? anomalies.map(function(d){return d.count;}) : labels.map(function(){return 0;});
+        if (aLabels.length > 0) {
+            EarthScapeCharts.create('anomalyChart', EarthScapeCharts.bar(aLabels, [{ label: 'Anomalies', data: aCounts, backgroundColor: 'rgba(239,68,68,0.7)', borderColor: '#ef4444', borderWidth: 1, borderRadius: 6 }]));
+        }
+
+        var pLabels = predTrend.length ? predTrend.map(function(d){return d.month;}) : labels;
+        var pCounts = predTrend.length ? predTrend.map(function(d){return d.count;}) : labels.map(function(){return 0;});
+        if (pLabels.length > 0) {
+            EarthScapeCharts.create('predChart', EarthScapeCharts.timeSeries(pLabels, [{ label: 'Predictions', data: pCounts, borderColor: '#8b5cf6', 
+            backgroundColor: 'rgba(139,92,246,0.1)', fill: true, tension: 0.4, pointRadius: 4, pointHoverRadius: 6 }]));
+        }
+
+    }
+
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(initAnalystCharts, { timeout: 1000 });
+    } else {
+        setTimeout(initAnalystCharts, 50);
+    }
+})();
+</script>
+{% endblock %}

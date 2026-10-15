@@ -1,0 +1,84 @@
+<!-- Admin Sidebar Navigation - Premium Deep Ocean Theme -->
+<div class="sidebar-brand">
+    <div class="brand-icon">
+        <i class="fas fa-globe-americas"></i>
+    </div>
+    <div>
+        <h2>EarthScape</h2>
+        <small>Admin Panel</small>
+    </div>
+</div>
+<nav class="sidebar-nav">
+    <div class="nav-section">Main</div>
+    <a href="{{ url_for('admin.dashboard') }}" class="nav-item {{ 'active' if active_page == 'dashboard' }}">
+        <i class="fas fa-tachometer-alt"></i> Dashboard
+    </a>
+    <a href="{{ url_for('admin.users') }}" class="nav-item {{ 'active' if active_page == 'users' }}">
+        <i class="fas fa-users"></i> Users
+    </a>
+    <a href="{{ url_for('admin.datasets') }}" class="nav-item {{ 'active' if active_page == 'datasets' }}">
+        <i class="fas fa-database"></i> Datasets
+    </a>
+    <a href="{{ url_for('admin.satellite_imagery') }}" class="nav-item {{ 'active' if active_page == 'satellite_imagery' }}">
+        <i class="fas fa-satellite"></i> Satellite Imagery
+    </a>
+
+    <div class="nav-section">Hadoop</div>
+    <a href="{{ url_for('admin.hdfs') }}" class="nav-item {{ 'active' if active_page == 'hdfs' }}">
+        <i class="fas fa-folder-open"></i> HDFS Browser
+    </a>
+    <a href="{{ url_for('admin.mapreduce') }}" class="nav-item {{ 'active' if active_page == 'mapreduce' }}">
+        <i class="fas fa-cogs"></i> MapReduce
+    </a>
+
+    <div class="nav-section">Analytics</div>
+    <a href="{{ url_for('admin.analytics') }}" class="nav-item {{ 'active' if active_page == 'analytics' }}">
+        <i class="fas fa-chart-area"></i> Data Analytics
+    </a>
+    <a href="{{ url_for('admin.analytics_anomalies') }}" class="nav-item {{ 'active' if active_page == 'anomalies' }}">
+        <i class="fas fa-exclamation-triangle"></i> Anomalies
+    </a>
+    <a href="{{ url_for('admin.analytics_forecast') }}" class="nav-item {{ 'active' if active_page == 'forecast' }}">
+        <i class="fas fa-chart-line"></i> Forecast
+    </a>
+    <a href="{{ url_for('admin.realtime') }}" class="nav-item {{ 'active' if active_page == 'realtime' }}">
+        <i class="fas fa-satellite-dish"></i> Real-time
+    </a>
+    <a href="{{ url_for('admin.machine_learning') }}" class="nav-item {{ 'active' if active_page == 'machine_learning' }}">
+        <i class="fas fa-brain"></i> ML Models
+    </a>
+    <a href="{{ url_for('admin.correlation_analysis') }}" class="nav-item {{ 'active' if active_page == 'correlation' }}">
+        <i class="fas fa-project-diagram"></i> Correlations
+    </a>
+    <a href="{{ url_for('admin.reports') }}" class="nav-item {{ 'active' if active_page == 'reports' }}">
+        <i class="fas fa-file-alt"></i> Reports
+    </a>
+    <a href="{{ url_for('admin.alerts') }}" class="nav-item {{ 'active' if active_page == 'alerts' }}">
+        <i class="fas fa-bell"></i> Alerts
+        {% if unread_alerts is defined and unread_alerts > 0 %}
+        <span class="badge">{{ unread_alerts }}</span>
+        {% endif %}
+    </a>
+
+    <div class="nav-section">Support</div>
+    <a href="{{ url_for('admin.knowledge_base') }}" class="nav-item {{ 'active' if active_page == 'knowledge' }}">
+        <i class="fas fa-book"></i> New Articels
+    </a>
+    <a href="{{ url_for('admin.feedback') }}" class="nav-item {{ 'active' if active_page == 'feedback' }}">
+        <i class="fas fa-comments"></i> Feedback
+        {% if open_feedback_count is defined and open_feedback_count > 0 %}
+        <span class="badge">{{ open_feedback_count }}</span>
+        {% endif %}
+    </a>
+    <a href="{{ url_for('admin.settings') }}" class="nav-item {{ 'active' if active_page == 'settings' }}">
+        <i class="fas fa-sliders-h"></i> Settings
+    </a>
+    <a href="{{ url_for('admin.profile') }}" class="nav-item {{ 'active' if active_page == 'profile' }}">
+        <i class="fas fa-user-circle"></i> Profile
+    </a>
+
+    <div style="border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;"></div>
+    <a href="{{ url_for('auth.logout') }}" class="nav-item sidebar-footer">
+        <i class="fas fa-sign-out-alt"></i> Logout
+    </a>
+</nav>

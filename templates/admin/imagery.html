@@ -1,0 +1,78 @@
+{% extends "admin/base.html" %}
+{% block page_title %}Satellite Imagery Monitor{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+    <h2 style="font-size:22px;font-weight:700;margin:0;"><i class="fas fa-satellite"></i> Satellite Imagery Monitor</h2>
+    <div class="card-actions"><span class="badge badge-gray">Admin role: monitor &amp; manage ingested imagery</span></div>
+</div>
+
+<!-- Monitoring stats -->
+<div class="grid grid-4" style="margin-bottom:24px;">
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-images"></i></div><div class="stat-info"><h3>{{ stats.total }}</h3><p>Total Images</p></div></div>
+    <div class="stat-card"><div class="stat-icon teal"><i class="fas fa-temperature-high"></i></div><div class="stat-info"><h3>{{ stats.avg_lst }}&deg;C</h3><p>Avg LST Estimate</p></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-cloud"></i></div><div class="stat-info"><h3>{{ stats.avg_cloud }}%</h3><p>Avg Cloud Cover</p></div></div>
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-leaf"></i></div><div class="stat-info"><h3>{{ stats.avg_vegetation }}</h3><p>Avg Vegetation Index</p></div></div>
+</div>
+
+<!-- Platform mix -->
+<div class="card" style="margin-bottom:24px;">
+    <div class="card-header"><h3><i class="fas fa-broadcast-tower"></i> Ingestion by Platform</h3></div>
+    <div class="card-body">
+        {% if stats.by_platform %}
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            {% for platform, count in stats.by_platform.items() %}
+            <span class="badge badge-green" style="font-size:13px;padding:6px 12px;">{{ platform }}: {{ count }}</span>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="color:var(--gray-400);margin:0;">No imagery ingested yet.</p>
+        {% endif %}
+    </div>
+</div>
+<!-- Imagery table -->
+<div class="card">
+    <div class="card-header"><h3><i class="fas fa-list"></i> Ingested Images ({{ images|length }})</h3></div>
+    <div class="card-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Preview</th><th>Image</th><th>Platform</th><th>Dimensions</th>
+                    <th>LST Est.</th><th>Cloud</th><th>Vegetation</th>
+                    <th>Uploaded By</th><th>When</th><th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for img in images %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('admin.satellite_imagery_file', image_id=img.id) }}" target="_blank">
+                            <img src="{{ url_for('admin.satellite_imagery_file', image_id=img.id) }}" alt="{{ img.filename }}"
+                             style="width:64px;height:44px;object-fit:cover;border-radius:6px;background:#e2e8f0;display:block;">
+                        </a>
+                    </td>
+                    <td>
+                        <strong>#{{ img.id }}</strong>
+                        <small style="display:block;color:var(--gray-500);">{{ img.filename }}</small>
+                    </td>
+                    <td><span class="badge badge-green">{{ img.platform }}</span></td>
+                    <td><small>{{ img.metrics.width }}x{{ img.metrics.height }} {{ img.metrics.format }}</small></td>
+                    <td>{% set v = img.metrics.land_surface_temp|num %}{{ "%.1f"|format(v) if v is not none else '-' }}&deg;C</td>
+                    <td>{% set v = img.metrics.cloud_cover|num %}{{ "%.1f"|format(v) if v is not none else '-' }}%</td>
+                    <td>{% set v = img.metrics.vegetation_index|num %}{{ "%.1f"|format(v) if v is not none else '-' }}</td>
+                    <td><small>{{ img.uploaded_by_name }}</small></td>
+                    <td><small>{{ img.created_at|fmtdatetime }}</small></td>
+                    <td>
+                        <form method="POST" action="{{ url_for('admin.delete_satellite_imagery', image_id=img.id) }}" style="display:inline;"
+                         onsubmit="return confirm('Remove image #{{ img.id }} ({{ img.filename }})? This cannot be undone.');">
+                            <button type="submit" class="btn btn-sm btn-danger" title="Remove"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="10" style="text-align:center;color:var(--gray-400);padding:24px;">No satellite imagery ingested yet - analysts can ingest images from their Satellite Imagery page.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

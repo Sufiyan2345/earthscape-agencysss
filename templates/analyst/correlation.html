@@ -1,0 +1,311 @@
+
+{% extends "analyst/base.html" %}
+{% block page_title %}Correlation Analysis{% endblock %}
+{% block extra_css %}
+<style>
+.correlation-page{color:var(--panel-ink);}
+.correlation-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;padding:4px 2px;}
+.correlation-toolbar h2{display:flex;align-items:center;gap:10px;margin:0;color:#f4fbff;font-size:24px;letter-spacing:.01em;}
+.correlation-toolbar h2 i{color:#7ee7d0;filter:drop-shadow(0 0 9px rgba(126,231,208,.42));}
+.correlation-toolbar-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.correlation-config{position:relative;overflow:hidden;margin-bottom:24px;border:1px solid rgba(84,168,255,.3);background:linear-gradient(135deg,#06121f,#0b293e 55%,#03080f);box-shadow:0 18px 42px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.05);}
+.correlation-config:before{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 12%,rgba(87,210,195,.07) 50%,transparent 86%);}
+.correlation-config .card-header{position:relative;min-height:64px;border-bottom:1px solid rgba(126,231,208,.18);background:rgba(5,17,28,.46);}
+.correlation-config .card-header h3{display:flex;align-items:center;gap:10px;color:#f4fbff;}
+.correlation-config .card-header h3 i{color:#7ee7d0;}
+.correlation-config .card-body{position:relative;padding:26px;}
+.correlation-intro{max-width:900px;margin:0 0 22px;color:#9bb4c4;font-size:13px;line-height:1.65;}
+.correlation-variables{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:22px;}
+.correlation-variable{position:relative;display:flex;align-items:center;gap:10px;min-height:50px;padding:12px 14px;border:1px solid rgba(84,168,255,.2);border-radius:10px;background:linear-gradient(135deg,rgba(12,39,59,.8),rgba(5,16,27,.9));color:#dcecf5;font-size:12px;font-weight:700;cursor:pointer;transition:border-color .18s ease,background .18s ease,transform .18s ease,box-shadow .18s ease;}
+.correlation-variable:hover{border-color:#57d2c3;background:linear-gradient(135deg,rgba(18,66,82,.9),rgba(6,24,37,.95));transform:translateY(-1px);box-shadow:0 8px 18px rgba(0,0,0,.2);}
+.correlation-variable:has(input:checked){border-color:rgba(126,231,208,.72);background:linear-gradient(135deg,rgba(15,91,99,.78),rgba(7,31,43,.95));box-shadow:0 0 0 2px rgba(126,231,208,.08),inset 0 1px 0 rgba(255,255,255,.07);}
+.correlation-variable input{width:16px;height:16px;margin:0;accent-color:#57d2c3;}
+.correlation-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+.correlation-actions .btn{min-height:40px;border-radius:9px;font-weight:800;transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;}
+.correlation-actions .btn-primary{background:linear-gradient(110deg,#1266a5,#168d8b);border-color:rgba(126,231,208,.28);box-shadow:0 9px 20px rgba(18,102,165,.24);}
+.correlation-actions .btn-primary:hover{filter:brightness(1.1);transform:translateY(-2px);box-shadow:0 13px 26px rgba(18,141,139,.32);}
+.correlation-actions .btn-outline:hover{border-color:#7ee7d0;color:#eafffb;background:rgba(126,231,208,.09);}
+.correlation-count{padding:8px 12px;border:1px solid rgba(126,231,208,.16);border-radius:999px;color:#9fb8c7;font-size:11px;background:rgba(3,14,23,.56);}
+.correlation-heatmap-card,.correlation-chart-card{border:1px solid rgba(126,231,208,.2);background:linear-gradient(145deg,rgba(12,39,59,.94),rgba(4,15,25,.98));box-shadow:0 18px 36px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.04);}
+.correlation-chart-card .card-header{border-bottom-color:rgba(126,231,208,.18);background:rgba(4,18,28,.42);}
+.correlation-chart-wrap{height:360px;padding:18px 18px 12px;border-radius:12px;background:radial-gradient(circle at 12% 10%,rgba(87,210,195,.12),transparent 35%),#061724;}
+.correlation-chart-wrap canvas{width:100%!important;height:100%!important;}
+@media(max-width:900px){.correlation-variables{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:560px){.correlation-toolbar{align-items:flex-start;flex-direction:column;}.correlation-toolbar-actions,.correlation-toolbar-actions .btn{width:100%;}.correlation-variables{grid-template-columns:1fr;}.correlation-config .card-body{padding:18px;}.correlation-actions .btn{flex:1;}.correlation-chart-wrap{height:430px;padding:12px 8px 8px;}}
+.correlation-page{color:#d8eafb;}
+.correlation-page .card{border-color:rgba(39,126,210,.3);background:linear-gradient(145deg,rgba(7,24,42,.98),rgba(1,7,14,.99));box-shadow:0 18px 40px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.04);}
+.correlation-toolbar h2 i,.correlation-config .card-header h3 i,.correlation-page .card-header h3 i{color:#62b8ff;filter:drop-shadow(0 0 9px rgba(52,151,255,.8));}
+.correlation-config{border-color:rgba(39,126,210,.46);background:linear-gradient(145deg,#071a30,#092d4c 54%,#01050a);}
+.correlation-config:before{background:linear-gradient(110deg,transparent 12%,rgba(52,151,255,.1) 50%,transparent 86%);}
+.correlation-config .card-header,.correlation-page .card-header{background:linear-gradient(90deg,rgba(7,29,52,.96),rgba(2,10,19,.78));border-bottom-color:rgba(63,146,227,.25);}
+.correlation-variable{border-color:rgba(39,126,210,.34);background:linear-gradient(145deg,rgba(13,48,79,.88),rgba(2,10,19,.95));}
+.correlation-variable:hover,.correlation-variable:has(input:checked){border-color:#55b8ff;background:linear-gradient(145deg,rgba(12,68,119,.9),rgba(2,15,29,.98));box-shadow:0 0 0 2px rgba(52,151,255,.1),0 0 20px rgba(32,126,226,.18);}
+.correlation-variable input{accent-color:#55b8ff;}
+.correlation-actions .btn-primary{border-color:rgba(92,184,255,.58);background:linear-gradient(110deg,#0756a0,#126ed0 58%,#073e91);box-shadow:0 9px 22px rgba(0,63,145,.5),0 0 18px rgba(32,126,226,.25);}
+.correlation-actions .btn-primary:hover{box-shadow:0 14px 30px rgba(0,92,192,.6),0 0 26px rgba(32,126,226,.4);}
+.correlation-actions .btn-outline:hover,.correlation-toolbar-actions .btn-outline:hover{border-color:#62b8ff;color:#eaf5ff;background:rgba(52,151,255,.12);box-shadow:0 0 18px rgba(32,126,226,.24);}
+.correlation-count{border-color:rgba(52,151,255,.3);background:rgba(1,10,20,.72);color:#9fc9ec;}
+.correlation-chart-wrap{background:radial-gradient(circle at 12% 10%,rgba(32,126,226,.14),transparent 35%),#020b16;}
+</style>
+{% endblock %}
+{% block content %}
+<div class="correlation-page">
+<div class="correlation-toolbar">
+    <h2><i class="fas fa-project-diagram"></i> Correlation Analysis</h2>
+    <div class="correlation-toolbar-actions">
+        <a href="{{ url_for('analyst.machine_learning') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to ML</a>
+        <button class="btn btn-outline" id="btnRefresh"><i class="fas fa-sync-alt"></i> Refresh Results</button>
+    </div>
+</div>
+
+<!-- Run configuration (analyst performs the analysis) -->
+<div class="card correlation-config">
+    <div class="card-header"><h3><i class="fas fa-play-circle"></i> Run Correlation Analysis</h3></div>
+    <div class="card-body">
+        <p class="correlation-intro">
+            Select the climate variables to correlate. The analysis uses Pearson correlation with
+            statistical significance testing (p &lt; 0.05) on up to 5,000 climate records.
+        </p>
+        <form method="POST" action="{{ url_for('analyst.run_correlation') }}" id="runForm">
+            <div class="correlation-variables">
+                {% for var in available_variables %}
+                <label class="correlation-variable">
+                    <input type="checkbox" name="variables" value="{{ var.key }}" checked class="var-checkbox">
+                    {{ var.label }}
+                </label>
+                {% endfor %}
+            </div>
+            <div class="correlation-actions">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-play"></i> Run Analysis</button>
+                <button type="button" class="btn btn-outline" id="btnSelectAll">Select All</button>
+                <button type="button" class="btn btn-outline" id="btnSelectNone">Clear</button>
+                <span id="varCount" class="correlation-count"></span>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Processing status / run history -->
+<div class="card" style="margin-bottom:24px;">
+    <div class="card-header"><h3><i class="fas fa-history"></i> Analysis Runs ({{ runs|length }})</h3></div>
+    <div class="card-body">
+        <table class="table">
+            <thead>
+                <tr><th>Run</th><th>Status</th><th>Variables</th><th>Records</th><th>Significant Pairs</th><th>Strongest</th><th>Run By</th><th>When</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+                {% for run in runs %}
+                <tr>
+                    <td><strong>#{{ run.id }}</strong></td>
+                    <td>
+                        {% if run.status == 'completed' %}
+                        <span class="badge badge-green"><i class="fas fa-check-circle"></i> Completed</span>
+                        {% else %}
+                        <span class="badge badge-red" title="{{ run.error or '' }}"><i class="fas fa-times-circle"></i> Failed</span>
+                        {% endif %}
+                    </td>
+                    <td><small>{{ run.variables|length }} selected</small></td>
+                    <td>{{ run.total_records }}</td>
+                    <td>{{ run.significant_pairs }}</td>
+                    <td>
+                        {% if run.strongest_pair %}
+                        <small>{{ run.strongest_pair.pair }} ({{ run.strongest_pair.correlation }})</small>
+                        {% else %}<small>—</small>{% endif %}
+                    </td>
+                    <td>{{ run.run_by_name }}</td>
+                    <td><small>{{ run.created_at|fmtdatetime }}</small></td>
+                    <td>
+                        <form method="POST" action="{{ url_for('analyst.delete_correlation_run', run_id=run.id) }}" style="display:inline;" onsubmit="return confirm('Delete correlation run #{{ run.id }}? This cannot be undone.');">
+                            <button type="submit" class="btn btn-sm btn-danger" title="Delete this run"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" style="text-align:center;color:var(--gray-400);padding:24px;">No analysis runs yet — configure and run your first correlation above.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Summary stats -->
+<div class="grid grid-3" style="margin-bottom:24px;">
+    <div class="stat-card"><div class="stat-icon teal"><i class="fas fa-database"></i></div><div class="stat-info"><h3 id="totalRecords">--</h3><p>Records Analyzed</p></div></div>
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-link"></i></div><div class="stat-info"><h3 id="significantPairs">--</h3><p>Significant Pairs</p></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-arrow-up"></i></div><div class="stat-info"><h3 id="strongestCorr">--</h3><p>Strongest Correlation</p></div></div>
+</div>
+
+<!-- Pairwise correlations table -->
+<div class="card" style="margin-bottom:24px;">
+    <div class="card-header"><h3><i class="fas fa-list"></i> Pairwise Correlations</h3>
+        <div class="card-actions"><span id="resultSource" class="badge badge-gray"></span></div>
+    </div>
+    <div class="card-body">
+        <div id="loadingMsg" style="text-align:center;padding:40px;color:var(--gray-500);"><i class="fas fa-spinner fa-spin"></i> Loading correlation results...</div>
+        <table class="table" id="corrTable" style="display:none;">
+            <thead>
+                <tr><th>Variable 1</th><th>Variable 2</th><th>Correlation</th><th>Strength</th><th>Direction</th><th>P-Value</th><th>Significant</th><th>Interpretation</th></tr>
+            </thead>
+            <tbody id="corrBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Correlation heatmap -->
+<div class="card correlation-heatmap-card" style="margin-bottom:24px;">
+    <div class="card-header"><h3><i class="fas fa-th"></i> Correlation Heatmap</h3></div>
+    <div class="card-body">
+        <div class="correlation-heatmap-wrap"><canvas id="heatmapCanvas"></canvas></div>
+        <div class="correlation-heatmap-legend"><span>-1</span><i></i><span>0</span><i></i><span>+1</span></div>
+    </div>
+</div>
+
+<!-- Top correlations chart -->
+<div class="card correlation-chart-card">
+    <div class="card-header"><h3><i class="fas fa-chart-bar"></i> Strongest Correlations</h3></div>
+    <div class="card-body">
+        <div class="correlation-chart-wrap"><canvas id="topCorrChart"></canvas></div>
+    </div>
+</div>
+
+</div>
+
+<script id="corrData" type="application/json" data-url="{{ url_for('analyst.correlation_data') }}"></script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script>
+(function() {
+    var dataEl = document.getElementById('corrData');
+    var url = dataEl.getAttribute('data-url') || '';
+
+    // Variable selector helpers
+    var checkboxes = document.querySelectorAll('.var-checkbox');
+    function updateCount() {
+        var n = document.querySelectorAll('.var-checkbox:checked').length;
+        document.getElementById('varCount').textContent = n + ' variable(s) selected';
+    }
+    checkboxes.forEach(function(cb) { cb.addEventListener('change', updateCount); });
+    document.getElementById('btnSelectAll').addEventListener('click', function() {
+        checkboxes.forEach(function(cb) { cb.checked = true; }); updateCount();
+    });
+    document.getElementById('btnSelectNone').addEventListener('click', function() {
+        checkboxes.forEach(function(cb) { cb.checked = false; }); updateCount();
+    });
+    document.getElementById('runForm').addEventListener('submit', function(e) {
+        var n = document.querySelectorAll('.var-checkbox:checked').length;
+        if (n < 2) { e.preventDefault(); alert('Select at least two variables to correlate.'); }
+    });
+    updateCount();
+
+    function loadCorrelations() {
+        document.getElementById('loadingMsg').style.display = 'block';
+        document.getElementById('corrTable').style.display = 'none';
+
+        fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+            document.getElementById('loadingMsg').style.display = 'none';
+            if (data.error) {
+                document.getElementById('loadingMsg').textContent = data.error;
+                document.getElementById('loadingMsg').style.display = 'block';
+                return;
+            }
+            var src = document.getElementById('resultSource');
+            if (data.source === 'run') {
+                src.textContent = 'Run #' + data.run_id + ' — ' + (data.run_by_name || 'Analyst') + ' — ' + (data.generated_at || '').slice(0, 16).replace('T', ' ');
+            } else {
+                src.textContent = 'Live computation (no saved runs yet)';
+            }
+            renderPairwise(data.pairwise_correlations || []);
+            renderHeatmap(data.correlation_matrix || {});
+            renderTopChart(data.pairwise_correlations || []);
+            document.getElementById('totalRecords').textContent = data.total_records || 0;
+        }).catch(function(err) {
+            document.getElementById('loadingMsg').textContent = 'Error: ' + err.message;
+        });
+    }
+
+    function renderPairwise(pairs) {
+        var sig = pairs.filter(function(p) { return p.significant; }).length;
+        document.getElementById('significantPairs').textContent = sig;
+        if (pairs.length > 0) {
+            var strongest = pairs.reduce(function(a, b) { return Math.abs(a.correlation) > Math.abs(b.correlation) ? a : b; });
+            document.getElementById('strongestCorr').textContent = strongest.correlation.toFixed(3);
+        }
+        var body = document.getElementById('corrBody');
+        body.innerHTML = '';
+        pairs.forEach(function(p) {
+            var tr = document.createElement('tr');
+            var strengthColor = p.strength === 'very strong' ? 'var(--red)' : p.strength === 'strong' ? 'var(--orange)' : p.strength === 'moderate' ? 'var(--yellow)' : 'var(--gray-500)';
+            tr.innerHTML = '<td><strong>' + p.variable_1 + '</strong></td>' +
+                '<td><strong>' + p.variable_2 + '</strong></td>' +
+                '<td><span style="font-weight:700;color:' + strengthColor + '">' + p.correlation.toFixed(4) + '</span></td>' +
+                '<td><span class="badge badge-' + (p.strength.indexOf('strong') >= 0 ? 'danger' : p.strength === 'moderate' ? 'warning' : 'secondary') + '">' + p.strength + '</span></td>' +
+                '<td>' + p.direction + '</td>' +
+                '<td>' + p.p_value.toFixed(4) + '</td>' +
+                '<td>' + (p.significant ? '<span class="badge badge-success">Yes</span>' : '<span class="badge badge-secondary">No</span>') + '</td>' +
+                '<td><small>' + (p.interpretation || '') + '</small></td>';
+            body.appendChild(tr);
+        });
+        document.getElementById('corrTable').style.display = 'table';
+    }
+
+    function renderHeatmap(matrix) {
+        var vars_ = matrix.variables || [];
+        var mat = matrix.matrix || [];
+        if (vars_.length === 0) return;
+        var canvas = document.getElementById('heatmapCanvas');
+        var ctx = canvas.getContext('2d');
+        var cellSize = 68;
+        var labelWidth = 118;
+        var gap = 5;
+        var w = labelWidth + vars_.length * cellSize + 20;
+        var h = labelWidth + vars_.length * cellSize + 20;
+        canvas.width = w; canvas.height = h;
+        ctx.fillStyle = '#07131e'; ctx.fillRect(0, 0, w, h);
+        ctx.font = '600 11px Inter, sans-serif';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#a9c4d4';
+        vars_.forEach(function(v, i) {
+            ctx.save(); ctx.translate(labelWidth + i * cellSize + cellSize / 2, labelWidth - 18);
+            ctx.rotate(-Math.PI / 4); ctx.textAlign = 'left'; ctx.fillText(v, 0, 0); ctx.restore();
+        });
+        vars_.forEach(function(v, i) {
+            ctx.fillStyle = '#b9d0dc'; ctx.textAlign = 'left';
+            ctx.fillText(v, 8, labelWidth + i * cellSize + cellSize / 2);
+            vars_.forEach(function(v2, j) {
+                var val = Math.max(-1, Math.min(1, Number(mat[i] ? mat[i][j] : 0)));
+                var x = labelWidth + j * cellSize + gap / 2;
+                var y = labelWidth + i * cellSize + gap / 2;
+                var intensity = Math.abs(val);
+                var red = val < 0 ? Math.round(46 + intensity * 92) : Math.round(25 + (1 - intensity) * 20);
+                var green = val < 0 ? Math.round(74 + (1 - intensity) * 28) : Math.round(72 + intensity * 120);
+                var blue = val < 0 ? Math.round(125 + intensity * 95) : Math.round(72 + (1 - intensity) * 45);
+                ctx.fillStyle = 'rgb(' + red + ',' + green + ',' + blue + ')';
+                ctx.fillRect(x, y, cellSize - gap, cellSize - gap);
+                ctx.fillStyle = intensity > 0.45 ? '#fff' : '#cbe0e8'; ctx.textAlign = 'center';
+                ctx.fillText(val.toFixed(2), x + (cellSize - gap) / 2, y + (cellSize - gap) / 2);
+            });
+        });
+    }
+
+    function renderTopChart(pairs) {
+        if (typeof Chart === 'undefined' || pairs.length === 0) return;
+        var top = pairs.slice(0, 10);
+        var labels = top.map(function(p) { return p.variable_1 + ' \u2194 ' + p.variable_2; });
+        var values = top.map(function(p) { return p.correlation; });
+        var colors = values.map(function(v) { return v >= 0 ? '#39c6b4' : '#f0718f'; });
+        var chartCanvas = document.getElementById('topCorrChart');
+        if (window.topCorrelationChart) window.topCorrelationChart.destroy();
+        window.topCorrelationChart = new Chart(chartCanvas, {
+            type: 'bar',
+            data: { labels: labels, datasets: [{ label: 'Correlation', data: values, backgroundColor: colors, borderColor: colors, borderWidth: 1, borderRadius: 7, borderSkipped: false, barThickness: 22 }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: { duration: 500 }, interaction: { mode: 'nearest', intersect: false }, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#071522', borderColor: 'rgba(126,231,208,.45)', borderWidth: 1, titleColor: '#f4fbff', bodyColor: '#cce5ee', padding: 10, callbacks: { label: function(item) { return ' Correlation: ' + Number(item.raw).toFixed(3); } } } }, scales: { x: { min: -1, max: 1, border: { display: false }, grid: { color: function(context) { return context.tick.value === 0 ? 'rgba(244,251,255,.7)' : 'rgba(142,182,202,.12)'; }, lineWidth: function(context) { return context.tick.value === 0 ? 2 : 1; } }, ticks: { color: '#9bb8c8', callback: function(value) { return Number(value).toFixed(1); } } }, y: { border: { display: false }, grid: { display: false }, ticks: { color: '#c8dce5', font: { size: 11, weight: '600' } } } } }
+        });
+    }
+
+    document.getElementById('btnRefresh').addEventListener('click', loadCorrelations);
+    loadCorrelations();
+})();
+</script>
+{% endblock %}

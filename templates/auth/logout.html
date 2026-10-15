@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Signed Out - EarthScape Climate</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        :root { 
+            color-scheme: dark; 
+            --ink: #f8fafc; 
+            --muted: #cbd5e1; 
+            --ocean: #0b6e9e;
+            --ice: #9eddf5;
+            --line: rgba(158, 221, 245, 0.24);
+        }
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; 
+            width: 100vw;
+            height: 100vh; 
+            overflow: hidden; 
+            display: grid;
+            place-items: center;
+            font-family: 'Outfit', sans-serif; 
+            background: url('https://i.pinimg.com/736x/7a/53/07/7a53077ef70d65176e05c782a51e7f55.jpg') center/cover no-repeat;
+        }
+        
+        /* Dark atmospheric tint overlaying the full background image */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at 50% 35%, rgba(21, 91, 129, 0.22), transparent 42%), linear-gradient(115deg, rgba(0, 0, 0, 0.4), rgba(2, 10, 19, 0.86));
+            pointer-events: none;
+        }
+
+        .logout-card { 
+            position: relative;
+            z-index: 10;
+            width: min(500px, calc(100% - 40px));
+            padding: 52px 48px 48px;
+            background: linear-gradient(155deg, rgba(10, 27, 43, 0.96), rgba(3, 10, 18, 0.96));
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--line);
+            border-top: 2px solid rgba(158, 221, 245, 0.65);
+            border-radius: 18px;
+            box-shadow: 
+                0 20px 50px rgba(0, 0, 0, 0.6), 
+                inset 0 1px 1px rgba(255, 255, 255, 0.2),
+                inset 0 -2px 18px rgba(11, 110, 158, 0.16);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .brand { 
+            position: absolute; 
+            top: 32px; 
+            left: 36px; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            color: #f8fafc; 
+            font-size: 11px; 
+            font-weight: 700; 
+            letter-spacing: .14em; 
+            text-transform: uppercase; 
+            z-index: 20;
+        }
+        .brand i { color: var(--ice); font-size: 14px; }
+
+        .status-icon { 
+            display: grid; 
+            place-items: center; 
+            width: 58px; 
+            height: 58px; 
+            margin-bottom: 24px; 
+            border-radius: 14px; 
+            color: #ffffff; 
+            background: #0b6e9e;
+            border: 1px solid rgba(158, 221, 245, 0.7);
+            box-shadow: 
+                0 0 24px rgba(11, 110, 158, 0.45),
+                inset 0 2px 4px rgba(255, 255, 255, 0.5);
+            font-size: 20px;
+        }
+
+        h1 { 
+            margin: 0 0 12px; 
+            color: #f8fafc; 
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2rem, 3.5vw, 2.65rem); 
+            font-weight: 700;
+            line-height: 1.15; 
+            letter-spacing: 0; 
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        p { 
+            margin: 0 0 32px; 
+            color: var(--muted); 
+            font-size: 15px; 
+            line-height: 1.6; 
+            max-width: 390px;
+        }
+
+        .signin { 
+            position: relative; 
+            overflow: hidden; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 13px 28px; 
+            border-radius: 8px; 
+            color: #02070d; 
+            background: #ffffff;
+            border: 1px solid #ffffff;
+            box-shadow: 
+                0 4px 20px rgba(11, 110, 158, 0.35),
+                inset 0 1px 2px rgba(255, 255, 255, 0.6); 
+            font-weight: 600; 
+            font-size: 15px;
+            text-decoration: none; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+
+        /* Modern shiny reflection overlay effect */
+        .signin::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: 0.5s;
+        }
+
+        .signin:hover::after {
+            left: 100%;
+        }
+
+        .signin:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 
+                0 6px 28px rgba(56, 189, 248, 0.6),
+                inset 0 1px 2px rgba(255, 255, 255, 0.8); 
+            color: #ffffff;
+            background: #0b6e9e;
+            border-color: var(--ice);
+        }
+
+        @media(max-width: 600px) { 
+            .logout-card { width: 100%; height: 100%; border-radius: 0; border: none; padding: 80px 24px 32px; justify-content: center; }
+            .brand { top: 20px; left: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="brand"><i class="fa-solid fa-satellite"></i> EarthScape Climate</div>
+    <main class="logout-card">
+        <div class="status-icon"><i class="fa-solid fa-hands-clapping"></i></div>
+        <h1>Goodbye for now!</h1>
+        <p>You've successfully signed out on this device. Sign back in to continue exploring your climate workspace and insights.</p>
+        <a class="signin" href="{{ url_for('auth.login') }}">Sign back in</a>
+    </main>
+</body>
+</html>

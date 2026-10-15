@@ -1,0 +1,1122 @@
+{% extends "public/base.html" %}
+{% block title %}Realtime Climate - EarthScape Climate{% endblock %}
+
+{% block extra_css %}
+<!-- Advanced Professional Sci-Fi Dark UI & Cyberpunk Gradient Charts CSS -->
+<style>
+.es-realtime-wrapper {
+    background-color: #030712;
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Hero Section */
+.es-realtime-hero {
+    position: relative;
+    width: 100%;
+    min-height: 50vh;
+    padding: 120px 5% 80px 5%;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(3, 7, 18, 0.4) 0%, rgba(3, 7, 18, 0.95) 100%), 
+                url('https://www.spacex.com/assets/images/human-spaceflight/earth/STARSHIP_CAPABILITIES_EARTHTOEARTH_Clouds_Starship_2023_01_Desktop_Darkerv2.jpg') center/cover no-repeat;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid rgba(140, 193, 233, 0.15);
+}
+
+.es-breadcrumb {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 18px;
+    background: rgba(3, 7, 18, 0.75);
+    border: 1px solid rgba(140, 193, 233, 0.35);
+    border-radius: 30px;
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: #8cc1e9;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+}
+
+.es-realtime-hero h1 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: clamp(2.6rem, 5vw, 4rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 14px;
+    color: #ffffff;
+    text-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
+    position: relative;
+    z-index: 2;
+}
+
+.es-realtime-hero p {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.7);
+    max-width: 650px;
+    margin: 0 auto;
+    line-height: 1.6;
+    font-weight: 300;
+    position: relative;
+    z-index: 2;
+}
+
+.es-live-badge {
+    margin-top: 20px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(8, 18, 32, 0.8);
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(140, 193, 233, 0.2);
+    position: relative;
+    z-index: 2;
+}
+
+.es-live-dot {
+    width: 8px;
+    height: 8px;
+    background: #2dd4bf;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 10px #2dd4bf;
+    animation: pulse 2s infinite;
+}
+
+/* Network Summary Section */
+.es-stats-section {
+    background: linear-gradient(180deg, rgba(4, 11, 22, 0.8) 0%, rgba(8, 18, 32, 0.95) 100%);
+    border-bottom: 1px solid rgba(140, 193, 233, 0.15);
+    padding: 60px 5%;
+}
+
+.es-stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+    max-width: 1300px;
+    margin: 0 auto;
+}
+
+.es-stat-card {
+    background: linear-gradient(145deg, rgba(8, 18, 32, 0.9) 0%, rgba(4, 11, 22, 0.95) 100%);
+    border: 1px solid rgba(140, 193, 233, 0.15);
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+}
+
+.es-stat-card:hover {
+    border-color: rgba(99, 102, 241, 0.5);
+    transform: translateY(-4px);
+    box-shadow: 0 15px 30px rgba(99, 102, 241, 0.15);
+}
+
+.es-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin: 0 auto 16px auto;
+    border: 1px solid rgba(140, 193, 233, 0.3);
+}
+
+.es-stat-icon.teal { background: rgba(13, 148, 136, 0.15); color: #2dd4bf; border-color: rgba(13, 148, 136, 0.3); }
+.es-stat-icon.blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3); }
+.es-stat-icon.green { background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
+
+.es-stat-card h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 6px;
+    font-family: 'Science Gothic', sans-serif;
+}
+
+.es-stat-card p {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+}
+
+/* Container & Grid layout */
+.es-container {
+    width: 100%;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 80px 5%;
+    box-sizing: border-box;
+}
+
+.es-section-header {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 50px auto;
+}
+
+.es-section-icon {
+    width: 50px;
+    height: 50px;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(140, 193, 233, 0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8cc1e9;
+    font-size: 18px;
+    margin: 0 auto 20px auto;
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+}
+
+.es-section-header h2 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    color: #ffffff;
+}
+
+.es-section-header p {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.65);
+    font-weight: 300;
+}
+
+/* Station Cards Grid */
+.es-stations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 30px;
+}
+
+.station-card {
+    background: linear-gradient(145deg, rgba(8, 18, 32, 0.95) 0%, rgba(4, 11, 22, 0.98) 100%);
+    border: 1px solid rgba(140, 193, 233, 0.15);
+    border-radius: 16px;
+    padding: 30px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    transition: all 0.4s ease;
+}
+
+.station-card:hover {
+    border-color: rgba(99, 102, 241, 0.5);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 45px rgba(99, 102, 241, 0.2);
+}
+
+.station-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(140, 193, 233, 0.1);
+    padding-bottom: 15px;
+}
+
+.station-header h3 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: #ffffff;
+}
+
+.station-location {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.es-badge-teal {
+    background: rgba(13, 148, 136, 0.15);
+    color: #2dd4bf;
+    border: 1px solid rgba(13, 148, 136, 0.3);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.station-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 15px;
+}
+
+.metric {
+    background: rgba(3, 7, 18, 0.5);
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(140, 193, 233, 0.08);
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.metric strong {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: 1rem;
+}
+
+.metric-unit {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-left: auto;
+}
+
+/* Telemetry Dashboard Section */
+.es-telemetry-section {
+    padding: 0 5% 90px 5%;
+    background-color: #030712;
+}
+
+.es-telemetry-box {
+    max-width: 1300px;
+    margin: 0 auto;
+    background: linear-gradient(145deg, rgba(8, 18, 32, 0.95) 0%, rgba(4, 11, 22, 0.98) 100%);
+    border: 1px solid rgba(140, 193, 233, 0.18);
+    border-radius: 16px;
+    padding: 40px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+.es-telemetry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.es-telemetry-title {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.es-telemetry-subtitle {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.88rem;
+    font-weight: 300;
+}
+
+.es-control-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(3, 7, 18, 0.8);
+    border: 1px solid rgba(140, 193, 233, 0.25);
+    padding: 8px 16px;
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+}
+
+.es-control-box label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #8cc1e9;
+}
+
+.es-control-box select {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 0.88rem;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+    padding-right: 10px;
+}
+
+.es-control-box select option {
+    background: #081220;
+    color: #ffffff;
+}
+
+.es-chart-wrapper {
+    height: auto;
+    position: relative;
+    width: 100%;
+}
+
+/* 3-Column Video Showcase Layout (Enlarged & Enhanced) */
+/* =========================================================
+   VIDEO SHOWCASE SECTION
+========================================================= */
+
+.es-video-showcase-section {
+    position: relative;
+    padding: 0 4% 110px;
+    background-color: #030712;
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   MAIN SHOWCASE BOX
+========================================================= */
+
+.es-video-showcase-box {
+    position: relative;
+    max-width: 1600px;
+    min-height: 480px;
+    margin: 0 auto;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(3, 7, 18, 0.97) 0%,
+            rgba(7, 20, 38, 0.88) 50%,
+            rgba(3, 7, 18, 0.97) 100%
+        ),
+        url("https://i.pinimg.com/736x/8f/c4/c7/8fc4c74f8495f9244aa759fdf1fb3fed.jpg") center center / cover no-repeat;
+
+    border: 1px solid rgba(140, 193, 233, 0.30);
+    border-radius: 28px;
+
+    padding: 58px 42px;
+
+    box-shadow:
+        0 30px 70px rgba(0, 0, 0, 0.85),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+
+    display: grid;
+
+    /* Bigger video columns */
+    grid-template-columns: 1.35fr 0.9fr 1.35fr;
+
+    align-items: center;
+    gap: 42px;
+
+    overflow: hidden;
+}
+
+
+/* subtle glow behind center heading */
+
+.es-video-showcase-box::before {
+    content: "";
+    position: absolute;
+
+    width: 520px;
+    height: 520px;
+
+    left: 50%;
+    top: 50%;
+
+    transform: translate(-50%, -50%);
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(38, 110, 165, 0.22) 0%,
+            rgba(13, 58, 100, 0.12) 35%,
+            transparent 70%
+        );
+
+    filter: blur(25px);
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   VIDEO CARD
+========================================================= */
+
+.es-video-embed-card {
+    position: relative;
+    z-index: 2;
+
+    width: 100%;
+    aspect-ratio: 16 / 9;
+
+    border-radius: 18px;
+    overflow: hidden;
+
+    background: #000;
+
+    border: 1px solid rgba(140, 193, 233, 0.45);
+
+    box-shadow:
+        0 22px 50px rgba(0, 0, 0, 0.85),
+        0 0 0 1px rgba(255, 255, 255, 0.02);
+
+    transition:
+        transform 0.4s ease,
+        border-color 0.4s ease,
+        box-shadow 0.4s ease;
+}
+
+
+/* video glow */
+
+.es-video-embed-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+
+    border-radius: inherit;
+
+    box-shadow:
+        inset 0 0 25px rgba(140, 193, 233, 0.08);
+
+    pointer-events: none;
+    z-index: 2;
+}
+
+
+.es-video-embed-card:hover {
+    transform: translateY(-8px) scale(1.015);
+
+    border-color: rgba(99, 180, 255, 0.8);
+
+    box-shadow:
+        0 30px 65px rgba(0, 0, 0, 0.9),
+        0 0 35px rgba(55, 145, 220, 0.18);
+}
+
+
+.es-video-embed-card iframe {
+    width: 100%;
+    height: 100%;
+
+    border: none;
+    display: block;
+}
+
+
+/* =========================================================
+   CENTER CONTENT
+========================================================= */
+
+.es-video-center-content {
+    position: relative;
+    z-index: 3;
+
+    text-align: center;
+
+    padding: 10px 5px;
+}
+
+
+.es-video-center-content h3 {
+    font-family: 'Science Gothic', sans-serif;
+
+    font-size: clamp(1.7rem, 2.4vw, 2.45rem);
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    color: #ffffff;
+
+    letter-spacing: 0.035em;
+
+    margin: 0 0 20px;
+
+    line-height: 1.35;
+
+    text-shadow:
+        0 0 15px rgba(140, 193, 233, 0.35),
+        0 0 40px rgba(36, 105, 165, 0.22);
+}
+
+
+/* paragraph */
+
+.es-video-center-content p {
+    max-width: 410px;
+
+    margin: 0 auto 26px;
+
+    font-size: 0.98rem;
+
+    color: rgba(235, 242, 250, 0.82);
+
+    line-height: 1.8;
+
+    font-weight: 400;
+}
+
+
+/* =========================================================
+   EARTHSCAPE BRAND BADGE
+========================================================= */
+
+.es-video-center-brand {
+    position: relative;
+
+    font-size: 10px;
+
+    font-weight: 600;
+
+    letter-spacing: 4px;
+
+    text-transform: uppercase;
+
+    color: #a9d8f7;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(20, 80, 110, 0.45),
+            rgba(13, 148, 136, 0.15)
+        );
+
+    border: 1px solid rgba(85, 180, 205, 0.4);
+
+    padding: 10px 23px;
+
+    border-radius: 50px;
+
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    box-shadow:
+        0 8px 25px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+    transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
+}
+
+
+.es-video-center-brand:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 10px 30px rgba(39, 150, 190, 0.22);
+}
+
+
+/* =========================================================
+   LARGE DESKTOP
+========================================================= */
+
+@media (min-width: 1500px) {
+
+    .es-video-showcase-box {
+        max-width: 1720px;
+
+        grid-template-columns:
+            minmax(470px, 1.4fr)
+            minmax(320px, 0.9fr)
+            minmax(470px, 1.4fr);
+
+        gap: 48px;
+
+        padding: 65px 50px;
+    }
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1100px) {
+
+    .es-video-showcase-box {
+        grid-template-columns:
+            minmax(300px, 1.2fr)
+            minmax(260px, 0.9fr)
+            minmax(300px, 1.2fr);
+
+        gap: 25px;
+
+        padding: 45px 28px;
+    }
+
+    .es-video-center-content h3 {
+        font-size: 1.65rem;
+    }
+
+    .es-video-center-content p {
+        font-size: 0.88rem;
+    }
+}
+
+
+/* =========================================================
+   MOBILE / SMALL TABLET
+========================================================= */
+
+@media (max-width: 850px) {
+
+    .es-video-showcase-section {
+        padding: 0 15px 80px;
+    }
+
+    .es-video-showcase-box {
+        grid-template-columns: 1fr;
+
+        gap: 32px;
+
+        padding: 38px 22px;
+
+        min-height: auto;
+    }
+
+    /* Center heading first */
+
+    .es-video-center-content {
+        order: -1;
+    }
+
+    .es-video-center-content h3 {
+        font-size: 1.8rem;
+    }
+
+    .es-video-embed-card {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 550px) {
+
+    .es-video-showcase-box {
+        border-radius: 20px;
+
+        padding: 30px 14px;
+
+        gap: 26px;
+    }
+
+    .es-video-center-content h3 {
+        font-size: 1.45rem;
+
+        line-height: 1.4;
+    }
+
+    .es-video-center-content p {
+        font-size: 0.88rem;
+
+        line-height: 1.7;
+    }
+
+    .es-video-center-brand {
+        font-size: 9px;
+
+        letter-spacing: 2.8px;
+
+        padding: 9px 16px;
+    }
+
+    .es-video-embed-card {
+        border-radius: 14px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="es-realtime-wrapper">
+
+    <!-- Hero Section -->
+    <section class="es-realtime-hero">
+        <div class="es-breadcrumb">
+            <a href="{{ url_for('public.index') }}" style="color: inherit; text-decoration: none;">Home</a> &bull; Realtime Streams
+        </div>
+        <h1><i class="fas fa-broadcast-tower"></i> Realtime Climate</h1>
+        <p>Live conditions from our monitoring network — temperature, humidity, rainfall, wind and air quality as they happen.</p>
+        <div class="es-live-badge">
+            <span class="es-live-dot"></span>
+            Auto-refreshing every 15 seconds &middot; Last update: <span id="lastUpdate">{{ (summary.last_update or '—')[:19].replace('T', ' ') }}</span>
+        </div>
+    </section>
+
+    <!-- Network Summary Section -->
+    <section class="es-stats-section">
+        <div class="es-stats-row">
+            <div class="es-stat-card">
+                <div class="es-stat-icon teal"><i class="fas fa-satellite-dish"></i></div>
+                <h3 id="statStreams">{{ summary.active_streams }}</h3>
+                <p>Active Monitoring Streams</p>
+            </div>
+            <div class="es-stat-card">
+                <div class="es-stat-icon blue"><i class="fas fa-database"></i></div>
+                <h3 id="statReadings">{{ "{:,}".format(summary.total_readings|int) }}</h3>
+                <p>Readings Collected</p>
+            </div>
+            <div class="es-stat-card">
+                <div class="es-stat-icon green"><i class="fas fa-clock"></i></div>
+                <h3>15s</h3>
+                <p>Refresh Interval</p>
+            </div>
+        </div>
+    </section>
+    <!-- Latest Temperature per Station Section -->
+    <div class="es-container">
+        <div class="es-section-header">
+            <div class="es-section-icon"><i class="fas fa-map-marker-alt"></i></div>
+            <h2>Current Conditions by Station</h2>
+            <p>Latest reading received from each active stream</p>
+        </div>
+        {% if stations %}
+        <div class="es-stations-grid" id="stationGrid">
+            {% for st in stations %}
+            <div class="station-card" data-id="{{ st.id }}">
+                <div class="station-header">
+                    <div>
+                        <h3>{{ st.name }}</h3>
+                        <div class="station-location"><i class="fas fa-map-marker-alt" style="color: #8cc1e9;"></i> {{ st.location }}</div>
+                    </div>
+                    <span class="es-badge-teal">{{ st.source_type }}</span>
+                </div>
+                
+                {% if st.has_data %}
+                <div class="station-metrics">
+                    <div class="metric"><i class="fas fa-thermometer-half" style="color:#f87171; width:20px;"></i>
+                         <strong data-metric="temperature">{% set v = st.readings.temperature %}{{ v if v is not none else '—' }}</strong><span class="metric-unit">°C</span></div>
+                    <div class="metric"><i class="fas fa-tint" style="color:#60a5fa; width:20px;"></i> 
+                        <strong data-metric="humidity">{% set v = st.readings.humidity %}{{ v if v is not none else '—' }}</strong><span class="metric-unit">%</span></div>
+                    <div class="metric"><i class="fas fa-cloud-rain" style="color:#60a5fa; width:20px;"></i>
+                         <strong data-metric="rainfall">{% set v = st.readings.rainfall %}{{ v if v is not none else '—' }}</strong><span class="metric-unit">mm</span></div>
+                    <div class="metric"><i class="fas fa-wind" style="color:#34d399; width:20px;"></i> 
+                        <strong data-metric="wind_speed">{% set v = st.readings.wind_speed %}{{ v if v is not none else '—' }}</strong><span class="metric-unit">km/h</span></div>
+                    <div class="metric"><i class="fas fa-gauge-high" style="color:#818cf8; width:20px;"></i>
+                         <strong data-metric="pressure">{% set v = st.readings.pressure %}{{ v if v is not none else '—' }}</strong><span class="metric-unit">hPa</span></div>
+                    <div class="metric"><i class="fas fa-smog" style="color:#fbbf24; width:20px;"></i>
+                        <strong data-metric="air_quality_index">{% set v = st.readings.air_quality_index %}{{ v if v is not none else '—' }}</strong><span class="metric-unit">AQI</span></div>
+                </div>
+                <p style="font-size: 11px; color: rgba(255, 255, 255, 0.5); display: flex; align-items: center; gap: 6px;"><i class="fas fa-clock" style="color: #8cc1e9;"></i> 
+                    <span data-metric-time>{{ st.timestamp|fmtdatetime if st.timestamp else 'N/A' }}</span></p>
+                {% else %}
+                <p style="padding: 30px 0; text-align: center; color: rgba(255, 255, 255, 0.4); font-size: 0.9rem;">No readings received yet.</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align:center; padding: 60px; border: 1px dashed rgba(140, 193, 233, 0.3); border-radius: 16px; color: rgba(255, 255, 255, 0.6); background: rgba(8, 18, 32, 0.5);">
+            <i class="fas fa-satellite-dish" style="font-size: 40px; margin-bottom: 12px; display: block; color: #8cc1e9;"></i>
+            <p>No active monitoring streams right now. Analysts can start real-time streams from the panel — data will appear here automatically.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Climate Video Showcase Section (Left Video, Center Text, Right Video) -->
+    <section class="es-video-showcase-section">
+        <div class="es-video-showcase-box">
+            <!-- Left YouTube Video Embed -->
+            <div class="es-video-embed-card">
+                <iframe src="https://www.youtube.com/embed/ol55Jf01ZDE?si=vE8nwGEb6zp3WUyx" title="Climate Change Documentary" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+
+            <!-- Center Climate Text Content -->
+            <div class="es-video-center-content">
+                <h3>Global Climate Action & Environmental Change</h3>
+                <p>Tracking rapid shifts in temperature, rising sea levels, and ecological impacts worldwide through advanced telemetry and live data analysis.</p>
+                <span class="es-video-center-brand">EarthScape Media</span>
+            </div>
+
+            <!-- Right YouTube Video Embed -->
+            <div class="es-video-embed-card">
+                <iframe src="https://www.youtube.com/embed/wecbVJ4FOHY?si=oBz_HptzNFFEhYyq" title="Global Warming Science" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Realtime Charts Dashboard Section -->
+    {% if stations %}
+    <section class="es-telemetry-section">
+        <div class="es-telemetry-box">
+            
+            <div class="es-telemetry-header">
+                <div>
+                    <h3 class="es-telemetry-title">
+                        <i class="fas fa-chart-bar" style="color: #2dd4bf;"></i> Live Station Telemetry Matrix
+                    </h3>
+                    <p class="es-telemetry-subtitle">Realtime performance metrics updating dynamically across stream nodes</p>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                    <div class="es-control-box">
+                        <label for="realtimeChartType">View Style</label>
+                        <select id="realtimeChartType">
+                            <option value="bar">Modern Bar</option>
+                            <option value="line">Trend Line</option>
+                            <option value="area">Smooth Area</option>
+                            <option value="radar">Cyber Radar</option>
+                            <option value="doughnut">Sci-Fi Doughnut</option>
+                        </select>
+                    </div>
+                    <div class="es-control-box">
+                        <label for="realtimeMetricSelect">Metric</label>
+                        <select id="realtimeMetricSelect">
+                            <option value="temperature">Temperature</option>
+                            <option value="humidity">Humidity</option>
+                            <option value="rainfall">Rainfall</option>
+                            <option value="wind_speed">Wind Speed</option>
+                            <option value="pressure">Pressure</option>
+                            <option value="co2_level">CO2</option>
+                            <option value="air_quality_index">Air Quality Index</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="es-chart-wrapper realtime-chart-grid">
+                <div class="realtime-chart-panel is-selected" data-realtime-panel="temperature"><h4>Temperature (°C)</h4><canvas id="tempChart"
+                     data-initial='{{ stations|tojson|safe if stations is defined else "[]" }}'></canvas></div>
+                <div class="realtime-chart-panel" data-realtime-panel="humidity"><h4>Humidity (%)</h4><canvas id="humidityChart"></canvas></div>
+                <div class="realtime-chart-panel" data-realtime-panel="rainfall"><h4>Rainfall (mm)</h4><canvas id="rainfallChart"></canvas></div>
+                <div class="realtime-chart-panel" data-realtime-panel="wind_speed"><h4>Wind Speed (km/h)</h4><canvas id="windChart"></canvas></div>
+                <div class="realtime-chart-panel" data-realtime-panel="pressure"><h4>Pressure (hPa)</h4><canvas id="pressureChart"></canvas></div>
+                <div class="realtime-chart-panel" data-realtime-panel="co2_level"><h4>CO2 (ppm)</h4><canvas id="co2Chart"></canvas></div>
+                <div class="realtime-chart-panel" data-realtime-panel="air_quality_index"><h4>Air Quality Index</h4><canvas id="aqiChart"></canvas></div>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<style>
+.realtime-chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
+.realtime-chart-panel{min-width:0;height:250px;padding:14px;border:1px solid rgba(140,193,233,.16);border-radius:10px;background:rgba(5,15,28,.72);
+transition:border-color .2s,box-shadow .2s;}.realtime-chart-panel.is-selected{border-color:#2dd4bf;box-shadow:0 0 0 1px rgba(45,212,191,.3),0 12px 30px rgba(0,0,0,.2);}
+.realtime-chart-panel h4{margin:0 0 10px;color:#dbeafe;font-size:13px;font-weight:600;}.realtime-chart-panel canvas{width:100%!important;height:205px!important;}@media(max-width:800px)
+{.realtime-chart-grid{grid-template-columns:1fr;}}
+</style>
+<script data-refresh-url="{{ url_for('public.realtime_climate_data') }}">
+(function() {
+    var script = document.currentScript;
+    var url = script.getAttribute('data-refresh-url');
+    var tempChart = null;
+    var metricCharts = {};
+    var lastStationsData = [];
+
+    if (typeof Chart !== 'undefined') {
+        Chart.defaults.color = 'rgba(255, 255, 255, 0.6)';
+        Chart.defaults.borderColor = 'rgba(140, 193, 233, 0.1)';
+    }
+
+    function fmt(v) { return (v === null || v === undefined) ? '\u2014' : v; }
+
+    function updateCards(stations) {
+        stations.forEach(function(st) {
+            var card = document.querySelector('.station-card[data-id="' + st.id + '"]');
+            if (!card) return;
+            Object.keys(st.readings || {}).forEach(function(key) {
+                var el = card.querySelector('[data-metric="' + key + '"]');
+                if (el) el.textContent = fmt(st.readings[key]);
+            });
+            var t = card.querySelector('[data-metric-time]');
+            if (t && st.timestamp) t.textContent = st.timestamp.slice(0, 19).replace('T', ' ');
+        });
+    }
+
+    function updateSummary(summary) {
+        var lu = document.getElementById('lastUpdate');
+        if (lu && summary.last_update) lu.textContent = summary.last_update.slice(0, 19).replace('T', ' ');
+        var s1 = document.getElementById('statStreams');
+        if (s1) s1.textContent = summary.active_streams || 0;
+        var s2 = document.getElementById('statReadings');
+        if (s2 && summary.total_readings !== undefined) {
+            s2.textContent = Number(summary.total_readings).toLocaleString();
+        }
+    }
+
+    function createGradient(ctx, chartArea, colorStart, colorEnd) {
+        if (!chartArea) return colorStart;
+        var gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+        gradient.addColorStop(0, colorStart);
+        gradient.addColorStop(1, colorEnd);
+        return gradient;
+    }
+
+    function renderChart(stations) {
+        if (typeof Chart === 'undefined') return;
+        lastStationsData = stations;
+        var withData = stations.filter(function(s) { return s.readings; });
+        if (withData.length === 0) return;
+        var labels = withData.map(function(s) { return s.name; });
+
+        var chartTypeSelect = document.getElementById('realtimeChartType');
+        var viewStyle = chartTypeSelect ? chartTypeSelect.value : 'bar';
+        
+        var actualType = viewStyle;
+        var isArea = false;
+
+        if (viewStyle === 'area') {
+            actualType = 'line';
+            isArea = true;
+        } else if (viewStyle === 'bar') {
+            actualType = 'bar';
+        } else if (viewStyle === 'radar') {
+            actualType = 'radar';
+        } else if (viewStyle === 'doughnut') {
+            actualType = 'doughnut';
+        }
+
+        Object.keys(metricCharts).forEach(function(key) { metricCharts[key].destroy(); });
+        metricCharts = {};
+        tempChart = null;
+        var metrics = {
+            temperature: {id:'tempChart', label:'Temperature (°C)', color:'#2dd4bf'},
+            humidity: {id:'humidityChart', label:'Humidity (%)', color:'#60a5fa'},
+            rainfall: {id:'rainfallChart', label:'Rainfall (mm)', color:'#38bdf8'},
+            wind_speed: {id:'windChart', label:'Wind Speed (km/h)', color:'#34d399'},
+            pressure: {id:'pressureChart', label:'Pressure (hPa)', color:'#a78bfa'},
+            co2_level: {id:'co2Chart', label:'CO2 (ppm)', color:'#fbbf24'},
+            air_quality_index: {id:'aqiChart', label:'Air Quality Index', color:'#fb7185'}
+        };
+        var selectedMetric = (document.getElementById('realtimeMetricSelect') || {}).value || 'temperature';
+        document.querySelectorAll('[data-realtime-panel]').forEach(function(panel) { panel.classList.toggle('is-selected',
+         panel.getAttribute('data-realtime-panel') === selectedMetric); });
+        Object.keys(metrics).forEach(function(metric) {
+            var definition = metrics[metric];
+            var ctxElem = document.getElementById(definition.id);
+            if (!ctxElem) return;
+            var values = withData.map(function(s) { return s.readings[metric]; });
+            var ctx = ctxElem.getContext('2d');
+            
+            var datasetConfig = {
+                label: definition.label,
+                data: values,
+                borderColor: definition.color,
+                backgroundColor: function(context) {
+                    const chart = context.chart;
+                    const {ctx, chartArea} = chart;
+                    if (!chartArea) return definition.color;
+                    if (actualType === 'doughnut') {
+                        return [
+                            '#2dd4bf', '#60a5fa', '#38bdf8', '#34d399', '#a78bfa', '#fbbf24', '#fb7185'
+                        ];
+                    }
+                    return createGradient(ctx, chartArea, definition.color + '00', definition.color + '99');
+                },
+                fill: isArea,
+                borderWidth: 2.5,
+                pointRadius: 4,
+                pointBackgroundColor: definition.color,
+                borderRadius: (actualType === 'bar') ? 6 : 0
+            };
+
+            var chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                tension: 0.4,
+                plugins: {
+                    legend: { display: actualType === 'doughnut' ? true : false, position: 'bottom' },
+                    tooltip: {
+                        backgroundColor: 'rgba(8, 18, 32, 0.95)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#8cc1e9',
+                        borderColor: 'rgba(140, 193, 233, 0.3)',
+                        borderWidth: 1,
+                        padding: 12,
+                        boxPadding: 6,
+                        usePointStyle: true
+                    }
+                },
+                scales: actualType === 'doughnut' || actualType === 'radar' ? {} : {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 11 } }
+                    },
+                    y: {
+                        grid: { color: 'rgba(140, 193, 233, 0.08)' },
+                        ticks: { font: { size: 11 } }
+                    }
+                }
+            };
+
+            if (actualType === 'radar') {
+                datasetConfig.backgroundColor = definition.color + '33';
+            }
+
+            var chart = new Chart(ctx, {
+                type: actualType,
+                data: {
+                    labels: labels,
+                    datasets: [datasetConfig]
+                },
+                options: chartOptions
+            });
+            metricCharts[metric] = chart;
+            if (metric === 'temperature') tempChart = chart;
+        });
+    }
+    var chartTypeSelect = document.getElementById('realtimeChartType');
+    var metricSelect = document.getElementById('realtimeMetricSelect');
+    if (chartTypeSelect) {
+        chartTypeSelect.addEventListener('change', function() {
+            if (lastStationsData.length > 0) {
+                renderChart(lastStationsData);
+            }
+        });
+    }
+    if (metricSelect) {
+        metricSelect.addEventListener('change', function() { renderChart(lastStationsData); 
+            var panel = document.querySelector('[data-realtime-panel="' + this.value + '"]'); 
+            if (panel) panel.scrollIntoView({behavior: 'smooth', block: 'nearest'}); });
+    }
+    function refresh() {
+        fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+            updateCards(data.stations || []);
+            updateSummary(data.summary || []);
+            renderChart(data.stations || []);
+        }).catch(function() { /* keep last good values on transient errors */ });
+    }
+
+    var ctxInit = document.getElementById('tempChart');
+    var initial = [];
+    try {
+        initial = JSON.parse(ctxInit && ctxInit.getAttribute('data-initial') ? ctxInit.getAttribute('data-initial') : '[]');
+    } catch (e) { initial = []; }
+    if (initial.length > 0) {
+        renderChart(initial);
+    }
+    setInterval(refresh, 15000);
+})();
+</script>
+{% endblock %}

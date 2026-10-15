@@ -1,0 +1,227 @@
+{% extends "admin/base.html" %}
+{% block page_title %}Feedback Management{% endblock %}
+{% block content %}
+<!-- Feedback Stats -->
+<div class="grid grid-4" style="margin-bottom:20px;">
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-comments"></i></div>
+        <div class="stat-info"><h4>Total Feedback</h4><div class="stat-value">{{ stats.total }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon red"><i class="fas fa-folder-open"></i></div>
+        <div class="stat-info"><h4>Open</h4><div class="stat-value">{{ stats.by_status.get('open', 0) }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-info"><h4>Resolved</h4><div class="stat-value">{{ stats.by_status.get('resolved', 0) }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="fas fa-clock"></i></div>
+        <div class="stat-info"><h4>Avg Response</h4><div class="stat-value">{{ stats.avg_response_hours if stats.avg_response_hours is not none else 'N/A' }}h</div></div>
+    </div>
+</div>
+
+<!-- Search & Filter -->
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-body" style="padding:12px 16px;">
+        <form method="GET" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div style="flex:1;min-width:180px;">
+                <label style="font-size:12px;font-weight:600;color:var(--gray-500);margin-bottom:4px;display:block;">Search</label>
+                <input type="text" name="search" class="form-control form-control-sm" placeholder="Search subject or message..." value="{{ search_query or '' }}">
+            </div>
+            <div>
+                <label style="font-size:12px;font-weight:600;color:var(--gray-500);margin-bottom:4px;display:block;">Status</label>
+                <select name="status" class="form-control form-control-sm">
+                    <option value="">All Status</option>
+                    <option value="open" {{ 'selected' if status_filter == 'open' }}>Open</option>
+                    <option value="in_progress" {{ 'selected' if status_filter == 'in_progress' }}>In Progress</option>
+                    <option value="resolved" {{ 'selected' if status_filter == 'resolved' }}>Resolved</option>
+                    <option value="closed" {{ 'selected' if status_filter == 'closed' }}>Closed</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size:12px;font-weight:600;color:var(--gray-500);margin-bottom:4px;display:block;">Category</label>
+                <select name="category" class="form-control form-control-sm">
+                    <option value="">All Categories</option>
+                    <option value="general" {{ 'selected' if category_filter == 'general' }}>General</option>
+                    <option value="bug" {{ 'selected' if category_filter == 'bug' }}>Bug</option>
+                    <option value="feature" {{ 'selected' if category_filter == 'feature' }}>Feature</option>
+                    <option value="data" {{ 'selected' if category_filter == 'data' }}>Data</option>
+                    <option value="support" {{ 'selected' if category_filter == 'support' }}>Support</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size:12px;font-weight:600;color:var(--gray-500);margin-bottom:4px;display:block;">Priority</label>
+                <select name="priority" class="form-control form-control-sm">
+                    <option value="">All Priorities</option>
+                    <option value="low" {{ 'selected' if priority_filter == 'low' }}>Low</option>
+                    <option value="medium" {{ 'selected' if priority_filter == 'medium' }}>Medium</option>
+                    <option value="high" {{ 'selected' if priority_filter == 'high' }}>High</option>
+                    <option value="urgent" {{ 'selected' if priority_filter == 'urgent' }}>Urgent</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-search"></i> Filter</button>
+            <a href="{{ url_for('admin.feedback') }}" class="btn btn-sm btn-outline"><i class="fas fa-times"></i> Clear</a>
+        </form>
+    </div>
+</div>
+
+{% if feedback_item %}
+<!-- Feedback Detail (shown at top when View is clicked) -->
+<div class="card" style="margin-bottom:16px;" id="feedbackDetail">
+    <div class="card-header">
+        <h3><i class="fas fa-comment-dots"></i> Feedback #{{ feedback_item.id }}: {{ feedback_item.subject }}</h3>
+        <div class="card-actions">
+            <a href="{{ url_for('admin.feedback') }}" class="btn btn-sm btn-outline"><i class="fas fa-times"></i> Close</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="grid grid-2">
+            <div>
+                <h4>Details</h4>
+                <p><strong>From:</strong> {{ feedback_item.full_name or feedback_item.username or 'Guest' }} ({{ feedback_item.email or 'N/A' }})</p>
+                <p><strong>Category:</strong> {{ feedback_item.category|title }}</p>
+                <p><strong>Priority:</strong> {{ feedback_item.priority|title }}</p>
+                <p><strong>Status:</strong>
+                     <span class="badge badge-{{ 'red' if feedback_item.status == 'open' else 'yellow' if feedback_item.status == 'in_progress' else 'green' }}">{{ feedback_item.status|replace('_', ' ')|title }}</span></p>
+                <p><strong>Date:</strong> {{ feedback_item.created_at|fmtdatetime }}</p>
+                {% if feedback_item.attachment_path %}
+                <p><strong>Attachment:</strong> <a href="{{ url_for('admin.download_feedback_attachment', feedback_id=feedback_item.id) }}"><i class="fas fa-download"></i> Download File</a></p>
+                {% endif %}
+                <div style="margin-top:12px;padding:16px;background:var(--gray-50);border-radius:8px;"><h4>Message</h4><p style="white-space:pre-wrap;">{{ feedback_item.message }}</p></div>
+                {% if feedback_item.messages %}
+                <div style="margin-top:16px;"><h4><i class="fas fa-comments"></i> Conversation</h4>
+                    {% for item in feedback_item.messages %}
+                    <div class="admin-feedback-conversation {{ 'is-analyst' if item.sender_role == 'analyst' else 'is-admin' }}">
+                        <strong>{{ 'Analyst' if item.sender_role == 'analyst' else 'Admin' }}</strong>
+                        <p style="margin:4px 0;white-space:pre-wrap;">{{ item.message }}</p><small class="text-muted">{{ item.created_at[:16] }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            <div>
+                <h4>Respond</h4>
+                <form method="POST" action="{{ url_for('admin.respond_feedback', feedback_id=feedback_item.id) }}">
+                    <div class="form-group"><label>Your Response</label><textarea name="response" class="form-control" rows="4" required placeholder="Type your response...">{{ feedback_item.response or '' }}</textarea></div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Send Response</button>
+                </form>
+                <hr style="margin:20px 0;">
+                <h4>Update Status & Assign</h4>
+                <form method="POST" action="{{ url_for('admin.update_feedback_status', feedback_id=feedback_item.id) }}">
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select name="status" class="form-control">
+                            <option value="open" {{ 'selected' if feedback_item.status == 'open' }}>Open</option>
+                            <option value="in_progress" {{ 'selected' if feedback_item.status == 'in_progress' }}>In Progress</option>
+                            <option value="resolved" {{ 'selected' if feedback_item.status == 'resolved' }}>Resolved</option>
+                            <option value="closed" {{ 'selected' if feedback_item.status == 'closed' }}>Closed</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Assign to Admin</label>
+                        <select name="assigned_to" class="form-control">
+                            <option value="">-- Unassigned --</option>
+                            <option value="1" {{ 'selected' if feedback_item.assigned_to == 1 }}>Admin #1</option>
+                            <option value="2" {{ 'selected' if feedback_item.assigned_to == 2 }}>Admin #2</option>
+                            <option value="3" {{ 'selected' if feedback_item.assigned_to == 3 }}>Admin #3</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-outline"><i class="fas fa-save"></i> Update</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Feedback List with Bulk Actions -->
+<div class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-comments"></i> User Feedback ({{ feedback_list|length }})</h3>
+        <div class="card-actions" style="display:flex;gap:8px;align-items:center;">
+            <button type="button" id="selectAllBtn" class="btn btn-sm btn-outline" onclick="toggleSelectAll()"><i class="fas fa-check-square"></i> Select All</button>
+            <form method="POST" action="{{ url_for('admin.bulk_feedback_action') }}" id="bulkForm" style="display:flex;gap:8px;align-items:center;">
+                <select name="action" class="form-control form-control-sm" style="width:auto;">
+                    <option value="">-- Bulk Action --</option>
+                    <option value="resolve">Resolve Selected</option>
+                    <option value="close">Close Selected</option>
+                    <option value="delete">Delete Selected</option>
+                </select>
+                <button type="submit" class="btn btn-sm btn-warning"><i class="fas fa-bolt"></i> Apply</button>
+            </form>
+            <a href="{{ url_for('admin.knowledge_base') }}" class="btn btn-sm btn-outline"><i class="fas fa-book"></i> Knowledge Base</a>
+        </div>
+    </div>
+    <div class="card-body">
+        {% for fb in feedback_list %}
+        <div class="{{ 'feedback-open' if fb.status == 'open' }}" style="padding:16px;border:1px solid var(--gray-200);border-radius:8px;margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div style="display:flex;gap:12px;flex:1;">
+                    <input type="checkbox" name="feedback_ids" value="{{ fb.id }}" form="bulkForm" class="fb-checkbox" style="margin-top:4px;">
+                    <div style="flex:1;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                            <span class="badge badge-{{ 'red' if fb.status == 'open' else 'yellow' if fb.status == 'in_progress' else 'green' }}">{{ fb.status|replace('_', ' ')|title }}</span>
+                            <span class="badge badge-{{ 'teal' if fb.category == 'bug' else 'blue' if fb.category == 'feature' else 'gray' }}">{{ fb.category|title }}</span>
+                            <span class="badge badge-gray">Priority: {{ fb.priority|default('medium')|title }}</span>
+                            {% if fb.assigned_to %}
+                            <span class="badge badge-blue"><i class="fas fa-user-tag"></i> Assigned</span>
+                            {% endif %}
+                            {% if fb.attachment_path %}
+                            <span class="badge badge-gray"><i class="fas fa-paperclip"></i> Attachment</span>
+                            {% endif %}
+                        </div>
+                        <h4 style="margin:0 0 4px;">{{ fb.subject }}</h4>
+                        <p style="margin:0 0 8px;color:var(--gray-500);font-size:14px;">{{ fb.message[:150] }}{% if fb.message|length > 150 %}...{% endif %}</p>
+                        <div style="display:flex;gap:16px;font-size:13px;color:var(--gray-400);">
+                            <span><i class="fas fa-user"></i> {{ fb.full_name or fb.username or ('User #' ~ fb.user_id if fb.user_id else 'Guest') }}</span>
+                            <span><i class="fas fa-envelope"></i> {{ fb.email or 'N/A' }}</span>
+                            <span><i class="fas fa-clock"></i> {{ fb.created_at[:10] if fb.created_at else 'N/A' }}</span>
+                        </div>
+                        {% if fb.response %}
+                        <div style="margin-top:12px;padding:10px;background:var(--gray-50);border-radius:6px;border-left:3px solid var(--primary);">
+                            <strong><i class="fas fa-reply"></i> Response:</strong>
+                            <p style="margin:4px 0 0;font-size:14px;">{{ fb.response }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div style="display:flex;gap:4px;flex-shrink:0;margin-left:16px;">
+                    {% if fb.id is defined %}
+                    <a href="{{ url_for('admin.view_feedback', feedback_id=fb.id) }}" class="btn btn-sm btn-outline" title="View"><i class="fas fa-eye"></i></a>
+                    {% if fb.attachment_path %}
+                    <a href="{{ url_for('admin.download_feedback_attachment', feedback_id=fb.id) }}" class="btn btn-sm btn-outline" title="Download attachment"><i class="fas fa-download"></i></a>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('admin.delete_feedback', feedback_id=fb.id) }}" style="display:inline;" onsubmit="return confirm('Delete?')">
+                        <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state"><i class="fas fa-comments"></i><h4>No feedback found</h4><p>Try adjusting your filters.</p></div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.feedback-open{background:rgba(13,148,136,0.05);}
+.fb-checkbox{width:18px;height:18px;cursor:pointer;}
+.admin-feedback-conversation{margin-top:8px;padding:12px;border-radius:6px;}
+.admin-feedback-conversation.is-analyst{background:var(--gray-50);border-left:3px solid var(--gray-300);}
+.admin-feedback-conversation.is-admin{background:var(--blue-50);border-left:3px solid var(--primary);}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleSelectAll() {
+    var checkboxes = document.querySelectorAll('.fb-checkbox');
+    var allChecked = Array.from(checkboxes).every(function(cb) { return cb.checked; });
+    checkboxes.forEach(function(cb) { cb.checked = !allChecked; });
+}
+</script>
+{% endblock %}

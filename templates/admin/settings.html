@@ -1,0 +1,101 @@
+{% extends "admin/base.html" %}
+{% block page_title %}System Settings{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header"><h3><i class="fas fa-cog"></i> System Configuration</h3></div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('admin.update_settings') }}">
+            <table class="table">
+                <thead><tr><th>Setting</th><th>Value</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    {% for s in settings %}
+                    <tr>
+                        <td><strong style="color:#FFF8E7;">{{ s.setting_key }}</strong><input type="hidden" name="setting_key" value="{{ s.setting_key }}"></td>
+                        <td><input type="text" name="setting_value" value="{{ s.setting_value or '' }}" class="form-control" style="min-width:200px;"></td>
+                        <td><span class="badge badge-gray">{{ s.setting_type or 'string' }}</span></td>
+                        <td><small style="color:#8CC1E9;">{{ s.description or '' }}</small></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center">No settings configured</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if settings %}<button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save All Settings</button>{% endif %}
+        </form>
+    </div>
+</div>
+
+<div class="card" style="margin-top:24px;">
+    <div class="card-header"><h3><i class="fas fa-sliders-h"></i> Alert Thresholds</h3></div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('admin.update_thresholds') }}">
+            <div class="grid grid-4">
+                <div class="modern-form-group">
+                    <label><i class="fas fa-thermometer-half"></i> Max Temperature (°C)</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-temperature-high input-icon"></i>
+                        <input type="number" name="temperature_max" class="form-control" value="{{ thresholds.get('temperature_max', 45) }}" step="0.1">
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-snowflake"></i> Min Temperature (°C)</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-temperature-low input-icon"></i>
+                        <input type="number" name="temperature_min" class="form-control" value="{{ thresholds.get('temperature_min', -30) }}" step="0.1">
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-cloud-rain"></i> Max Rainfall (mm)</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-tint input-icon"></i>
+                        <input type="number" name="rainfall_max" class="form-control" value="{{ thresholds.get('rainfall_max', 200) }}">
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-wind"></i> Max Wind Speed (km/h)</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-wind input-icon"></i>
+                        <input type="number" name="wind_speed_max" class="form-control" value="{{ thresholds.get('wind_speed_max', 120) }}">
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-heartbeat"></i> Max AQI</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-lungs input-icon"></i>
+                        <input type="number" name="air_quality_max" class="form-control" value="{{ thresholds.get('air_quality_max', 300) }}">
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-tint"></i> Max Humidity (%)</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-water input-icon"></i>
+                        <input type="number" name="humidity_max" class="form-control" value="{{ thresholds.get('humidity_max', 95) }}">
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-smog"></i> Max CO2 (ppm)</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-cloud input-icon"></i>
+                        <input type="number" name="co2_max" class="form-control" value="{{ thresholds.get('co2_max', 500) }}">
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top:8px;"><i class="fas fa-save"></i> Save Thresholds</button>
+        </form>
+    </div>
+</div>
+
+<div class="card" style="margin-top:24px;">
+    <div class="card-header"><h3><i class="fas fa-info-circle"></i> System Information</h3></div>
+    <div class="card-body">
+        <div class="grid grid-3">
+            <div><label>Application</label><p>EarthScape Climate System</p></div>
+            <div><label>Version</label><p>1.0.0</p></div>
+            <div><label>Database</label><p>SQLite</p></div>
+            <div><label>Framework</label><p>Flask (Python)</p></div>
+            <div><label>Hadoop Integration</label><p>Simulated HDFS + MapReduce</p></div>
+            <div><label>ML Models</label><p>6 Active Models</p></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,331 @@
+{% extends "admin/base.html" %}
+{% block page_title %}Realtime Processing Monitor{% endblock %}
+{% block content %}
+<div class="grid grid-4">
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-signal"></i></div><div class="stat-info"><h3 id="activeStreams">{{ active_streams }}</h3><p>Active Streams</p></div></div>
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-database"></i></div><div class="stat-info"><h3 id="totalReadings">{{ total_readings }}</h3><p>Total Readings</p></div></div>
+    <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-thermometer-half"></i></div><div class="stat-info"><h3 id="currentTemp">{{ current_temp }}°C</h3><p>Current Temp</p></div></div>
+    <div class="stat-card"><div class="stat-icon red"><i class="fas fa-exclamation"></i></div><div class="stat-info"><h3 id="anomalies">{{ anomalies }}</h3><p>Anomalies Detected</p></div></div>
+</div>
+
+<!-- Batch-Realtime Integration Status (monitoring only) -->
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-header">
+        <h3><i class="fas fa-sync-alt"></i> Batch Integration Status</h3>
+        <button class="btn btn-sm btn-outline" onclick="loadBaselines()"><i class="fas fa-chart-line"></i> Load Baselines</button>
+    </div>
+    <div class="card-body">
+        <div class="grid grid-3">
+            <div style="text-align:center;padding:8px;">
+                <h4 style="font-size:20px;color:var(--primary);" id="syncTotal">{{ sync_stats.total_realtime_readings }}</h4>
+                <p class="text-muted" style="font-size:12px;">Realtime Readings Received</p>
+            </div>
+            <div style="text-align:center;padding:8px;">
+                <h4 style="font-size:20px;color:var(--success);" id="syncedBatch">{{ sync_stats.synced_to_batch }}</h4>
+                <p class="text-muted" style="font-size:12px;">Integrated into Batch Data</p>
+            </div>
+            <div style="text-align:center;padding:8px;">
+                <h4 style="font-size:20px;color:var(--warning);" id="pendingSync">{{ sync_stats.pending_sync }}</h4>
+                <p class="text-muted" style="font-size:12px;">Awaiting Integration</p>
+            </div>
+        </div>
+        <p class="text-muted" style="font-size:12px;margin:8px 0 0;"><i class="fas fa-info-circle"></i> Monitoring only — analysts run the realtime-to-batch integration from the Analyst panel.</p>
+        <div id="baselinesPanel" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-200);">
+            <h4 style="font-size:13px;color:var(--gray-500);margin-bottom:8px;">Alert Thresholds (from Batch Analysis)</h4>
+            <div id="baselinesContent" class="grid grid-4" style="font-size:12px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Live indicator -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+        <span style="width:10px;height:10px;border-radius:50%;background:var(--success);display:inline-block;animation:pulse 2s infinite;"></span>
+        <span style="font-size:13px;color:var(--gray-500);" id="refreshStatus">Live monitoring active</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+        <label style="font-size:13px;display:flex;align-items:center;gap:6px;">
+            <input type="checkbox" id="autoRefresh" checked> Auto-refresh (3s)
+        </label>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <!-- Live Feed + Anomaly Detection -->
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-line"></i> Live Processing Monitor</h3>
+            <div class="card-actions">
+                <select id="streamSelect" class="form-control form-control-sm" style="width:auto;">
+                    {% for stream in streams %}
+                    <option value="{{ stream.id }}">{{ stream.stream_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Metric chart buttons -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;" id="metricBtns">
+                <button type="button" class="btn btn-sm btn-primary metric-btn" data-metric="temperature">Temperature</button>
+                <button type="button" class="btn btn-sm btn-outline metric-btn" data-metric="humidity">Humidity</button>
+                <button type="button" class="btn btn-sm btn-outline metric-btn" data-metric="pressure">Pressure</button>
+                <button type="button" class="btn btn-sm btn-outline metric-btn" data-metric="wind_speed">Wind Speed</button>
+                <button type="button" class="btn btn-sm btn-outline metric-btn" data-metric="co2_level">CO&#8322;</button>
+                <button type="button" class="btn btn-sm btn-outline metric-btn" data-metric="rainfall">Rainfall</button>
+            </div>
+            <canvas id="realtimeChart" height="200"></canvas>
+
+            <!-- Current monitored values -->
+            <div class="grid grid-3" style="margin-top:16px;">
+                <div style="text-align:center;padding:10px;background:var(--gray-50);border-radius:8px;"><div style="font-size:18px;font-weight:700;color:#ef4444;" id="cvTemp">-</div>
+                <div style="font-size:11px;color:var(--gray-500);">Temperature (&deg;C)</div></div>
+                <div style="text-align:center;padding:10px;background:var(--gray-50);border-radius:8px;"><div style="font-size:18px;font-weight:700;color:#3b82f6;" id="cvHumidity">-</div>
+                <div style="font-size:11px;color:var(--gray-500);">Humidity (%)</div></div>
+                <div style="text-align:center;padding:10px;background:var(--gray-50);border-radius:8px;"><div style="font-size:18px;font-weight:700;color:#8b5cf6;" id="cvPressure">-</div>
+                <div style="font-size:11px;color:var(--gray-500);">Pressure (hPa)</div></div>
+                <div style="text-align:center;padding:10px;background:var(--gray-50);border-radius:8px;"><div style="font-size:18px;font-weight:700;color:#0d9488;" id="cvWind">-</div>
+                <div style="font-size:11px;color:var(--gray-500);">Wind (km/h)</div></div>
+                <div style="text-align:center;padding:10px;background:var(--gray-50);border-radius:8px;"><div style="font-size:18px;font-weight:700;color:#f59e0b;" id="cvCo2">-</div>
+                <div style="font-size:11px;color:var(--gray-500);">CO&#8322; (ppm)</div></div>
+                <div style="text-align:center;padding:10px;background:var(--gray-50);border-radius:8px;"><div style="font-size:18px;font-weight:700;color:#06b6d4;" id="cvRain">-</div>
+                <div style="font-size:11px;color:var(--gray-500);">Rainfall (mm)</div></div>
+            </div>
+
+            <div style="margin-top:16px;">
+                <h4 style="font-size:14px;margin-bottom:8px;">Recent Readings</h4>
+                <table class="table" id="readingsTable">
+                    <thead><tr><th>Time</th><th>Temp</th><th>Humidity</th><th>Rainfall</th><th>Wind</th><th>AQI</th></tr></thead>
+                    <tbody id="readingsBody">
+                        {% for r in latest_readings[:10] %}
+                        <tr>
+                            <td><small>{{ r.timestamp|fmtdatetime if r.timestamp else 'N/A' }}</small></td>
+                            <td>{{ r.temperature }}°C</td>
+                            <td>{{ r.humidity }}%</td>
+                            <td>{{ r.rainfall }}mm</td>
+                            <td>{{ r.wind_speed }}km/h</td>
+                            <td>{{ r.air_quality_index }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if not latest_readings %}
+                <p class="text-muted" style="text-align:center;padding:16px;">No readings yet.</p>
+                {% endif %}
+            </div>
+
+            <!-- Anomaly Detection Results -->
+            {% if anomaly_results and anomaly_results.anomalies %}
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-200);">
+                <h4 style="font-size:14px;color:var(--danger);margin-bottom:8px;"><i class="fas fa-exclamation-triangle"></i> Detected Anomalies ({{ anomaly_results.summary.anomalies_found }})</h4>
+                <table class="table">
+                    <thead><tr><th>Time</th><th>Metric</th><th>Value</th><th>Type</th><th>Severity</th></tr></thead>
+                    <tbody>
+                        {% for a in anomaly_results.anomalies[:10] %}
+                        <tr>
+                            <td><small>{{ a.timestamp|fmtdatetime if a.timestamp else 'N/A' }}</small></td>
+                            <td>{{ a.metric }}</td>
+                            <td>{{ a.value }}</td>
+                            <td><span class="badge badge-{{ 'red' if a.severity == 'critical' else 'yellow' if a.severity == 'moderate' else 'gray' }}">{{ a.type }}</span></td>
+                            <td>{{ a.severity }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Streaming Status (read-only monitor) -->
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-broadcast-tower"></i> Streaming Status</h3>
+            <span class="badge badge-{{ 'green' if active_streams > 0 else 'gray' }}">{{ active_streams }} active / {{ streams|length }}</span>
+        </div>
+        <div class="card-body">
+            {% for stream in streams %}
+            <div style="padding:12px 0;border-bottom:1px solid var(--gray-100);">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <h4 style="font-size:15px;">{{ stream.stream_name }}</h4>
+                    <span class="badge badge-{{ 'green' if stream.status == 'active' else 'yellow' }}" id="status-{{ stream.id }}">{{ stream.status|capitalize }}</span>
+                </div>
+                <p style="font-size:13px;color:var(--gray-500);">Source: {{ stream.source_type }} | Location: {{ stream.source_location or 'N/A' }}</p>
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--gray-400);">
+                    <span><i class="fas fa-clock"></i> {{ stream.last_reading[:16] if stream.last_reading else 'No readings yet' }}</span>
+                    <span><i class="fas fa-database"></i> {{ stream.reading_count or 0 }} readings</span>
+                </div>
+                <div style="margin-top:8px;">
+                    <a href="{{ url_for('admin.stream_readings', stream_id=stream.id) }}" class="btn btn-sm btn-outline"><i class="fas fa-eye"></i> Inspect Readings</a>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-muted">No streams configured. Analysts create and manage streams from the Analyst panel.</p>
+            {% endfor %}
+            <p class="text-muted" style="font-size:12px;margin:12px 0 0;"><i class="fas fa-info-circle"></i> Stream creation, pause/resume and deletion are handled in the Analyst panel. This monitor is read-only.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script id="rtData" data-base="{{ url_for('admin.realtime') }}"></script>
+<script>
+// Monitoring system: metric charts, stream selector, auto-refresh
+var METRICS = {
+    temperature: { label: 'Temperature (°C)', color: '#ef4444' },
+    humidity:    { label: 'Humidity (%)',     color: '#3b82f6' },
+    pressure:    { label: 'Pressure (hPa)',   color: '#8b5cf6' },
+    wind_speed:  { label: 'Wind Speed (km/h)', color: '#0d9488' },
+    co2_level:   { label: 'CO₂ (ppm)',        color: '#f59e0b' },
+    rainfall:    { label: 'Rainfall (mm)',    color: '#06b6d4' }
+};
+var currentMetric = 'temperature';
+var refreshInterval = null;
+var chartInstance = null;
+
+function getBaseUrl() { return document.getElementById('rtData').getAttribute('data-base') || ''; }
+function getStreamId() {
+    var sel = document.getElementById('streamSelect');
+    return sel && sel.value ? sel.value : null;
+}
+function fmt(v) { return (v === null || v === undefined) ? '-' : v; }
+
+function initChart() {
+    var ctx = document.getElementById('realtimeChart');
+    if (!ctx) return;
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: METRICS[currentMetric].label, data: [], borderColor: METRICS[currentMetric].color, backgroundColor: METRICS[currentMetric].color + '1a', fill: true, tension: 0.35, pointRadius: 2 }] },
+        options: { responsive: true, animation: { duration: 0 }, plugins: { legend: { display: true } }, scales: { y: { beginAtZero: false } } }
+    });
+}
+
+function refreshData() {
+    var streamId = getStreamId();
+    if (!streamId) return;
+
+    fetch(getBaseUrl() + '/' + streamId + '/data')
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            var data = resp.readings || [];
+            if (!data.length) return;
+
+            var latest = data[0];
+            if (latest.temperature !== null && latest.temperature !== undefined) {
+                document.getElementById('currentTemp').textContent = latest.temperature + '°C';
+            }
+            document.getElementById('cvTemp').textContent = fmt(latest.temperature);
+            document.getElementById('cvHumidity').textContent = fmt(latest.humidity);
+            document.getElementById('cvPressure').textContent = fmt(latest.pressure);
+            document.getElementById('cvWind').textContent = fmt(latest.wind_speed);
+            document.getElementById('cvCo2').textContent = fmt(latest.co2_level);
+            document.getElementById('cvRain').textContent = fmt(latest.rainfall);
+            if (resp.anomalies && resp.anomalies.length > 0) {
+                document.getElementById('anomalies').textContent = resp.anomalies.length;
+            }
+
+            // Update chart (readings arrive newest-first; reverse for chronological display)
+            if (chartInstance) {
+                var series = data.slice(0, 30).reverse();
+                chartInstance.data.labels = series.map(function(d) { return d.timestamp ? d.timestamp.substring(11, 19) : ''; });
+                chartInstance.data.datasets[0].data = series.map(function(d) { return d[currentMetric]; });
+                chartInstance.data.datasets[0].label = METRICS[currentMetric].label;
+                chartInstance.data.datasets[0].borderColor = METRICS[currentMetric].color;
+                chartInstance.data.datasets[0].backgroundColor = METRICS[currentMetric].color + '1a';
+                chartInstance.update();
+            }
+
+            // Update readings table
+            var tbody = document.getElementById('readingsBody');
+            if (tbody) {
+                var html = '';
+                data.slice(0, 10).forEach(function(r) {
+                    html += '<tr><td><small>' + (r.timestamp ? r.timestamp.substring(0, 16).replace('T', ' ') : 'N/A') + '</small></td>';
+                    html += '<td>' + fmt(r.temperature) + '°C</td>';
+                    html += '<td>' + fmt(r.humidity) + '%</td>';
+                    html += '<td>' + fmt(r.rainfall) + 'mm</td>';
+                    html += '<td>' + fmt(r.wind_speed) + 'km/h</td>';
+                    html += '<td>' + fmt(r.air_quality_index) + '</td></tr>';
+                });
+                tbody.innerHTML = html;
+            }
+
+            document.getElementById('refreshStatus').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+        })
+        .catch(function() {
+            document.getElementById('refreshStatus').textContent = 'Refresh failed - retrying...';
+        });
+}
+
+function loadBaselines() {
+    fetch(getBaseUrl() + '/batch-baselines')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) return;
+            var panel = document.getElementById('baselinesPanel');
+            var content = document.getElementById('baselinesContent');
+            panel.style.display = 'block';
+            var html = '';
+            if (data.temperature) {
+                html += '<div style="text-align:center;padding:6px;"><strong>Temp</strong><br>' + data.temperature.mean + '°C<br><small>Alert: ' + data.temperature.alert_low + '–' + data.temperature.alert_high + '</small></div>';
+            }
+            if (data.rainfall) {
+                html += '<div style="text-align:center;padding:6px;"><strong>Rainfall</strong><br>' + data.rainfall.mean + 'mm<br><small>Flood: >' + data.rainfall.flood_threshold + 'mm</small></div>';
+            }
+            if (data.air_quality) {
+                html += '<div style="text-align:center;padding:6px;"><strong>AQI</strong><br>' + data.air_quality.mean + '<br><small>Alert: >' + data.air_quality.alert_threshold + '</small></div>';
+            }
+            if (data.wind_speed) {
+                html += '<div style="text-align:center;padding:6px;"><strong>Wind</strong><br>' + data.wind_speed.mean + ' km/h</div>';
+            }
+            content.innerHTML = html;
+        })
+        .catch(function() {});
+}
+
+function startAutoRefresh() {
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(refreshData, 3000);
+    refreshData();
+}
+
+function stopAutoRefresh() {
+    if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = null; }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    initChart();
+    refreshData();
+
+    // Metric chart switching
+    var btns = document.querySelectorAll('.metric-btn');
+    btns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            currentMetric = btn.getAttribute('data-metric');
+            btns.forEach(function(b) { b.className = 'btn btn-sm btn-outline metric-btn'; });
+            btn.className = 'btn btn-sm btn-primary metric-btn';
+            refreshData();
+        });
+    });
+
+    // Stream selection
+    var streamSel = document.getElementById('streamSelect');
+    if (streamSel) {
+        streamSel.addEventListener('change', function() { refreshData(); });
+    }
+
+    var checkbox = document.getElementById('autoRefresh');
+    if (checkbox) {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) { startAutoRefresh(); }
+            else { stopAutoRefresh(); }
+        });
+    }
+    startAutoRefresh();
+});
+</script>
+<style>
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+</style>
+{% endblock %}

@@ -1,0 +1,186 @@
+{% extends "analyst/base.html" %}
+{% block page_title %}Alert #{{ alert.id }} Details{% endblock %}
+{% block content %}
+<div style="margin-bottom:16px;">
+    <a href="{{ url_for('analyst.alerts') }}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Back to Alerts</a>
+</div>
+
+<div class="card" style="margin-bottom:24px;">
+    <div class="card-header" style="background:{% if alert.severity == 'high' %}#dc2626{% elif alert.severity == 'medium' %}#f59e0b{% else %}#3b82f6{% endif %};color:#fff;">
+        <h3><i class="fas fa-bell"></i> {{ alert.title }}</h3>
+    </div>
+    <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));gap:20px;margin-bottom:20px;">
+            <!-- Severity Badge -->
+            <div style="padding:16px;background:var(--gray-50);border-radius:8px;border-left:4px solid {% if alert.severity == 'high' %}#dc2626{% elif alert.severity == 'medium' %}#f59e0b{% else %}#3b82f6{% endif %};">
+                <small class="text-muted">Severity</small>
+                <div style="margin-top:8px;">
+                    <span class="badge badge-{{ 'red' if alert.severity == 'high' else 'yellow' if alert.severity == 'medium' else 'blue' }}">{{ alert.severity|upper }}</span>
+                </div>
+            </div>
+
+            <!-- Category Badge -->
+            <div style="padding:16px;background:var(--gray-50);border-radius:8px;border-left:4px solid #3b82f6;">
+                <small class="text-muted">Category</small>
+                <div style="margin-top:8px;">
+                    <span class="badge badge-{{ 'green' if alert.category == 'temperature' else 'blue' if alert.category == 'air_quality' else 'orange' if alert.category == 'rainfall' else 'purple' }}">{{ alert.category|replace('_', ' ')|title }}</span>
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div style="padding:16px;background:var(--gray-50);border-radius:8px;border-left:4px solid #6b7280;">
+                <small class="text-muted">Status</small>
+                <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+                    {% if not alert.is_read %}<span class="badge badge-teal">UNREAD</span>{% else %}<span class="badge badge-gray">READ</span>{% endif %}
+                    {% if alert.is_resolved %}<span class="badge badge-green">RESOLVED</span>{% else %}<span class="badge badge-yellow">ACTIVE</span>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert Message -->
+        <div style="padding:16px;background:#f3f4f6;border-radius:8px;margin-bottom:20px;border-left:4px solid #dc2626;">
+            <h4 style="margin:0 0 8px 0;color:#111827;">Alert Message</h4>
+            <p style="margin:0;color:#374151;line-height:1.6;">{{ alert.message }}</p>
+        </div>
+
+        <!-- Threshold Details (if available) -->
+        {% if alert.threshold_value is not none and alert.actual_value is not none %}
+        <div style="margin-bottom:20px;padding:16px;background:var(--gray-50);border-radius:8px;">
+            <h4 style="margin:0 0 12px 0;">Threshold Comparison</h4>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;">
+                <div>
+                    <small class="text-muted">Threshold Value</small>
+                    <div style="margin-top:6px;font-size:18px;font-weight:bold;color:#388e3c;">{{ alert.threshold_value }}</div>
+                </div>
+                <div>
+                    <small class="text-muted">Actual Value</small>
+                    <div style="margin-top:6px;font-size:18px;font-weight:bold;color:#dc2626;">{{ alert.actual_value }}</div>
+                </div>
+                <div>
+                    <small class="text-muted">Difference</small>
+                    <div style="margin-top:6px;font-size:18px;font-weight:bold;color:#f59e0b;">
+                        {% set diff = alert.actual_value - alert.threshold_value %}
+                        {{ diff|abs }} {{ "higher" if diff > 0 else "lower" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Location (if available) -->
+        {% if alert.location %}
+        <div style="margin-bottom:20px;padding:16px;background:var(--gray-50);border-radius:8px;">
+            <small class="text-muted"><i class="fas fa-map-marker-alt"></i> Location</small>
+            <div style="margin-top:8px;font-size:16px;">{{ alert.location }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Timestamps -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;margin-bottom:20px;padding:16px;background:var(--gray-50);border-radius:8px;">
+            <div>
+                <small class="text-muted"><i class="fas fa-calendar-alt"></i> Created</small>
+                <div style="margin-top:6px;font-size:14px;" id="createdTime" data-timestamp="{{ alert.created_at }}"></div>
+            </div>
+            {% if alert.is_resolved %}
+            <div>
+                <small class="text-muted"><i class="fas fa-check-circle"></i> Resolved</small>
+                <div style="margin-top:6px;font-size:14px;" id="resolvedTime" data-timestamp="{{ alert.resolved_at }}"></div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Source Information -->
+        {% if alert.source %}
+        <div style="padding:16px;background:var(--gray-50);border-radius:8px;margin-bottom:20px;">
+            <small class="text-muted">Source</small>
+            <div style="margin-top:8px;font-size:14px;">
+                <span class="badge badge-gray">{{ alert.source|capitalize }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Alert ID -->
+        <div style="padding:12px;background:#f3f4f6;border-radius:8px;font-size:12px;color:#6b7280;">
+            <code>Alert ID: #{{ alert.id }}</code> | <code>Category: {{ alert.category }}</code> | <code>Type: {{ alert.alert_type }}</code>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div style="display:flex;gap:8px;">
+    <a href="{{ url_for('analyst.alerts') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Alerts</a>
+    {% if not alert.is_read %}
+    <form method="POST" action="{{ url_for('analyst.read_alert', alert_id=alert.id) }}" style="display:inline;">
+        <button type="submit" class="btn btn-outline"><i class="fas fa-check"></i> Mark as Read</button>
+    </form>
+    {% endif %}
+    <form method="POST" action="{{ url_for('analyst.delete_alert', alert_id=alert.id) }}" style="display:inline;" onsubmit="return confirm('Delete this alert? This action cannot be undone.');">
+        <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Delete Alert</button>
+    </form>
+</div>
+
+<script>
+function formatRelativeTime(timestamp) {
+    if (!timestamp || timestamp === 'N/A') return timestamp;
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return timestamp;
+    
+    const now = new Date();
+    const diff = now - date;
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    
+    if (seconds < 60) return 'just now';
+    if (minutes < 60) return minutes === 1 ? '1 minute ago' : minutes + ' minutes ago';
+    if (hours < 24) return hours === 1 ? '1 hour ago' : hours + ' hours ago';
+    if (days < 7) return days === 1 ? '1 day ago' : days + ' days ago';
+    
+    return date.toLocaleString();
+}
+
+function formatFullDateTime(timestamp) {
+    if (!timestamp) return 'N/A';
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return timestamp;
+    return date.toLocaleString(undefined, {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+}
+
+function updateTimestamps() {
+    const createdElem = document.getElementById('createdTime');
+    if (createdElem) {
+        const timestamp = createdElem.getAttribute('data-timestamp');
+        createdElem.textContent = formatRelativeTime(timestamp);
+        createdElem.title = formatFullDateTime(timestamp);
+        createdElem.style.cursor = 'help';
+    }
+    
+    const resolvedElem = document.getElementById('resolvedTime');
+    if (resolvedElem) {
+        const timestamp = resolvedElem.getAttribute('data-timestamp');
+        resolvedElem.textContent = formatRelativeTime(timestamp);
+        resolvedElem.title = formatFullDateTime(timestamp);
+        resolvedElem.style.cursor = 'help';
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        updateTimestamps();
+        setInterval(updateTimestamps, 30000);
+    });
+} else {
+    updateTimestamps();
+    setInterval(updateTimestamps, 30000);
+}
+</script>
+{% endblock %}

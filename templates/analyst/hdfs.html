@@ -1,0 +1,350 @@
+{% extends "analyst/base.html" %}
+{% block page_title %}HDFS Storage & Partitions{% endblock %}
+{% block content %}
+<!-- Tab Navigation -->
+<div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid var(--gray-200);">
+    <button class="htab active" onclick="hswitchTab('browser')" id="htab-browser"><i class="fas fa-folder-open" style="margin-right:6px;"></i> File Browser</button>
+    <button class="htab" onclick="hswitchTab('partitions')" id="htab-partitions"><i class="fas fa-layer-group" style="margin-right:6px;"></i> Partitions</button>
+    <button class="htab" onclick="hswitchTab('storage')" id="htab-storage"><i class="fas fa-hdd" style="margin-right:6px;"></i> Storage</button>
+</div>
+
+<!-- ═══ TAB 1: File Browser ═══ -->
+<div id="hpanel-browser">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-folder-open"></i> HDFS Browser</h3>
+            <div class="card-actions">
+                <form method="POST" class="inline-form" style="display:flex;gap:8px;align-items:center;">
+                    <input type="hidden" name="action" value="create_dir">
+                    <input type="hidden" name="path" value="{{ current_path }}">
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-folder input-icon"></i>
+                        <input type="text" name="dir_name" class="form-control form-control-sm" placeholder="New directory name" required>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-plus"></i> Create Dir</button>
+                </form>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Breadcrumb -->
+            <div class="modern-breadcrumb">
+                <a href="?path=/"><i class="fas fa-home"></i> Home</a>
+                {% set parts = current_path.split('/') %}
+                {% set ns = namespace(path='') %}
+                {% for part in parts %}
+                    {% if part %}
+                        {% set ns.path = ns.path + '/' + part %}
+                        <span class="sep">/</span><a href="?path={{ ns.path }}">{{ part }}</a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <!-- Upload Form -->
+            <form method="POST" enctype="multipart/form-data" class="upload-form" style="margin-bottom:16px;">
+                <input type="hidden" name="action" value="upload">
+                <input type="hidden" name="path" value="{{ current_path }}">
+                <div class="modern-upload-row">
+                    <div class="upload-icon-wrap">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <div class="upload-info">
+                        <div class="upload-title">Upload File to HDFS</div>
+                        <div class="upload-hint">Files are split into blocks and replicated across DataNodes</div>
+                    </div>
+                    <div class="modern-file-input">
+                        <div class="modern-file-icon"><i class="fas fa-file"></i></div>
+                        <div class="modern-file-text">
+                            <strong id="hdfsFileName">Choose a file to upload</strong>
+                            <small>Click or drag file here</small>
+                        </div>
+                        <span class="modern-file-badge">Browse</span>
+                        <input type="file" name="file" required onchange="document.getElementById('hdfsFileName').textContent=this.files[0]?.name||'Choose a file to upload'">
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-upload"></i> Upload & Distribute</button>
+                </div>
+            </form>
+
+            <!-- File Table -->
+            <table class="table">
+                <thead><tr><th>Name</th><th>Size</th><th>Blocks</th><th>Modified</th><th>Actions</th></tr></thead>
+                <tbody>
+                    {% if current_path != '/' %}
+                    <tr><td><i class="fas fa-level-up-alt"></i> <a href="?path={{ parent_path }}">..</a></td><td></td><td></td><td></td><td></td></tr>
+                    {% endif %}
+                    {% for item in files %}
+                    <tr>
+                        <td>
+                            {% if item.is_dir %}
+                            <i class="fas fa-folder" style="color:#f59e0b;"></i> <a href="?path={{ item.path }}">{{ item.name }}</a>
+                            {% else %}
+                            <i class="fas fa-file" style="color:var(--primary);"></i> {{ item.name }}
+                            {% endif %}
+                        </td>
+                        <td>{{ format_file_size(item.size) if item.size else '-' }}</td>
+                        <td>
+                            {% if not item.is_dir and item.path in file_blocks %}
+                            <span class="badge badge-blue">{{ file_blocks[item.path] }} blocks</span>
+                            {% elif not item.is_dir %}
+                            <span class="badge badge-gray">0 blocks</span>
+                            {% else %}-{% endif %}
+                        </td>
+                        <td><small>{{ item.modified[:16] if item.modified else '-' }}</small></td>
+                        <td>
+                            {% if not item.is_dir %}
+                            <a href="?action=view&path={{ item.path }}" class="btn btn-sm btn-outline" title="View"
+                             style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border-radius:8px;font-size:13px;"><i class="fas fa-eye"></i></a>
+                            <button class="btn btn-sm btn-outline file-info-btn" data-path="{{ item.path }}" 
+                            title="Block Info" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border-radius:8px;font-size:13px;"><i class="fas fa-cubes"></i></button>
+                            <a href="?action=download&path={{ item.path }}" class="btn btn-sm btn-outline"
+                             title="Download" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border-radius:8px;font-size:13px;"><i class="fas fa-download"></i></a>
+                            {% endif %}
+                            <form method="POST" style="display:inline;" class="hdfs-del-form" data-name="{{ item.name }}"><input type="hidden" name="action" value="delete"><input type="hidden" name="path" value="{{ item.path }}">
+                                <button type="submit" class="btn btn-sm btn-danger" title="Delete" 
+                                style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border-radius:8px;font-size:13px;"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center">Empty directory</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- File View -->
+            {% if view_content is defined and view_content %}
+            <div class="card" style="margin-top:16px;">
+                <div class="card-header"><h4><i class="fas fa-file-alt"></i> {{ view_file }}</h4></div>
+                <div class="card-body"><pre style="max-height:400px;overflow:auto;background:var(--gray-50);padding:12px;border-radius:8px;font-size:13px;">{{ view_content[:5000] }}</pre></div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- File Info Result -->
+    <div id="fileInfoPanel" style="display:none;" class="card">
+        <div class="card-header"><h3><i class="fas fa-cubes"></i> Block Details</h3>
+            <button class="btn btn-sm btn-outline" onclick="document.getElementById('fileInfoPanel').style.display='none'"><i class="fas fa-times"></i></button></div>
+        <div class="card-body"><div id="fileInfoContent">Loading...</div></div>
+    </div>
+</div>
+
+<!-- ═══ TAB 2: Partitions ═══ -->
+<div id="hpanel-partitions" style="display:none;">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-layer-group"></i> Data Partitions</h3>
+            <div class="card-actions">
+                <button class="btn btn-sm btn-primary" onclick="document.getElementById('newPartModal').style.display='flex'"><i class="fas fa-plus"></i> New Partition</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <p style="color:var(--gray-500);margin-bottom:16px;">Data is organized by type (satellite, weather, sensor), year, and region for optimized retrieval.</p>
+            <table class="table">
+                <thead><tr><th>Partition</th><th>Type</th><th>Value</th><th>HDFS Path</th><th>Records</th><th>Size</th><th>Status</th><th>Browse</th></tr></thead>
+                <tbody>
+                    {% for p in partitions|default([]) %}
+                    <tr>
+                        <td><strong>{{ p.partition_key }}</strong></td>
+                        <td><span class="badge badge-blue">{{ p.partition_type }}</span></td>
+                        <td>{{ p.partition_value }}</td>
+                        <td><code>{{ p.hdfs_path }}</code></td>
+                        <td>{{ p.record_count }}</td>
+                        <td>{{ format_file_size(p.total_size) }}</td>
+                        <td><span class="badge badge-{{ 'green' if p.status == 'active' else 'gray' }}">{{ p.status }}</span></td>
+                        <td><a href="?path={{ p.hdfs_path }}" class="btn btn-sm btn-outline" 
+                            style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border-radius:8px;font-size:13px;"><i class="fas fa-folder-open"></i></a></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" class="text-center">No partitions defined</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Partition Directory Structure -->
+    <div class="card" style="margin-top:16px;">
+        <div class="card-header"><h3><i class="fas fa-sitemap"></i> Partition Directory Structure</h3></div>
+        <div class="card-body">
+            <pre style="background:var(--gray-50);padding:16px;border-radius:8px;font-size:13px;line-height:1.8;">
+/climate/
+├── satellite/          <span style="color:var(--gray-500);"># Satellite imagery data</span>
+│   ├── 2024/           <span style="color:var(--gray-500);"># Year partition</span>
+│   │   ├── north/      <span style="color:var(--gray-500);"># Region partition</span>
+│   │   └── south/
+│   └── 2025/
+├── weather/            <span style="color:var(--gray-500);"># Weather station records</span>
+│   ├── 2024/
+│   └── 2025/
+├── sensor/             <span style="color:var(--gray-500);"># Environmental sensor data</span>
+│   ├── 2024/
+│   └── 2025/
+└── archive/            <span style="color:var(--gray-500);"># Cold storage tier</span>
+            </pre>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ TAB 3: Storage ═══ -->
+<div id="hpanel-storage" style="display:none;">
+    <div class="grid grid-3" style="margin-bottom:20px;">
+        <div class="stat-card">
+            <div class="stat-icon teal"><i class="fas fa-server"></i></div>
+            <div class="stat-info"><h3>{{ health.alive_nodes }}/{{ health.total_nodes }}</h3><p>DataNodes Alive</p></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="fas fa-hdd"></i></div>
+            <div class="stat-info"><h3>{{ storage_used }}</h3><p>Storage Used</p></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="fas fa-database"></i></div>
+            <div class="stat-info"><h3>{{ storage_total }}</h3><p>Total Capacity</p></div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-chart-pie"></i> Storage Usage</h3></div>
+        <div class="card-body">
+            <div class="progress" style="height:24px;margin-bottom:12px;">
+                <div class="progress-bar" data-progress="{{ usage_percent }}">{{ usage_percent }}%</div>
+            </div>
+            <p>{{ storage_used }} of {{ storage_total }} used ({{ usage_percent }}%)</p>
+            <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div><span style="color:var(--gray-500);">Replication Factor:</span> <strong>3</strong> (each block stored on 3 DataNodes)</div>
+                <div><span style="color:var(--gray-500);">Block Size:</span> <strong>128 MB</strong></div>
+                <div><span style="color:var(--gray-500);">Compression:</span> <strong>GZip</strong> (default for stored files)</div>
+                <div><span style="color:var(--gray-500);">Integrity:</span> <strong>CRC32 checksums</strong> per block</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Partition Modal -->
+<div id="newPartModal" 
+style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);">
+    <div class="card" style="width:420px;margin:20px;box-shadow:0 24px 48px rgba(0,0,0,0.8);">
+        <div class="card-header">
+            <h3><i class="fas fa-layer-group"></i> Create Partition</h3>
+            <button class="btn btn-sm btn-outline" onclick="document.getElementById('newPartModal').style.display='none'"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                <input type="hidden" name="action" value="create_partition">
+                <div class="modern-form-group">
+                    <label><i class="fas fa-folder"></i> Partition Type</label>
+                    <div class="modern-input-wrap analyst-select-wrapper">
+                        <i class="fas fa-tag input-icon"></i>
+                        <select name="partition_type" class="form-control">
+                            <option value="type">Data Type</option>
+                            <option value="year">Year</option>
+                            <option value="region">Region</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-pen"></i> Partition Value</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-font input-icon"></i>
+                        <input type="text" name="partition_value" class="form-control" placeholder="e.g. satellite, 2024, north-america" required>
+                    </div>
+                    <small style="color:var(--gray-500);display:block;margin-top:6px;">Creates /climate/{value}/ directory</small>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px;"><i class="fas fa-layer-group"></i> Create Partition</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="hdfs-cfg" style="display:none;" data-file-info-url="{{ url_for('analyst.hdfs_file_info') }}"></div>
+
+<style>
+.htab {
+    padding: 10px 18px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--gray-500);
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+}
+
+.htab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.htab:hover {
+    color: var(--primary);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function hswitchTab(name) {
+    var panels = ['browser','partitions','storage'];
+    for (var i = 0; i < panels.length; i++) {
+        var p = document.getElementById('hpanel-' + panels[i]);
+        var t = document.getElementById('htab-' + panels[i]);
+        if (p) p.style.display = panels[i] === name ? 'block' : 'none';
+        if (t) { if (panels[i] === name) t.classList.add('active'); else t.classList.remove('active'); }
+    }
+}
+
+function showFileInfo(path) {
+    var cfg = document.getElementById('hdfs-cfg');
+    var el = document.getElementById('fileInfoPanel');
+    var content = document.getElementById('fileInfoContent');
+    el.style.display = 'block';
+    content.innerHTML = 'Loading...';
+    fetch(cfg.getAttribute('data-file-info-url') + '?path=' + encodeURIComponent(path))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) { content.innerHTML = '<p>' + data.error + '</p>'; return; }
+            var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">';
+            html += '<div><strong>Path:</strong> ' + data.path + '</div>';
+            html += '<div><strong>Size:</strong> ' + (data.size || 0) + ' bytes</div>';
+            html += '<div><strong>Checksum (MD5):</strong> <code>' + (data.checksum || 'N/A') + '</code></div>';
+            html += '<div><strong>Compression:</strong> ' + (data.compression || 'none') + '</div>';
+            html += '<div><strong>Replication Factor:</strong> ' + (data.replication_factor || 3) + '</div>';
+            html += '<div><strong>Block Size:</strong> ' + ((data.block_size || 134217728) / 1048576) + ' MB</div>';
+            html += '</div>';
+            if (data.blocks && data.blocks.length > 0) {
+                html += '<h4>Block Locations (' + data.blocks.length + ' replicas)</h4>';
+                html += '<table class="table"><thead><tr><th>Block ID</th><th>Index</th><th>DataNode</th><th>Rack</th><th>Size</th><th>CRC32</th><th>Status</th></tr></thead><tbody>';
+                for (var i = 0; i < data.blocks.length; i++) {
+                    var b = data.blocks[i];
+                    var st = b.node_status === 'alive' ? '<span class="badge badge-green">OK</span>' : '<span class="badge badge-red">Down</span>';
+                    html += '<tr><td><code>' + b.block_id + '</code></td><td>'
+                         + b.block_index + '</td><td>' + (b.node_name || 'N/A') + '</td><td>' + (b.rack || '-') + '</td><td>' + b.length_bytes + '</td><td><code>' + (b.checksum || '-') + '</code></td><td>' + st + '</td></tr>';
+                }
+                html += '</tbody></table>';
+            } else {
+                html += '<p style="color:var(--gray-500);">No block data available.</p>';
+            }
+            content.innerHTML = html;
+        })
+        .catch(function(e) { content.innerHTML = '<p>Error: ' + e.message + '</p>'; });
+}
+
+document.querySelectorAll('[data-progress]').forEach(function(el){el.style.width=el.getAttribute('data-progress')+'%';});
+
+document.addEventListener('DOMContentLoaded', function() {
+    /* Block-info buttons */
+    var fibs = document.querySelectorAll('.file-info-btn');
+    for (var i = 0; i < fibs.length; i++) {
+        fibs[i].addEventListener('click', function() { showFileInfo(this.getAttribute('data-path')); });
+    }
+    /* Delete confirmation forms */
+    var dforms = document.querySelectorAll('.hdfs-del-form');
+    for (var i = 0; i < dforms.length; i++) {
+        dforms[i].addEventListener('submit', function(e) {
+            if (!confirm('Delete ' + this.getAttribute('data-name') + '?')) e.preventDefault();
+        });
+    }
+});
+</script>
+{% endblock %}

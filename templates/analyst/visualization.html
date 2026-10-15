@@ -1,0 +1,319 @@
+{% extends "analyst/base.html" %}
+{% block page_title %}Climate Visualization{% endblock %}
+{% block content %}
+<div class="viz-shell mb-3">
+    <div class="viz-header">
+        <div class="viz-header-title"><i class="fas fa-chart-pie"></i> Climate Data Visualization</div>
+    </div>
+
+    <div class="viz-content">
+        <div class="viz-insight-toolbar">
+            <div class="viz-inline-label">Quick insight views</div>
+            <div class="viz-preset-group">
+                <button type="button" class="viz-preset active" data-preset="baseline">Baseline View</button>
+                <button type="button" class="viz-preset" data-preset="heat">Heat Risk</button>
+                <button type="button" class="viz-preset" data-preset="rain">Rainfall Watch</button>
+                <button type="button" class="viz-preset" data-preset="air">Air Quality</button>
+                <button type="button" class="viz-preset" data-preset="climate">Climate Balance</button>
+            </div>
+        </div>
+
+        <div class="viz-metrics">
+            <div class="viz-metric">
+                <span>Primary trend</span>
+                <strong id="summarySignal">--</strong>
+            </div>
+            <div class="viz-metric">
+                <span>Current value</span>
+                <strong id="summaryCurrent">--</strong>
+            </div>
+            <div class="viz-metric">
+                <span>Peak period</span>
+                <strong id="summaryPeak">--</strong>
+            </div>
+            <div class="viz-metric">
+                <span>Change</span>
+                <strong id="summaryDelta">--</strong>
+            </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <form method="GET" id="vizFilterForm">
+            <div class="modern-filter-bar">
+                <div class="modern-filter-group">
+                    <label><i class="fas fa-map-marker-alt"></i> Location</label>
+                    <div class="modern-input-wrap analyst-select-wrapper">
+                        <i class="fas fa-globe-asia input-icon"></i>
+                        <select name="region" class="form-control">
+                            <option value="">All Locations</option>
+                            {% for r in regions %}<option value="{{ r }}" {{ 'selected' if selected_region == r }}>{{ r }}</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modern-filter-group">
+                    <label><i class="fas fa-calendar-alt"></i> Date Range</label>
+                    <div class="modern-date-range">
+                        <div class="modern-input-wrap" style="flex:1;">
+                            <i class="fas fa-calendar input-icon"></i>
+                            <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+                        </div>
+                        <span class="date-sep">—</span>
+                        <div class="modern-input-wrap" style="flex:1;">
+                            <i class="fas fa-calendar input-icon"></i>
+                            <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="modern-filter-group">
+                    <label><i class="fas fa-layer-group"></i> Group By</label>
+                    <div class="modern-input-wrap analyst-select-wrapper">
+                        <i class="fas fa-clock input-icon"></i>
+                        <select name="group_by" class="form-control">
+                            <option value="month" {{ 'selected' if group_by == 'month' }}>Monthly</option>
+                            <option value="year" {{ 'selected' if group_by == 'year' }}>Yearly</option>
+                            <option value="day" {{ 'selected' if group_by == 'day' }}>Daily</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="filter-actions-row">
+                <div class="actions-left">
+                    <span class="modern-section-label" style="margin-bottom:0;">Variables</span>
+                    <div class="modern-variable-selector">
+                        <label class="var-chip">
+                            <input type="checkbox" name="variables" value="temperature" {{ 'checked' if 'temperature' in selected_vars }}>
+                            <i class="fas fa-thermometer-half chip-icon"></i>
+                            <span>Temperature</span>
+                            <span class="chip-check"><i class="fas fa-check"></i></span>
+                        </label>
+                        <label class="var-chip">
+                            <input type="checkbox" name="variables" value="rainfall" {{ 'checked' if 'rainfall' in selected_vars }}>
+                            <i class="fas fa-cloud-rain chip-icon"></i>
+                            <span>Rainfall</span>
+                            <span class="chip-check"><i class="fas fa-check"></i></span>
+                        </label>
+                        <label class="var-chip">
+                            <input type="checkbox" name="variables" value="humidity" {{ 'checked' if 'humidity' in selected_vars }}>
+                            <i class="fas fa-tint chip-icon"></i>
+                            <span>Humidity</span>
+                            <span class="chip-check"><i class="fas fa-check"></i></span>
+                        </label>
+                        <label class="var-chip">
+                            <input type="checkbox" name="variables" value="wind_speed" {{ 'checked' if 'wind_speed' in selected_vars }}>
+                            <i class="fas fa-wind chip-icon"></i>
+                            <span>Wind Speed</span>
+                            <span class="chip-check"><i class="fas fa-check"></i></span>
+                        </label>
+                        <label class="var-chip">
+                            <input type="checkbox" name="variables" value="pressure" {{ 'checked' if 'pressure' in selected_vars }}>
+                            <i class="fas fa-compress-arrows-alt chip-icon"></i>
+                            <span>Pressure</span>
+                            <span class="chip-check"><i class="fas fa-check"></i></span>
+                        </label>
+                        <label class="var-chip">
+                            <input type="checkbox" name="variables" value="co2_level" {{ 'checked' if 'co2_level' in selected_vars }}>
+                            <i class="fas fa-smog chip-icon"></i>
+                            <span>CO₂</span>
+                            <span class="chip-check"><i class="fas fa-check"></i></span>
+                        </label>
+                        <label class="var-chip">
+                            <input type="checkbox" name="variables" value="air_quality_index" {{ 'checked' if 'air_quality_index' in selected_vars }}>
+                            <i class="fas fa-heartbeat chip-icon"></i>
+                            <span>Air Quality</span>
+                            <span class="chip-check"><i class="fas fa-check"></i></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="actions-right">
+                    <button type="submit" class="btn-apply-modern">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Apply Filters</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="grid grid-4 mb-3">
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-database"></i></div><div class="stat-info"><h3>{{ summary.total_records }}</h3><p>Total Records</p></div></div>
+    <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-thermometer-half"></i></div><div class="stat-info"><h3>{{ '%.2f'|format(summary.avg_temp|float) }}°C</h3><p>Avg Temperature</p></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-tint"></i></div><div class="stat-info"><h3>{{ '%.2f'|format(summary.avg_rainfall|float) }}mm</h3><p>Avg Rainfall</p></div></div>
+    <div class="stat-card"><div class="stat-icon red"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-info"><h3>{{ anomalies_count }}</h3><p>Anomalies Detected</p></div></div>
+</div>
+
+<!-- Main Charts -->
+<div class="grid grid-2 mb-3">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-line"></i> Climate Trends</h3>
+            <button class="btn btn-sm btn-outline" onclick="EarthScapeCharts.export('trendChart','climate-trends.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body" style="height:350px;"><canvas id="trendChart"></canvas></div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-bar"></i> Bar Comparison</h3>
+            <button class="btn btn-sm btn-outline" onclick="EarthScapeCharts.export('barChart','climate-bar.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body" style="height:350px;"><canvas id="barChart"></canvas></div>
+    </div>
+</div>
+
+<div class="grid grid-2 mb-3">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-area"></i> Area Chart</h3>
+            <button class="btn btn-sm btn-outline" onclick="EarthScapeCharts.export('areaChart','climate-area.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body" style="height:300px;"><canvas id="areaChart"></canvas></div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-bullseye"></i> Radar Analysis</h3>
+            <button class="btn btn-sm btn-outline" onclick="EarthScapeCharts.export('radarChart','climate-radar.png')"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="card-body" style="height:300px;"><canvas id="radarChart"></canvas></div>
+    </div>
+</div>
+
+<script id="vizData" type="application/json" data-labels="{{ labels }}" data-series="{{ series }}"></script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}?v=20260813"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var el = document.getElementById('vizData');
+    var labels = JSON.parse(el.getAttribute('data-labels') || '[]');
+    var series = JSON.parse(el.getAttribute('data-series') || '{}');
+
+    if (labels.length === 0) {
+        ['trendChart', 'barChart', 'areaChart', 'radarChart'].forEach(function(id) {
+            EarthScapeCharts.message(id, 'No data available for the selected filters');
+        });
+        return;
+    }
+
+    var datasets = [];
+    var varKeys = Object.keys(series);
+    varKeys.forEach(function(key) {
+        datasets.push({
+            label: EarthScapeCharts.getLabel(key),
+            data: series[key],
+            borderColor: EarthScapeCharts.getColor(key),
+            backgroundColor: EarthScapeCharts.getColor(key) + '1a',
+            fill: false,
+            tension: 0.4,
+            pointRadius: 3
+        });
+    });
+
+    // Line trend chart
+    EarthScapeCharts.create('trendChart', EarthScapeCharts.timeSeries(labels, datasets));
+
+    // Bar chart
+    var barDs = datasets.map(function(d) {
+        return { label: d.label, data: d.data, backgroundColor: d.borderColor + '99', borderColor: d.borderColor, borderWidth: 1, borderRadius: 6 };
+    });
+    EarthScapeCharts.create('barChart', EarthScapeCharts.bar(labels, barDs));
+
+    // Area chart (filled)
+    var areaDs = datasets.map(function(d) {
+        return { label: d.label, data: d.data, borderColor: d.borderColor, backgroundColor: d.borderColor + '33', fill: true, tension: 0.4 };
+    });
+    EarthScapeCharts.create('areaChart', EarthScapeCharts.timeSeries(labels, areaDs));
+
+    // Radar chart
+    if (varKeys.length >= 2) {
+        EarthScapeCharts.create('radarChart', EarthScapeCharts.radar(labels, datasets));
+    }
+
+    function formatMetric(value, key) {
+        if (value === null || value === undefined || isNaN(value)) return 'N/A';
+        if (key === 'temperature') return value.toFixed(1) + '°C';
+        if (key === 'rainfall') return value.toFixed(1) + ' mm';
+        if (key === 'humidity') return value.toFixed(0) + '%';
+        if (key === 'co2_level') return value.toFixed(0) + ' ppm';
+        if (key === 'air_quality_index') return value.toFixed(0) + ' AQI';
+        if (key === 'wind_speed') return value.toFixed(1) + ' km/h';
+        if (key === 'pressure') return value.toFixed(0) + ' hPa';
+        return value.toFixed(1);
+    }
+
+    function updateInsightSummary() {
+        var activeKey = varKeys.find(function(key) {
+            return ['temperature', 'rainfall', 'humidity', 'co2_level', 'air_quality_index'].indexOf(key) !== -1;
+        }) || varKeys[0];
+
+        var values = (series[activeKey] || []).map(function(value) {
+            var num = Number(value);
+            return isNaN(num) ? null : num;
+        }).filter(function(value) { return value !== null; });
+
+        var summarySignal = document.getElementById('summarySignal');
+        var summaryCurrent = document.getElementById('summaryCurrent');
+        var summaryPeak = document.getElementById('summaryPeak');
+        var summaryDelta = document.getElementById('summaryDelta');
+
+        if (!summarySignal || values.length === 0) {
+            if (summarySignal) summarySignal.textContent = 'No signal';
+            if (summaryCurrent) summaryCurrent.textContent = 'N/A';
+            if (summaryPeak) summaryPeak.textContent = 'N/A';
+            if (summaryDelta) summaryDelta.textContent = 'N/A';
+            return;
+        }
+
+        var first = values[0];
+        var last = values[values.length - 1];
+        var peak = Math.max.apply(null, values);
+        var peakIndex = values.indexOf(peak);
+        var delta = last - first;
+        var signal = delta > 0 ? 'Rising trend' : delta < 0 ? 'Declining trend' : 'Stable pattern';
+
+        summarySignal.textContent = signal;
+        summaryCurrent.textContent = formatMetric(last, activeKey);
+        summaryPeak.textContent = labels[peakIndex] || 'Peak period';
+        summaryDelta.textContent = (delta >= 0 ? '+' : '') + delta.toFixed(1) + ' vs start';
+    }
+
+    function attachPresetHandlers() {
+        var form = document.getElementById('vizFilterForm');
+        if (!form) return;
+
+        var presetConfig = {
+            baseline: { variables: ['temperature', 'rainfall'], group_by: 'month' },
+            heat: { variables: ['temperature', 'humidity'], group_by: 'month' },
+            rain: { variables: ['rainfall', 'humidity'], group_by: 'month' },
+            air: { variables: ['co2_level', 'air_quality_index'], group_by: 'month' },
+            climate: { variables: ['temperature', 'rainfall', 'humidity', 'co2_level'], group_by: 'month' }
+        };
+
+        document.querySelectorAll('.viz-preset').forEach(function(button) {
+            button.addEventListener('click', function() {
+                var preset = presetConfig[button.dataset.preset] || presetConfig.baseline;
+                document.querySelectorAll('.viz-preset').forEach(function(item) {
+                    item.classList.toggle('active', item === button);
+                });
+
+                form.querySelectorAll('input[name="variables"]').forEach(function(input) {
+                    input.checked = !!preset.variables.find(function(value) { return value === input.value; });
+                });
+
+                var groupSelect = form.querySelector('select[name="group_by"]');
+                if (groupSelect && preset.group_by) {
+                    groupSelect.value = preset.group_by;
+                }
+
+                form.submit();
+            });
+        });
+    }
+
+    updateInsightSummary();
+    attachPresetHandlers();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,270 @@
+{% extends "analyst/base.html" %}
+{% import "mapreduce_result.html" as mr %}
+{# Defensive: never crash if a stale backend omits stats #}
+{% set stats = stats|default({'total': 0, 'running': 0, 'pending': 0, 'completed': 0, 'failed': 0, 'cancelled': 0, 'avg_execution_time': 0, 'input_records': 0, 'output_records': 0}) %}
+{% block page_title %}MapReduce Processing{% endblock %}
+{% block content %}
+{# ── My processing stats ────────────────────────────────────────────── #}
+<div class="grid grid-4 mb-3">
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-cogs"></i></div>
+    <div class="stat-info"><h4>My Jobs</h4><div class="stat-value">{{ stats.total }}</div></div></div>
+    <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-spinner"></i></div>
+    <div class="stat-info"><h4>Running</h4><div class="stat-value">{{ stats.running + stats.pending }}</div></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+    <div class="stat-info"><h4>Completed</h4><div class="stat-value">{{ stats.completed }}</div></div></div>
+    <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-database"></i></div>
+    <div class="stat-info"><h4>Records Processed</h4><div class="stat-value">{{ "{:,}".format(stats.input_records) }}</div></div></div>
+</div>
+
+<div class="alert alert-{{ 'success' if hadoop_status and hadoop_status.backend == 'Real Hadoop/YARN' else 'warning' }}" style="margin-bottom:16px;">
+    <i class="fas fa-server"></i>
+    Processing backend: <strong>{{ hadoop_status.backend if hadoop_status else 'Unknown' }}</strong>.
+    {% if hadoop_status and hadoop_status.backend == 'Real Hadoop/YARN' %}Distributed cluster connected.{% else %}Local fallback is active; configure Hadoop/YARN for distributed execution.{% endif %}
+</div>
+
+{# ── My jobs ────────────────────────────────────────────────────────── #}
+<div class="card" id="mrWorkspace"
+     data-status-url="{{ url_for('analyst.job_status', job_id=0) }}">
+    <div class="card-header">
+        <h3><i class="fas fa-cogs"></i> My MapReduce Jobs</h3>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <span id="liveIndicator" style="display:none;font-size:12px;color:var(--green, #16a34a);font-weight:600;">
+                <i class="fas fa-circle" style="font-size:8px;animation:blink 1.2s infinite;"></i> PROCESSING</span>
+            <button class="btn btn-primary" onclick="openJobModal()"><i class="fas fa-plus"></i> New Job</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <table class="table">
+            <thead><tr><th>Job ID</th><th>Name</th><th>Type</th><th>Data Source</th><th>Status</th><th>Progress</th><th>Records In/Out</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for job in jobs %}
+                <tr data-job-row="{{ job.id }}" data-status="{{ job.status }}"
+                    data-job-name="{{ job.job_name }}" data-job-type="{{ job.job_type }}"
+                    data-input-path="{{ job.input_path }}" data-output-path="{{ job.output_path }}"
+                    data-num-reducers="{{ job.num_reducers }}" data-use-hadoop="{{ job.use_hadoop|default(false) }}" 
+                    data-mapper-code="{{ job.mapper_code|e }}" data-reducer-code="{{ job.reducer_code|e }}">
+                    <td>#{{ job.id }}</td>
+                    <td><strong>{{ job.job_name }}</strong><br><small class="text-muted">{{ job.created_at|fmtdatetime if job.created_at else '' }}</small></td>
+                    <td><span class="badge badge-teal">{{ job.job_type|replace('_', ' ')|title }}</span></td>
+                    <td><small><code>{{ job.input_path }}</code></small></td>
+                    <td data-cell="status">{{ mr.badge_status(job.status) }}</td>
+                    <td style="min-width:140px;">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div style="flex:1;background:var(--gray-100);border-radius:4px;height:8px;overflow:hidden;">
+                                <div data-progress="{{ job.progress or 0 }}" style="background:var(--primary);height:100%;border-radius:4px;transition:width 0.3s;"></div></div>
+                            <span data-cell="pct" style="font-size:13px;">{{ job.progress or 0 }}%</span>
+                        </div>
+                    </td>
+                    <td data-cell="records"><small>{{ job.input_records or 0 }} / {{ job.output_records or 0 }}</small></td>
+                    <td>
+                        <div style="display:flex;gap:4px;">
+                            <a href="{{ url_for('analyst.mapreduce', action='view', id=job.id) }}" class="btn btn-sm btn-outline" title="View results"><i class="fas fa-eye"></i></a>
+                            {% if job.status in ['pending', 'running'] %}
+                            <form method="POST" action="{{ url_for('analyst.cancel_job', job_id=job.id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-danger" title="Cancel job"><i class="fas fa-stop"></i></button>
+                            </form>
+                            {% else %}
+                            <button type="button" class="btn btn-sm btn-outline" title="Edit &amp; re-run" onclick="openEditModal(this.closest('tr'))"><i class="fas fa-edit"></i></button>
+                            <form method="POST" action="{{ url_for('analyst.delete_job', job_id=job.id) }}" style="display:inline;" class="del-job-form">
+                                <button type="submit" class="btn btn-sm btn-danger" title="Delete job"><i class="fas fa-trash"></i></button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-center">You haven't submitted any MapReduce jobs yet — click <strong>New Job</strong> to process climate data.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p class="text-muted" style="font-size:12px;margin-bottom:0;"><i class="fas fa-info-circle"></i>
+             Jobs run a Map phase (key-value extraction per region) and a Reduce phase (aggregation) over real climate collections. Progress updates live while processing.</p>
+    </div>
+</div>
+{# ── Selected job detail & results ──────────────────────────────────── #}
+{% if job %}
+<div class="card" style="margin-top:24px;">
+    <div class="card-header">
+        <h3><i class="fas fa-chart-bar"></i> Job #{{ job.id }}: {{ job.job_name }} — Results</h3>
+        <a href="{{ url_for('analyst.mapreduce') }}" class="btn btn-sm btn-outline"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+    <div class="card-body">
+        <div class="grid grid-3">
+            <div><label>Job Type</label><p><span class="badge badge-teal">{{ job.job_type|replace('_', ' ')|title }}</span></p></div>
+            <div><label>Status</label><p>{{ mr.badge_status(job.status) }}</p></div>
+            <div><label>Progress</label><p>{{ job.progress or 0 }}%</p></div>
+            <div><label>Input Path (HDFS)</label><p><code>{{ job.input_path }}</code></p></div>
+            <div><label>Output Path (HDFS)</label><p><code>{{ job.output_path }}</code></p></div>
+            <div><label>Reducers</label><p>{{ job.num_reducers }}</p></div>
+            <div><label>Created</label><p>{{ job.created_at[:16] if job.created_at else 'N/A' }}</p></div>
+            <div><label>Input Records</label><p>{{ "{:,}".format(job.input_records or 0) }}</p></div>
+            <div><label>Output Records</label><p>{{ "{:,}".format(job.output_records or 0) }}</p></div>
+        </div>
+        {% if job.error_message %}
+        <div style="margin-top:16px;padding:16px;background:var(--red-50, #fef2f2);border-radius:8px;border:1px solid var(--red-200, #fecaca);">
+            <h4 style="color:var(--danger);">Error</h4>
+            <pre style="font-size:13px;color:var(--danger);">{{ job.error_message }}</pre>
+        </div>
+        {% endif %}
+        <div style="margin-top:16px;padding:16px;background:var(--gray-50);border-radius:8px;">
+            <h4 style="margin-bottom:12px;">Analysis Output</h4>
+            {{ mr.render(job) }}
+        </div>
+    </div>
+</div>
+{% endif %}
+{# ── New job modal ──────────────────────────────────────────────────── #}
+<div class="modal-overlay" id="newJobModal">
+    <div class="modal">
+        <div class="modal-header"><h3><i class="fas fa-plus"></i> Process Climate Data</h3><span class="modal-close" onclick="closeJobModal()">&times;</span></div>
+        <form method="POST">
+            <input type="hidden" name="action" value="submit_job">
+            <div class="modal-body">
+                <div class="form-group"><label>Job Name *</label><input type="text" name="job_name" class="form-control" required placeholder="e.g. Rainfall stats by region"></div>
+                <div class="form-group"><label>Analysis Type</label><select name="job_type" class="form-control" required>
+                    {% for jt in job_types %}
+                    <option value="{{ jt.value }}">{{ jt.label }}</option>
+                    {% endfor %}
+                </select></div>
+                <div class="form-group"><label>Data Source</label><select name="input_path" class="form-control">
+                    <option value="/climate_data">Batch Climate Data (climate_data collection)</option>
+                    <option value="/realtime">Real-time Streams (live readings)</option>
+                    <option value="/combined">Combined (Batch + Real-time)</option>
+                    <option value="/satellite">Satellite Data</option>
+                    <option value="/weather">Weather Station Data</option>
+                </select></div>
+                <div class="form-group"><label>Output Path (HDFS)</label><input type="text" name="output_path" class="form-control" value="/output/" required></div>
+                <div class="form-group"><label>Number of Reducers</label><input type="number" name="num_reducers" class="form-control" value="2" min="1" max="10"></div>
+                <div class="form-group"><label><input type="checkbox" name="use_hadoop" value="1"> Run via local streaming adapter (simulates Hadoop)</label></div>
+                <div class="form-group"><label>Mapper script path (optional)</label>
+                    <input type="text" name="mapper_code" class="form-control" placeholder="e.g. hadoop/mapreduce/mapper.py"></div>
+                <div class="form-group"><label>Reducer script path (optional)</label>
+                    <input type="text" name="reducer_code" class="form-control" placeholder="e.g. hadoop/mapreduce/reducer.py"></div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeJobModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-play"></i> Submit &amp; Process</button></div>
+        </form>
+    </div>
+</div>
+
+{# ── Edit job modal ──────────────────────────────────────────────────── #}
+<div class="modal-overlay" id="editJobModal">
+    <div class="modal">
+        <div class="modal-header"><h3><i class="fas fa-edit"></i> Edit &amp; Re-run Job</h3><span class="modal-close" onclick="closeEditModal()">&times;</span></div>
+        <form method="POST">
+            <input type="hidden" name="action" value="edit_job">
+            <input type="hidden" name="job_id" id="editJobId">
+            <div class="modal-body">
+                <div class="form-group"><label>Job Name *</label>
+                    <input type="text" name="job_name" id="editJobName" class="form-control" required placeholder="e.g. Rainfall stats by region"></div>
+                <div class="form-group"><label>Analysis Type</label><select name="job_type" id="editJobType" class="form-control" required>
+                    {% for jt in job_types %}
+                    <option value="{{ jt.value }}">{{ jt.label }}</option>
+                    {% endfor %}
+                </select></div>
+                <div class="form-group"><label>Data Source</label><select name="input_path" id="editInputPath" class="form-control">
+                    <option value="/climate_data">Batch Climate Data (climate_data collection)</option>
+                    <option value="/realtime">Real-time Streams (live readings)</option>
+                    <option value="/combined">Combined (Batch + Real-time)</option>
+                    <option value="/satellite">Satellite Data</option>
+                    <option value="/weather">Weather Station Data</option>
+                </select></div>
+                <div class="form-group"><label>Output Path (HDFS)</label><input type="text" name="output_path" id="editOutputPath" class="form-control" value="/output/" required></div>
+                <div class="form-group"><label>Number of Reducers</label><input type="number" name="num_reducers" id="editNumReducers" class="form-control" value="2" min="1" max="10"></div>
+                <div class="form-group"><label><input type="checkbox" name="use_hadoop" id="editUseHadoop" value="1"> Run via local streaming adapter (simulates Hadoop)</label></div>
+                <div class="form-group"><label>Mapper script path (optional)</label>
+                    <input type="text" name="mapper_code" id="editMapperCode" class="form-control" placeholder="e.g. hadoop/mapreduce/mapper.py"></div>
+                <div class="form-group"><label>Reducer script path (optional)</label>
+                    <input type="text" name="reducer_code" id="editReducerCode" class="form-control" placeholder="e.g. hadoop/mapreduce/reducer.py"></div>
+                <p class="text-muted" style="font-size:12px;margin-bottom:0;"><i class="fas fa-info-circle"></i> 
+                    Saving re-submits the job with the new parameters; the analysis panel refreshes once processing completes.</p>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-sync-alt"></i> Save &amp; Re-run</button></div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<style>@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.25;}}</style>
+<script>
+function openJobModal() {
+    var m = document.getElementById('newJobModal');
+    if (m) { m.classList.add('active'); }
+}
+function closeJobModal() {
+    var m = document.getElementById('newJobModal');
+    if (m) { m.classList.remove('active'); }
+}
+function openEditModal(row) {
+    if (!row) { return; }
+    document.getElementById('editJobId').value = row.getAttribute('data-job-row') || '';
+    document.getElementById('editJobName').value = row.getAttribute('data-job-name') || '';
+    document.getElementById('editJobType').value = row.getAttribute('data-job-type') || 'temperature_analysis';
+    document.getElementById('editInputPath').value = row.getAttribute('data-input-path') || '/climate_data';
+    document.getElementById('editOutputPath').value = row.getAttribute('data-output-path') || '/output/';
+    document.getElementById('editNumReducers').value = row.getAttribute('data-num-reducers') || 2;
+    // Populate streaming / mapper fields
+    var useH = row.getAttribute('data-use-hadoop');
+    var useCheckbox = document.getElementById('editUseHadoop');
+    if (useCheckbox) { useCheckbox.checked = (useH === 'True' || useH === 'true' || useH === '1' || useH === 'yes'); }
+    var mapperField = document.getElementById('editMapperCode');
+    if (mapperField) { mapperField.value = row.getAttribute('data-mapper-code') || ''; }
+    var reducerField = document.getElementById('editReducerCode');
+    if (reducerField) { reducerField.value = row.getAttribute('data-reducer-code') || ''; }
+    var m = document.getElementById('editJobModal');
+    if (m) { m.classList.add('active'); }
+}
+function closeEditModal() {
+    var m = document.getElementById('editJobModal');
+    if (m) { m.classList.remove('active'); }
+}
+(function () {
+    // Confirm before deleting a finished job record
+    document.querySelectorAll('.del-job-form').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            if (!confirm('Delete this MapReduce job and its results?')) { e.preventDefault(); }
+        });
+    });
+
+    // Initial progress bar widths
+    document.querySelectorAll('[data-progress]').forEach(function (el) {
+        el.style.width = el.getAttribute('data-progress') + '%';
+    });
+
+    // Live progress: poll the status endpoint for running jobs and update
+    // rows in place; reload when a job reaches a final state so results show.
+    var ws = document.getElementById('mrWorkspace');
+    if (!ws) { return; }
+    var statusUrlTpl = ws.getAttribute('data-status-url') || '';
+    var runningRows = Array.prototype.slice.call(document.querySelectorAll('tr[data-status="running"], tr[data-status="pending"]'));
+    if (runningRows.length === 0) { return; }
+
+    var indicator = document.getElementById('liveIndicator');
+    if (indicator) { indicator.style.display = 'inline-flex'; }
+
+    var finished = false;
+    setInterval(function () {
+        runningRows.forEach(function (row) {
+            var jobId = row.getAttribute('data-job-row');
+            fetch(statusUrlTpl.replace('/0', '/' + jobId), { headers: { 'Accept': 'application/json' } })
+                .then(function (res) { return res.ok ? res.json() : null; })
+                .then(function (data) {
+                    if (!data || data.error) { return; }
+                    var bar = row.querySelector('[data-progress]');
+                    var pct = row.querySelector('[data-cell="pct"]');
+                    var rec = row.querySelector('[data-cell="records"]');
+                    if (bar) { bar.style.width = (data.progress || 0) + '%'; bar.setAttribute('data-progress', data.progress || 0); }
+                    if (pct) { pct.textContent = (data.progress || 0) + '%'; }
+                    if (rec) { rec.innerHTML = '<small>' + (data.input_records || 0) + ' / ' + (data.output_records || 0) + '</small>'; }
+                    if (data.status !== 'running' && data.status !== 'pending' && !finished) {
+                        finished = true;
+                        setTimeout(function () { window.location.reload(); }, 800);
+                    }
+                })
+                .catch(function () { /* transient network error - retry next tick */ });
+        });
+    }, 4000);
+})();
+</script>
+{% endblock %}

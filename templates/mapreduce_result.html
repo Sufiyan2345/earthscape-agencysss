@@ -1,0 +1,157 @@
+{# Renders the typed result of a MapReduce job as readable tables.
+   Usage: {% import 'mapreduce_result.html' as mr %}{{ mr.render(job) }} #}
+
+{% macro badge_status(status) -%}
+<span class="badge badge-{{ 'green' if status == 'completed' else 'yellow' if status in ['running', 'pending'] else 'red' if status == 'failed' else 'gray' }}">{{ status|capitalize }}</span>
+{%- endmacro %}
+
+{% macro render(job) %}
+{% set r = job.parsed_result %}
+{% if not r %}
+    {% if job.status == 'failed' %}
+    <p class="text-muted">Job failed before producing results.</p>
+    {% elif job.status in ['running', 'pending'] %}
+    <p class="text-muted">Job is still processing — results will appear when it completes.</p>
+    {% elif job.status == 'cancelled' %}
+    <p class="text-muted">Job was cancelled before producing results.</p>
+    {% else %}
+    <p class="text-muted">No result payload stored for this job.</p>
+    {% endif %}
+{% elif r.message %}
+    <div class="alert alert-info" style="margin:0;">{{ r.message }}</div>
+{% elif r.aggregations %}
+    <p style="margin-bottom:10px;"><strong>{{ r.total_groups }}</strong> region/metric groups aggregated from <strong>{{ r.summary.total_records_processed if r.summary else r.aggregations|length }}</strong> records across <strong>{{ r.summary.unique_regions if r.summary else '?' }}</strong> regions.</p>
+    {% if r.data_quality %}<p class="text-muted" style="font-size:12px;">Data quality: {{ r.data_quality.records_with_usable_values }} usable records, {{ r.data_quality.invalid_records }} invalid records, {{ r.data_quality.missing_values }} missing values skipped.</p>{% endif %}
+    <div style="overflow-x:auto;">
+    <table class="table">
+        <thead><tr><th>Region</th><th>Metric</th><th>Count</th><th>Mean</th><th>Median</th><th>Min</th><th>Max</th><th>Std Dev</th></tr></thead>
+        <tbody>
+        {% for a in r.aggregations[:80] %}
+        <tr>
+            <td><strong>{{ a.region }}</strong></td>
+            <td>{{ a.metric|replace('_', ' ')|title }}</td>
+            <td>{{ a.count }}</td>
+            <td>{{ a.mean }}</td>
+            <td>{{ a.median }}</td>
+            <td>{{ a.min }}</td>
+            <td>{{ a.max }}</td>
+            <td>{{ a.std_dev }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% if r.aggregations|length > 80 %}<p class="text-muted">Showing first 80 of {{ r.aggregations|length }} groups.</p>{% endif %}
+{% elif r.anomalies is defined %}
+    <p style="margin-bottom:10px;"><strong>{{ r.total_anomalies }}</strong> anomalies detected (Z-score threshold 2.0) — most common metric: <strong>{{ r.most_common_type }}</strong>, anomaly rate <strong>{{ r.summary.anomaly_rate if r.summary else 0 }}%</strong>.</p>
+    {% if r.total_anomalies == 0 %}
+    <div class="alert alert-success" style="margin:0;">No anomalies detected — all values fall within normal statistical range.</div>
+    {% else %}
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        {% for sev, cnt in r.severity_distribution.items() %}
+        {% if cnt > 0 %}<span class="badge badge-{{ 'red' if sev == 'critical' else 'yellow' if sev in ['severe', 'moderate'] else 'gray' }}">{{ sev|capitalize }}: {{ cnt }}</span>{% endif %}
+        {% endfor %}
+    </div>
+    <div style="overflow-x:auto;">
+    <table class="table">
+        <thead><tr><th>Group</th><th>Date</th><th>Value</th><th>Mean</th><th>Z-Score</th><th>Severity</th></tr></thead>
+        <tbody>
+        {% for a in r.anomalies[:50] %}
+        <tr>
+            <td><strong>{{ a.key|replace('_', ' ')|title }}</strong></td>
+            <td><small>{{ a.date|fmtdatetime if a.date else 'N/A' }}</small></td>
+            <td>{{ a.value }}</td>
+            <td>{{ a.mean }}</td>
+            <td>{{ a.z_score }}</td>
+            <td><span class="badge badge-{{ 'red' if a.severity == 'critical' else 'yellow' if a.severity in ['severe', 'moderate'] else 'gray' }}">{{ a.severity|capitalize }}</span></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% if r.total_anomalies > 50 %}<p class="text-muted">Showing top 50 of {{ r.total_anomalies }} anomalies by z-score.</p>{% endif %}
+    {% endif %}
+{% elif r.correlations %}
+    <p style="margin-bottom:10px;"><strong>{{ r.significant_pairs }}</strong> of <strong>{{ r.total_pairs }}</strong> variable pairs are statistically significant (p &lt; 0.05).</p>
+    <div style="overflow-x:auto;">
+    <table class="table">
+        <thead><tr><th>Region</th><th>Pair</th><th>Correlation (r)</th><th>P-Value</th><th>Strength</th><th>Direction</th><th>Samples</th><th>Significant</th></tr></thead>
+        <tbody>
+        {% for c in r.correlations[:60] %}
+        <tr>
+            <td><strong>{{ c.region }}</strong></td>
+            <td>{{ c.pair|replace('_', ' ↔ ') }}</td>
+            <td><strong>{{ '%.3f'|format(c.correlation) }}</strong></td>
+            <td>{{ '%.4f'|format(c.p_value) }}</td>
+            <td>{{ c.strength|capitalize }}</td>
+            <td>{{ c.direction|capitalize }}</td>
+            <td>{{ c.sample_size }}</td>
+            <td>{% if c.significant %}<span class="badge badge-green">Yes</span>{% else %}<span class="badge badge-gray">No</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+{% elif r.trends is defined %}
+    {% if r.total_trends == 0 %}
+    <div class="alert alert-info" style="margin:0;">Not enough data points per region to compute trends (need ≥ 3 per series).</div>
+    {% else %}
+    <p style="margin-bottom:10px;"><strong>{{ r.total_trends }}</strong> trend series computed via linear regression (OLS).</p>
+    <div style="overflow-x:auto;">
+    <table class="table">
+        <thead><tr><th>Region</th><th>Metric</th><th>Direction</th><th>Slope/Record</th><th>R²</th><th>Mean</th><th>Min</th><th>Max</th><th>Points</th><th>Period</th></tr></thead>
+        <tbody>
+        {% for t in r.trends[:60] %}
+        <tr>
+            <td><strong>{{ t.region }}</strong></td>
+            <td>{{ t.metric|replace('_', ' ')|title }}</td>
+            <td><span class="badge badge-{{ 'red' if t.trend_direction == 'increasing' else 'teal' if t.trend_direction == 'decreasing' else 'gray' }}">{{ t.trend_direction|capitalize }}</span></td>
+            <td>{{ t.slope_per_record }}</td>
+            <td>{{ t.r_squared }}</td>
+            <td>{{ t.mean_value }}</td>
+            <td>{{ t.min_value }}</td>
+            <td>{{ t.max_value }}</td>
+            <td>{{ t.data_points }}</td>
+            <td><small>{{ t.first_date[:10] if t.first_date else '?' }} → {{ t.last_date[:10] if t.last_date else '?' }}</small></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% endif %}
+{% elif r.patterns is defined %}
+    {% if r.total_patterns == 0 %}
+    <div class="alert alert-info" style="margin:0;">Not enough data points per region to detect patterns (need ≥ 4 per series).</div>
+    {% else %}
+    <p style="margin-bottom:10px;"><strong>{{ r.total_patterns }}</strong> patterns detected — types found: <strong>{{ r.summary.pattern_types_found|join(', ') if r.summary else '' }}</strong>.</p>
+    <div style="overflow-x:auto;">
+    <table class="table">
+        <thead><tr><th>Region</th><th>Metric</th><th>Pattern</th><th>Seasonal Strength</th><th>Trend</th><th>Slope</th><th>Outliers</th><th>Mean</th><th>Points</th></tr></thead>
+        <tbody>
+        {% for p in r.patterns[:60] %}
+        <tr>
+            <td><strong>{{ p.region }}</strong></td>
+            <td>{{ p.metric|replace('_', ' ')|title }}</td>
+            <td><span class="badge badge-{{ 'teal' if p.pattern_type == 'seasonal' else 'yellow' if p.pattern_type == 'trend' else 'red' if p.pattern_type == 'extreme_events' else 'gray' }}">{{ p.pattern_type|replace('_', ' ')|title }}</span></td>
+            <td>{{ p.seasonal_strength }}</td>
+            <td>{{ p.trend_direction|capitalize }}</td>
+            <td>{{ p.trend_slope }}</td>
+            <td>{{ p.outlier_count }}</td>
+            <td>{{ p.mean }}</td>
+            <td>{{ p.data_points }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% endif %}
+{% else %}
+    <pre style="font-size:13px;max-height:400px;overflow:auto;">{{ r|tojson(indent=2) }}</pre>
+{% endif %}
+{% if r and not r.message %}
+<details style="margin-top:12px;">
+    <summary style="cursor:pointer;font-size:13px;color:var(--gray-500, #6b7280);">View raw JSON output</summary>
+    <pre style="font-size:12px;max-height:350px;overflow:auto;background:var(--gray-50);padding:12px;border-radius:8px;margin-top:8px;">{{ r|tojson(indent=2) }}</pre>
+</details>
+{% endif %}
+{% endmacro %}

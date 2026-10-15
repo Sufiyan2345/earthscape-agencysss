@@ -1,0 +1,384 @@
+{% extends "analyst/base.html" %}
+{% block page_title %}Satellite Imagery{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+    <h2 style="font-size:22px;font-weight:700;margin:0;"><i class="fas fa-satellite"></i> Satellite Imagery Ingestion</h2>
+    <div class="card-actions"><span class="badge badge-gray">Analyst role: ingest &amp; analyze imagery</span></div>
+</div>
+
+<!-- Stats -->
+<div class="grid grid-4" style="margin-bottom:24px;">
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-images"></i></div><div class="stat-info"><h3>{{ stats.total }}</h3><p>Images Ingested</p></div></div>
+    <div class="stat-card"><div class="stat-icon teal"><i class="fas fa-temperature-high"></i></div><div class="stat-info">
+        <h3>{{ stats.avg_lst }}&deg;C</h3><p>Avg LST Estimate</p></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-cloud"></i></div><div class="stat-info"><h3>{{ stats.avg_cloud }}%</h3><p>Avg Cloud Cover</p></div></div>
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-leaf"></i></div><div class="stat-info"><h3>{{ stats.avg_vegetation }}</h3><p>Avg Vegetation Index</p></div></div>
+</div>
+
+<!-- Upload form -->
+<div class="card" style="margin-bottom:24px;">
+    <div class="card-header"><h3><i class="fas fa-upload"></i> Ingest Satellite Imagery</h3></div>
+    <div class="card-body">
+        <p style="margin-bottom:18px;color:var(--gray-500);font-size:14px;">
+            Upload a satellite or aerial image (PNG, JPG, TIFF, BMP, GIF, WEBP). The system decodes it,
+            extracts spectral climate indicators (land surface temperature, cloud cover, vegetation,
+            water and snow fractions, albedo) and feeds a derived climate record into the approval workflow.
+        </p>
+        <form method="POST" action="{{ url_for('analyst.upload_satellite_imagery') }}" enctype="multipart/form-data">
+            {% if csrf_token is defined %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+
+            <label class="img-dropzone" id="imgDrop">
+                <input type="file" name="image_file" id="imageryInput" accept=".png,.jpg,.jpeg,.jfif,.jpe,.tif,.tiff,.bmp,.gif,.webp" required
+                       onchange="document.getElementById('imageryFileName').textContent=this.files[0]?this.files[0].name:'No file selected'; this.parentNode.classList.add('has-file');">
+                <div class="img-dropzone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                <div class="img-dropzone-title">Click or drag an image to upload</div>
+                <div class="img-dropzone-sub">PNG, JPG, TIFF, BMP, GIF, WEBP</div>
+                <div class="img-dropzone-file" id="imageryFileName">No file selected</div>
+            </label>
+
+            <div class="grid grid-2" style="margin-top:20px;">
+                <div class="modern-form-group">
+                    <label><i class="fas fa-satellite"></i> Platform / Source</label>
+                    <div class="modern-input-wrap analyst-select-wrapper">
+                        <i class="fas fa-microchip input-icon"></i>
+                        <select name="platform" class="form-control">
+                            {% for p in platforms %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-calendar"></i> Capture Date</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-calendar-day input-icon"></i>
+                        <input type="date" name="capture_date" class="form-control">
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-latitude"></i> Latitude</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-location-crosshairs input-icon"></i>
+                        <input type="number" step="any" name="latitude" class="form-control" placeholder="e.g. 28.6139">
+                    </div>
+                </div>
+                <div class="modern-form-group">
+                    <label><i class="fas fa-longitude"></i> Longitude</label>
+                    <div class="modern-input-wrap">
+                        <i class="fas fa-location-crosshairs input-icon"></i>
+                        <input type="number" step="any" name="longitude" class="form-control" placeholder="e.g. 77.2090">
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-satellite"></i> Ingest Imagery</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Gallery -->
+<div class="card">
+    <div class="card-header"><h3><i class="fas fa-images"></i> Ingested Images ({{ images|length }})</h3></div>
+    <div class="card-body">
+        {% if images %}
+        <div class="img-gallery">
+            {% for img in images %}
+            <div class="gallery-item">
+                <div class="gallery-card">
+                    <a href="{{ url_for('analyst.satellite_imagery_file', image_id=img.id) }}" target="_blank" class="gallery-thumb">
+                        <img src="{{ url_for('analyst.satellite_imagery_file', image_id=img.id) }}"
+                             alt="{{ img.filename }}"
+                             onerror="this.onerror=null;this.style.display='none';this.parentElement.
+                             insertAdjacentHTML('beforeend','<div class=\'gallery-thumb-missing\'><i class=\'fas fa-exclamation-triangle\'></i><span>File missing on server</span></div>');"
+                             loading="lazy">
+                        <span class="gallery-platform">{{ img.platform }}</span>
+                    </a>
+                    <div class="gallery-body">
+                        <div class="gallery-title" title="{{ img.filename }}">{{ img.filename }}</div>
+                        <div class="gallery-meta">
+                            {{ img.metrics.width }}x{{ img.metrics.height }} &middot; {{ img.metrics.format }} &middot; {{ img.capture_date }}<br>
+                            by {{ img.uploaded_by_name }}
+                        </div>
+                        <div class="gallery-badges">
+                            <span class="badge badge-secondary">LST {{ img.metrics.land_surface_temp|num }}&deg;C</span>
+                            <span class="badge badge-secondary">Cloud {{ img.metrics.cloud_cover|num }}%</span>
+                            <span class="badge badge-secondary">Veg {{ img.metrics.vegetation_index|num }}</span>
+                            <span class="badge badge-secondary">Water {{ img.metrics.water_cover|num }}%</span>
+                        </div>
+                        <div class="gallery-actions">
+                            <button type="button" class="btn btn-sm btn-primary" onclick="toggleEdit('{{ img.id }}', true)">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <form method="POST" action="{{ url_for('analyst.delete_satellite_imagery', image_id=img.id) }}" style="display:inline;flex:1;" 
+                            onsubmit="return confirm('Delete image #{{ img.id }} ({{ img.filename }})? This cannot be undone.');">
+                                {% if csrf_token is defined %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+                                <button type="submit" class="btn btn-sm btn-danger" style="width:100%;"><i class="fas fa-trash"></i> Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% for img in images %}
+        <!-- Edit Modal (top-level so it centers correctly) -->
+        <div class="modal-overlay edit-modal" id="editModal-{{ img.id }}">
+            <div class="modal img-edit-modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-edit"></i> Edit Image #{{ img.id }}</h3>
+                    <button type="button" class="profile-modal-close" onclick="toggleEdit('{{ img.id }}', false)" aria-label="Close">&times;</button>
+                </div>
+                <form method="POST" action="{{ url_for('analyst.update_satellite_imagery', image_id=img.id) }}" enctype="multipart/form-data">
+                    {% if csrf_token is defined %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+                    <div class="modal-body">
+                        <div class="img-edit-preview">
+                            <img src="{{ url_for('analyst.satellite_imagery_file', image_id=img.id) }}" alt="{{ img.filename }}" id="preview-{{ img.id }}">
+                        </div>
+
+                        <div class="modern-form-group" style="margin-top:16px;">
+                            <label><i class="fas fa-image"></i> Replace Image (optional)</label>
+                            <div class="modern-file-input">
+                                <div class="modern-file-icon"><i class="fas fa-sync-alt"></i></div>
+                                <div class="modern-file-text">
+                                    <strong id="replaceName-{{ img.id }}">Keep current image</strong>
+                                    <small>PNG, JPG, TIFF, BMP, GIF, WEBP</small>
+                                </div>
+                                <span class="modern-file-badge">Choose</span>
+                                <input type="file" name="image_file" id="replaceInput-{{ img.id }}" data-imgid="{{ img.id }}" accept=".png,.jpg,.jpeg,.jfif,.jpe,.tif,.tiff,.bmp,.gif,.webp"
+                                       onchange="handleReplace(this)">
+                            </div>
+                            <small class="text-muted" style="font-size:12px;">Leave empty to keep the current image.</small>
+                        </div>
+
+                        <div class="grid grid-2">
+                            <div class="modern-form-group">
+                                <label><i class="fas fa-microchip"></i> Platform / Source</label>
+                                <div class="modern-input-wrap analyst-select-wrapper">
+                                    <i class="fas fa-microchip input-icon"></i>
+                                    <select name="platform" class="form-control">
+                                        {% for p in platforms %}<option value="{{ p }}" {% if p == img.platform %}selected{% endif %}>{{ p }}</option>{% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="modern-form-group">
+                                <label><i class="fas fa-calendar"></i> Capture Date</label>
+                                <div class="modern-input-wrap">
+                                    <i class="fas fa-calendar-day input-icon"></i>
+                                    <input type="date" name="capture_date" class="form-control" value="{{ img.capture_date }}">
+                                </div>
+                            </div>
+                            <div class="modern-form-group">
+                                <label><i class="fas fa-latitude"></i> Latitude</label>
+                                <div class="modern-input-wrap">
+                                    <i class="fas fa-location-crosshairs input-icon"></i>
+                                    <input type="number" step="any" name="latitude" class="form-control" value="{{ img.latitude }}">
+                                </div>
+                            </div>
+                            <div class="modern-form-group">
+                                <label><i class="fas fa-longitude"></i> Longitude</label>
+                                <div class="modern-input-wrap">
+                                    <i class="fas fa-location-crosshairs input-icon"></i>
+                                    <input type="number" step="any" name="longitude" class="form-control" value="{{ img.longitude }}">
+                                </div>
+                            </div>
+                            <div class="modern-form-group" style="grid-column:span 2;">
+                                <label><i class="fas fa-tower-broadcast"></i> Station Name</label>
+                                <div class="modern-input-wrap">
+                                    <i class="fas fa-tower-broadcast input-icon"></i>
+                                    <input type="text" name="station_name" class="form-control" value="{{ img.station_name }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" onclick="toggleEdit('{{ img.id }}', false)">Cancel</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p style="text-align:center;color:var(--gray-400);padding:32px;">No satellite images ingested yet - upload the first one above.</p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.img-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 40px 24px;
+    border: 2px dashed rgba(26, 58, 110, 0.8);
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(18,40,75,0.35), rgba(10,22,40,0.5));
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    position: relative;
+}
+.img-dropzone:hover, .img-dropzone.has-file {
+    border-color: #0055A0;
+    background: rgba(0, 85, 160, 0.12);
+    transform: translateY(-2px);
+}
+.img-dropzone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+}
+.img-dropzone-icon {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0, 85, 160, 0.18);
+    border: 1px solid rgba(0, 85, 160, 0.4);
+    color: #8CC1E9;
+    font-size: 26px;
+    margin-bottom: 6px;
+}
+.img-dropzone-title { font-size: 15px; font-weight: 700; color: #FFF8E7; }
+.img-dropzone-sub { font-size: 12px; color: #8CC1E9; }
+.img-dropzone-file {
+    margin-top: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(0, 85, 160, 0.25);
+    border: 1px solid rgba(0, 85, 160, 0.4);
+    padding: 5px 14px;
+    border-radius: 999px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.img-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+.gallery-card {
+    border: 1px solid rgba(129, 162, 211, 0.22);
+    border-radius: 18px;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(18,29,47,0.92), rgba(10,18,33,0.9));
+    box-shadow: 0 18px 42px rgba(6,10,24,0.4);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.gallery-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(84,168,255,0.42);
+    box-shadow: 0 28px 60px rgba(9,15,28,0.55);
+}
+.gallery-thumb {
+    position: relative;
+    display: block;
+    height: 170px;
+    background: #0a1628;
+    overflow: hidden;
+}
+.gallery-thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s ease;
+}
+.gallery-card:hover .gallery-thumb img { transform: scale(1.05); }
+.gallery-thumb-missing {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; color: #94a3b8; font-size: 12px; font-weight: 600;
+}
+.gallery-thumb-missing i { font-size: 22px; }
+.gallery-platform {
+    position: absolute; top: 10px; right: 10px; z-index: 2;
+    background: rgba(16,185,129,0.18);
+    border: 1px solid rgba(16,185,129,0.4);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    color: #34d399; font-size: 11px; font-weight: 700;
+    padding: 3px 10px; border-radius: 999px;
+}
+.gallery-body { padding: 16px; }
+.gallery-title {
+    font-size: 13px; font-weight: 700; color: #FFF8E7;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 6px;
+}
+.gallery-meta { color: #8CC1E9; font-size: 12px; line-height: 1.5; margin-bottom: 12px; }
+.gallery-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.gallery-badges .badge { font-size: 11px; padding: 3px 10px; }
+.gallery-actions { display: flex; gap: 8px; }
+.gallery-actions .btn { flex: 1; justify-content: center; }
+
+.modal-overlay.edit-modal {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+.modal-overlay.edit-modal.active { display: flex; }
+.edit-modal .modal { margin: auto; }
+
+.img-edit-modal { max-width: 560px; }
+.img-edit-preview {
+    width: 100%;
+    height: 200px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #0a1628;
+    border: 1px solid rgba(26,58,110,0.7);
+    margin-bottom: 6px;
+}
+.img-edit-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+</style>
+
+<script>
+function toggleEdit(imageId, show) {
+    var m = document.getElementById('editModal-' + imageId);
+    if (!m) return;
+    if (show) {
+        // Move to <body> so position:fixed is relative to the viewport,
+        // escaping any transformed layout ancestor that would otherwise
+        // offset the modal to the page flow instead of centering it.
+        document.body.appendChild(m);
+        m.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    } else {
+        m.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}
+function handleReplace(input) {
+    var imageId = input.dataset.imgid;
+    var nameEl = document.getElementById('replaceName-' + imageId);
+    var preview = document.getElementById('preview-' + imageId);
+    if (!input.files || !input.files[0]) return;
+    nameEl.textContent = input.files[0].name;
+    var reader = new FileReader();
+    reader.onload = function (e) { preview.src = e.target.result; };
+    reader.readAsDataURL(input.files[0]);
+}
+// Close modals on overlay click + ESC
+document.addEventListener('click', function (e) {
+    if (e.target.classList && e.target.classList.contains('edit-modal')) {
+        e.target.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+});
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.edit-modal.active').forEach(function (m) {
+            m.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+    }
+});
+</script>
+{% endblock %}

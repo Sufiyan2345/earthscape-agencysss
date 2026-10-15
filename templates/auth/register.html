@@ -1,0 +1,968 @@
+<!-- ========================================== -->
+<!-- REGISTER PAGE (register.html) -->
+<!-- ========================================== -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - EarthScape Climate</title>
+    
+<link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='favicon.png') }}?v=20260830"> 
+<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}?v=20260830">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth-space.css') }}?v=20260815">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+            background: linear-gradient(135deg, #050a14 0%, #0a1628 45%, #081428 100%);
+            color: #ffffff;
+        }
+
+        .auth-split {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .auth-poster, .auth-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        .auth-shade {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(5, 10, 20, 0.75) 0%, rgba(10, 22, 40, 0.65) 100%);
+            z-index: 2;
+        }
+
+        .auth-grid {
+            position: relative;
+            z-index: 3;
+            width: 90%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        /* LEFT SIDE */
+        .auth-left {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            color: #ffffff;
+        }
+
+        .auth-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            color: #ffffff;
+            text-decoration: none;
+            margin-bottom: 30px;
+        }
+
+        .auth-headline h1 {
+            font-size: clamp(2.5rem, 4vw, 3.4rem);
+            font-weight: 800;
+            line-height: 1.05;
+            margin-bottom: 18px;
+            letter-spacing: -0.06em;
+            background: linear-gradient(135deg, #ffffff 0%, #dfeeff 30%, #8cc1e9 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 20px 60px rgba(92, 148, 255, 0.2);
+        }
+
+        .auth-headline p {
+            font-size: 1.05rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.7;
+            max-width: 500px;
+            margin-bottom: 28px;
+        }
+
+        .auth-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(120px, 1fr));
+            gap: 14px;
+            max-width: 540px;
+            margin-top: 14px;
+            margin-bottom: 22px;
+        }
+
+        .auth-stat {
+            position: relative;
+            background: rgba(9, 18, 32, 0.34);
+            border: 1px solid rgba(140, 193, 233, 0.25);
+            border-radius: 18px;
+            padding: 16px 14px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 16px 32px rgba(2, 8, 20, 0.2);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            overflow: hidden;
+        }
+
+        .auth-stat::before {
+            content: '';
+            position: absolute;
+            inset: auto -20% -40% auto;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(92, 148, 255, 0.5), transparent 65%);
+            opacity: 0.7;
+        }
+
+        .auth-stat .auth-stat-value {
+            position: relative;
+            z-index: 1;
+            display: block;
+            font-size: 1.9rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 4px;
+            letter-spacing: -0.05em;
+        }
+
+        .auth-stat .auth-stat-label {
+            position: relative;
+            z-index: 1;
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: rgba(204, 221, 245, 0.8);
+        }
+
+        .auth-socials {
+            display: flex;
+            gap: 15px;
+        }
+
+        .auth-socials a {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(0, 85, 160, 0.2);
+            border: 1px solid rgba(140, 193, 233, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #8CC1E9;
+            text-decoration: none;
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+        }
+
+        .auth-socials a:hover {
+            background: rgba(0, 85, 160, 0.4);
+            border-color: #8CC1E9;
+            color: #FFF8E7;
+        }
+
+        /* RIGHT SIDE (Exact Split Blur & Clean Fields matching image) */
+        .auth-right {
+            background: rgba(9, 18, 32, 0.46);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(140, 193, 233, 0.24);
+            border-left: 1px solid rgba(140, 193, 233, 0.3);
+            border-radius: 0 28px 28px 0;
+            padding: 48px 56px;
+            width: 100%;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 0 1px rgba(92, 148, 255, 0.08);
+            max-height: 92vh;
+            overflow-y: auto;
+        }
+
+        .auth-right::-webkit-scrollbar {
+            width: 4px;
+        }
+        .auth-right::-webkit-scrollbar-thumb {
+            background: rgba(140, 193, 233, 0.35);
+            border-radius: 10px;
+        }
+
+        .auth-right h2 {
+            font-size: 2.2rem;
+            font-weight: 600;
+            margin-bottom: 25px;
+            color: #ffffff;
+        }
+
+        .auth-flash {
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            font-size: 0.9rem;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+        }
+
+        .auth-flash .ok {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.35);
+        }
+
+        .auth-field {
+            position: relative;
+            margin-bottom: 22px;
+        }
+
+        .auth-field label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: rgba(140, 193, 233, 0.9);
+            margin-bottom: 6px;
+        }
+
+        .auth-field input[type="text"],
+        .auth-field input[type="email"],
+        .auth-field input[type="password"] {
+            width: 100%;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid rgba(140, 193, 233, 0.35);
+            padding: 8px 30px 8px 0;
+            color: #ffffff;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .auth-field input::placeholder {
+            color: rgba(140, 193, 233, 0.5);
+        }
+
+        .auth-field input:focus {
+            border-color: #8CC1E9;
+        }
+
+        .auth-field-icon {
+            position: absolute;
+            right: 0;
+            bottom: 10px;
+            color: rgba(140, 193, 233, 0.7);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .auth-field:focus-within .auth-field-icon {
+            color: #8CC1E9;
+            transform: scale(1.1);
+        }
+
+        /* Roles Selection */
+        .auth-roles {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .auth-role {
+            border: 1px solid rgba(140, 193, 233, 0.25);
+            border-radius: 10px;
+            padding: 10px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            background: rgba(10, 22, 40, 0.35);
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+        }
+
+        .auth-role input[type="radio"] {
+            accent-color: #0055A0;
+        }
+
+        .auth-role.selected, .auth-role:hover {
+            border-color: #8CC1E9;
+            background: rgba(0, 85, 160, 0.2);
+            box-shadow: 0 4px 14px rgba(0, 85, 160, 0.25);
+        }
+
+        .role-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #FFF8E7;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .role-sub {
+            font-size: 0.72rem;
+            color: rgba(140, 193, 233, 0.8);
+        }
+
+        /* AUTH TOP NAVBAR */
+        .auth-topnav {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .auth-topnav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .auth-topnav-brand .brand-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #0055A0, #12284B);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            box-shadow: 0 2px 8px rgba(0, 85, 160, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-topnav-brand .brand-icon::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent 40%, rgba(140, 193, 233, 0.3) 100%);
+            border-radius: 10px;
+        }
+
+        .auth-topnav-brand .brand-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.1;
+        }
+
+        .auth-topnav-brand .brand-name {
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            background: linear-gradient(135deg, #FFFFFF 0%, #8CC1E9 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .auth-topnav-brand .brand-tagline {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #8CC1E9;
+            opacity: 0.9;
+        }
+
+        .auth-topnav-back {
+            padding: 8px 18px;
+            border-radius: 999px;
+            background: rgba(18, 40, 75, 0.6);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(140, 193, 233, 0.25);
+            color: #8CC1E9;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .auth-topnav-back:hover {
+            background: rgba(0, 85, 160, 0.3);
+            border-color: rgba(0, 85, 160, 0.5);
+            color: #FFF8E7;
+        }
+
+        /* Checkbox */
+        .auth-check {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: rgba(140, 193, 233, 0.9);
+            margin: 18px 0;
+            cursor: pointer;
+        }
+
+        .auth-check input {
+            accent-color: #0055A0;
+            width: 15px;
+            height: 15px;
+        }
+
+        .auth-check a,
+        .auth-terms-link {
+            color: #8CC1E9;
+            text-decoration: underline;
+            font-weight: 600;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            font: inherit;
+        }
+
+        .terms-modal {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(2, 8, 20, 0.7);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: all 0.28s ease;
+            z-index: 2000;
+            padding: 24px;
+        }
+
+        .terms-modal.is-open {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        .terms-modal-panel {
+            width: min(700px, 100%);
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, rgba(8, 18, 30, 0.95), rgba(10, 20, 34, 0.97));
+            border: 1px solid rgba(140, 193, 233, 0.28);
+            border-radius: 24px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(140, 193, 233, 0.12);
+            overflow: hidden;
+            transform: translateY(14px) scale(0.98);
+            transition: transform 0.28s ease;
+        }
+
+        .terms-modal.is-open .terms-modal-panel {
+            transform: translateY(0) scale(1);
+        }
+
+        .terms-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 22px 24px 18px;
+            border-bottom: 1px solid rgba(140, 193, 233, 0.18);
+            background: rgba(14, 26, 38, 0.82);
+        }
+
+        .terms-modal-header h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .modal-close-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(140, 193, 233, 0.1);
+            border: 1px solid rgba(140, 193, 233, 0.2);
+            color: #d9ebff;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .modal-close-btn:hover {
+            background: rgba(0, 85, 160, 0.25);
+            border-color: rgba(140, 193, 233, 0.5);
+            transform: rotate(90deg);
+        }
+
+        .terms-modal-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            max-height: calc(80vh - 140px);
+            overflow-y: auto;
+            padding: 24px;
+            color: rgba(222, 235, 247, 0.92);
+            line-height: 1.7;
+        }
+
+        .terms-modal-body h4 {
+            margin: 18px 0 10px;
+            color: #8CC1E9;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .terms-modal-body p,
+        .terms-modal-body li {
+            font-size: 0.95rem;
+            color: rgba(228, 238, 247, 0.9);
+        }
+
+        .terms-modal-body ul {
+            margin: 10px 0 0 18px;
+        }
+
+        .terms-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            flex-shrink: 0;
+            padding: 18px 24px 24px;
+            border-top: 1px solid rgba(140, 193, 233, 0.15);
+            background: rgba(10, 22, 40, 0.75);
+        }
+
+        .accept-terms-btn {
+            background: linear-gradient(135deg, #0055A0, #12284B);
+            border: 1px solid rgba(140, 193, 233, 0.45);
+            color: #ffffff;
+            border-radius: 10px;
+            padding: 12px 22px;
+            min-width: 120px;
+            min-height: 46px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            line-height: 1.2;
+            white-space: nowrap;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 8px 20px rgba(0, 85, 160, 0.18);
+            overflow: visible;
+        }
+
+        .accept-terms-btn:hover {
+            transform: translateY(-1px);
+            background: linear-gradient(135deg, #0a6cc5, #0d2f5d);
+            border-color: rgba(140, 193, 233, 0.75);
+            box-shadow: 0 12px 22px rgba(0, 85, 160, 0.32);
+        }
+
+        .accept-terms-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Actions */
+        .auth-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 25px;
+        }
+
+        .auth-btn {
+            background: transparent;
+            border: 1px solid rgba(140, 193, 233, 0.6);
+            color: #ffffff;
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .auth-btn:hover {
+            background: #0055A0;
+            color: #ffffff;
+            border-color: #0055A0;
+            box-shadow: 0 6px 20px rgba(0, 85, 160, 0.4);
+        }
+
+        .auth-alt {
+            font-size: 0.85rem;
+            color: rgba(140, 193, 233, 0.8);
+        }
+
+        .auth-alt a {
+            color: #8CC1E9;
+            text-decoration: underline;
+            font-weight: 500;
+            margin-left: 4px;
+        }
+
+        @media (max-width: 900px) {
+            .auth-grid {
+                grid-template-columns: 1fr;
+                max-width: 500px;
+            }
+            .auth-left {
+                display: none;
+            }
+            .auth-right {
+                border-radius: 24px;
+                border-left: 1px solid rgba(140, 193, 233, 0.25);
+            }
+            .auth-topnav {
+                padding: 12px 20px;
+            }
+            .auth-topnav-back {
+                padding: 6px 14px;
+                font-size: 12px;
+            }
+            .auth-topnav-brand .brand-name {
+                font-size: 14px;
+            }
+            .auth-topnav-brand .brand-tagline {
+                font-size: 9px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="auth-split">
+    <!-- Space Background -->
+    <div class="auth-stars"></div>
+    
+    <!-- Floating Rocket -->
+    <div class="auth-rocket" style="top: 15%; right: 12%;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#8CC1E9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2C8 2 4 6 4 10c0 6 8 14 8 14s8-8 8-14c0-4-4-8-8-8z" fill="rgba(0,85,160,0.3)"/>
+            <path d="M12 2C8 2 4 6 4 10c0 6 8 14 8 14s8-8 8-14c0-4-4-8-8-8z"/>
+            <path d="M12 8c-2 0-4 2-4 4"/>
+            <path d="M12 8c2 0 4 2 4 4"/>
+            <circle cx="12" cy="11" r="1.5" fill="#8CC1E9"/>
+        </svg>
+    </div>
+    
+    <!-- Planets -->
+    <div class="auth-planet auth-planet-1"></div>
+    <div class="auth-planet auth-planet-2"></div>
+    <div class="auth-planet auth-planet-3"></div>
+
+    <video class="auth-video" id="authVideo" autoplay muted loop playsinline preload="none" style="opacity:0.8;">
+        <source src="{{ url_for('static', filename='videos/short.mp4') }}" type="video/mp4">
+        Your browser does not support HTML5 video.
+    </video>
+    <div class="auth-shade" style="background: linear-gradient(135deg, rgba(5, 10, 20, 0.158) 0%, rgba(10, 22, 40, 0.144) 100%);"></div>
+
+    <!-- Top Navbar -->
+    <div class="auth-topnav">
+        <a href="{{ url_for('public.index') }}" class="auth-topnav-brand">
+            <div class="brand-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" style="position:relative;z-index:1;">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor"/>
+                    <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor"/>
+                </svg>
+            </div>
+            <div class="brand-text">
+                <span class="brand-name">EARTHSCAPE</span>
+                <span class="brand-tagline">Climate System</span>
+            </div>
+        </a>
+        <a href="{{ url_for('public.index') }}" class="auth-topnav-back">
+            <i class="fas fa-arrow-left" style="margin-right:6px;"></i> Back to Home
+        </a>
+    </div>
+
+    <div class="auth-grid">
+        <!-- LEFT SIDE -->
+        <div class="auth-left">
+            <a href="{{ url_for('public.index') }}" class="auth-brand">
+                <svg width="20" height="18" viewBox="0 0 20 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M10 1.2 19 16.8 H1 Z"/></svg>
+                EARTHSCAPE
+            </a>
+            <div class="auth-headline">
+                <h1>Build climate insight with EarthScape.</h1>
+                <p>Create your account to track environmental change, model climate patterns, review live conditions, and connect with data-driven decision tools designed for resilient operations.</p>
+            </div>
+
+            <div class="auth-metrics">
+                <div class="auth-stat">
+                    <span class="auth-stat-value">{{ auth_stats.sensors|num|int }}</span>
+                    <span class="auth-stat-label">Sensors</span>
+                </div>
+                <div class="auth-stat">
+                    <span class="auth-stat-value">{{ auth_stats.records|num|int }}</span>
+                    <span class="auth-stat-label">Records</span>
+                </div>
+                <div class="auth-stat">
+                    <span class="auth-stat-value">{{ auth_stats.uptime }}</span>
+                    <span class="auth-stat-label">Uptime</span>
+                </div>
+            </div>
+
+            <div class="auth-socials">
+                <a href="#" aria-label="X / Twitter"><i class="fab fa-x-twitter"></i></a>
+                <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDE -->
+        <div class="auth-right">
+            <h2><i class="fas fa-rocket"></i> Sign Up</h2>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="auth-flash">
+                        {% for category, message in messages %}
+                            <div class="{{ 'ok' if category == 'success' else '' }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('auth.register') }}">
+                <div class="auth-field">
+                    <label for="full_name">Full Name</label>
+                    <input type="text" id="full_name" name="full_name" placeholder="Your full name" required>
+                    <i class="fas fa-id-badge auth-field-icon"></i>
+                </div>
+
+                <div class="auth-field">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="Choose a username" required>
+                    <i class="fas fa-user auth-field-icon"></i>
+                </div>
+
+                <div class="auth-field">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="your@email.com" required>
+                    <i class="fas fa-envelope auth-field-icon"></i>
+                </div>
+
+                <div class="auth-field">
+                    <label>Select Your Panel</label>
+                    <div class="auth-roles">
+                        <label class="auth-role">
+                            <input type="radio" name="role" value="admin">
+                            <div>
+                                <div class="role-title"><i class="fas fa-user-shield"></i> Admin</div>
+                                <div class="role-sub">Full system control</div>
+                            </div>
+                        </label>
+                        <label class="auth-role selected">
+                            <input type="radio" name="role" value="analyst" checked>
+                            <div>
+                                <div class="role-title"><i class="fas fa-chart-line"></i> Analyst</div>
+                                <div class="role-sub">Data &amp; analysis</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="auth-field">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Min 6 characters" minlength="6" required>
+                    <i class="fas fa-lock auth-field-icon"></i>
+                </div>
+
+                <div class="auth-field">
+                    <label for="confirm_password">Confirm Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Repeat password" minlength="6" required>
+                    <i class="fas fa-lock auth-field-icon"></i>
+                </div>
+
+                <label class="auth-check">
+                    <input id="termsCheckbox" type="checkbox" name="terms_agreed" required>
+                    <span>I agree to the <button type="button" class="auth-terms-link" data-modal-target="termsModal">Terms and Conditions</button> of service.</span>
+                </label>
+
+                <div class="auth-actions">
+                    <button type="submit" class="auth-btn">Sign Up <i class="fas fa-arrow-right"></i></button>
+                    <span class="auth-alt">Have An Account? <a href="{{ url_for('auth.login') }}">Log In</a></span>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="terms-modal" id="termsModal" aria-hidden="true">
+    <div class="terms-modal-panel" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+        <div class="terms-modal-header">
+            <h3 id="termsTitle">EarthScape Climate Terms & Conditions</h3>
+            <button type="button" class="modal-close-btn" aria-label="Close terms and conditions" data-close-modal="termsModal">&times;</button>
+        </div>
+
+        <div class="terms-modal-body">
+            <p>Welcome to EarthScape Climate. By creating an account and using this platform, you agree to use climate data, environmental intelligence, and analytical tools responsibly and in compliance with applicable laws.</p>
+
+            <h4>1. Responsible Data Use</h4>
+            <p>Users must use the platform for legitimate climate monitoring, research, planning, and sustainability improvement activities. Misuse of datasets, platform features, or system access for harmful or deceptive purposes is prohibited.</p>
+
+            <h4>2. Climate and Environmental Stewardship</h4>
+            <p>EarthScape Climate supports informed decision-making for resilience, emissions tracking, and environmental risk analysis. The platform is designed to help organizations and users better understand climate patterns, adapt to environmental shifts, and improve sustainable operations.</p>
+
+            <h4>3. Data Accuracy and Research</h4>
+            <p>While EarthScape Climate strives to provide reliable and current environmental data, all information should be treated as operational guidance, not legal, engineering, or emergency certification. Users remain responsible for independent validation where required.</p>
+
+            <h4>4. Privacy and Account Security</h4>
+            <ul>
+                <li>You are responsible for maintaining the confidentiality of your account credentials.</li>
+                <li>Any suspicious activity, unauthorized access, or misuse of your profile should be reported immediately.</li>
+                <li>Platform data may be used to support service delivery, analytics, security, and performance optimization.</li>
+            </ul>
+
+            <h4>5. Content and Platform Conduct</h4>
+            <p>You agree not to upload, distribute, or use the service to share harmful content, manipulate climate data, interfere with system integrity, or exploit vulnerabilities. EarthScape Climate reserves the right to suspend or restrict access where misuse is detected.</p>
+
+            <h4>6. Service Availability</h4>
+            <p>We aim to maintain continuous access to the platform, but availability may vary due to maintenance, analytics processing, environmental system updates, or external data provider interruptions.</p>
+
+            <h4>7. Changes to Terms</h4>
+            <p>EarthScape Climate may revise these Terms from time to time to reflect improvements in functionality, compliance requirements, or user needs. Continued use of the platform after updates constitutes acceptance of the new terms.</p>
+
+            <h4>8. Agreement</h4>
+            <p>By completing registration and checking the acceptance box, you acknowledge that you have read, understood, and agree to these climate service terms and conditions.</p>
+        </div>
+
+        <div class="terms-modal-footer">
+            <button type="button" class="accept-terms-btn" id="termsAcceptBtn">I Accept</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const video = document.getElementById("authVideo");
+    if (video) {
+        video.muted = true;
+        video.playbackRate = 1;
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(function () {
+                video.play().catch(function (error) { console.log("Video autoplay blocked:", error); });
+            }, { timeout: 2000 });
+        } else {
+            setTimeout(function () {
+                video.play().catch(function (error) { console.log("Video autoplay blocked:", error); });
+            }, 300);
+        }
+    }
+
+    const roles = document.querySelectorAll('.auth-role input[type="radio"]');
+    roles.forEach(function (input) {
+        input.addEventListener("change", function () {
+            document.querySelectorAll(".auth-role").forEach(function (el) { el.classList.remove("selected"); });
+            const parent = input.closest(".auth-role");
+            if (parent) parent.classList.add("selected");
+        });
+    });
+
+    const password = document.getElementById("password");
+    const confirmPassword = document.getElementById("confirm_password");
+    if (password && confirmPassword) {
+        confirmPassword.addEventListener("input", function () {
+            if (confirmPassword.value !== password.value) {
+                confirmPassword.setCustomValidity("Passwords do not match");
+            } else {
+                confirmPassword.setCustomValidity("");
+            }
+        });
+    }
+
+    const termsModal = document.getElementById("termsModal");
+    const termsCheckbox = document.getElementById("termsCheckbox");
+    const termsTriggers = document.querySelectorAll("[data-modal-target='termsModal']");
+    const termsCloseButtons = document.querySelectorAll("[data-close-modal='termsModal']");
+    const acceptTermsBtn = document.getElementById("termsAcceptBtn");
+
+    function openTermsModal() {
+        if (!termsModal) return;
+        termsModal.classList.add("is-open");
+        termsModal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeTermsModal() {
+        if (!termsModal) return;
+        termsModal.classList.remove("is-open");
+        termsModal.setAttribute("aria-hidden", "true");
+    }
+
+    termsTriggers.forEach(function (trigger) {
+        trigger.addEventListener("click", function (event) {
+            event.preventDefault();
+            openTermsModal();
+        });
+    });
+
+    termsCloseButtons.forEach(function (button) {
+        button.addEventListener("click", closeTermsModal);
+    });
+
+    if (termsModal) {
+        termsModal.addEventListener("click", function (event) {
+            if (event.target === termsModal) {
+                closeTermsModal();
+            }
+        });
+    }
+
+    if (acceptTermsBtn && termsCheckbox) {
+        acceptTermsBtn.addEventListener("click", function () {
+            termsCheckbox.checked = true;
+            closeTermsModal();
+        });
+    }
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && termsModal && termsModal.classList.contains("is-open")) {
+            closeTermsModal();
+        }
+    });
+});
+</script>
+</body>
+</html>
+
+

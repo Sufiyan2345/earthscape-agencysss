@@ -1,0 +1,409 @@
+{% extends "public/base.html" %}
+{% block title %}Services - EarthScape Climate{% endblock %}
+
+{% block content %}
+
+<!-- Professional Modern Premium CSS with Card Hover Glows, Video Background Call-to-Action, and Circuit Hero -->
+<style>
+.es-services-wrapper {
+    background-color: #030712;
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Hero Section with Circuit Background Image Overlay & Heading Behind Background Effect */
+.es-services-hero {
+    position: relative;
+    width: 100%;
+    min-height: 450px;
+    padding: 130px 5% 90px 5%;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(3, 7, 18, 0.45) 0%, rgba(3, 7, 18, 0.96) 100%), 
+                url('https://sxcontent9668.azureedge.us/cms-assets/assets/earth_feature.jpg') center/cover no-repeat;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid rgba(140, 193, 233, 0.15);
+}
+
+.es-breadcrumb {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 18px;
+    background: rgba(3, 7, 18, 0.75);
+    border: 1px solid rgba(140, 193, 233, 0.35);
+    border-radius: 30px;
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: #8cc1e9;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+}
+
+.es-services-hero h1 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: clamp(2.8rem, 5.5vw, 4.2rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+    color: #ffffff;
+    text-shadow: 0 0 35px rgba(99, 102, 241, 0.6);
+    position: relative;
+    z-index: 2;
+}
+
+.es-services-hero p {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.75);
+    max-width: 680px;
+    margin: 0 auto;
+    line-height: 1.6;
+    font-weight: 300;
+    position: relative;
+    z-index: 2;
+}
+
+/* Main Container */
+.es-container {
+    width: 100%;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 90px 5%;
+    box-sizing: border-box;
+}
+
+/* Modern Premium Feature Cards Grid Layout */
+.es-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 35px;
+}
+
+@media (max-width: 768px) {
+    .es-feature-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.es-feature-card {
+    background: linear-gradient(145deg, rgba(8, 18, 32, 0.9) 0%, rgba(4, 11, 22, 0.96) 100%);
+    border: 1px solid rgba(140, 193, 233, 0.15);
+    border-radius: 16px;
+    padding: 45px 35px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+}
+
+.es-feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, #6366f1, #38bdf8);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.es-feature-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(99, 102, 241, 0.5);
+    box-shadow: 0 20px 45px rgba(99, 102, 241, 0.2);
+}
+
+.es-feature-card:hover::before {
+    opacity: 1;
+}
+
+.es-feature-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(140, 193, 233, 0.3);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8cc1e9;
+    font-size: 22px;
+    margin-bottom: 25px;
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+    transition: all 0.4s ease;
+}
+
+.es-feature-card:hover .es-feature-icon {
+    background: #6366f1;
+    color: #ffffff;
+    border-color: #6366f1;
+    box-shadow: 0 0 25px rgba(99, 102, 241, 0.5);
+    transform: scale(1.05);
+}
+
+.es-feature-card h3 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 14px;
+    color: #ffffff;
+}
+
+.es-feature-card > p {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.68);
+    line-height: 1.7;
+    font-weight: 300;
+    margin-bottom: 20px;
+}
+
+.es-feature-list {
+    list-style: none;
+    padding: 0;
+    margin: auto 0 0 0;
+    border-top: 1px solid rgba(140, 193, 233, 0.1);
+    padding-top: 18px;
+}
+
+.es-feature-list li {
+    padding: 6px 0;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 13.5px;
+    display: flex;
+    align-items: center;
+    font-weight: 300;
+}
+
+.es-feature-list li i {
+    color: #38bdf8;
+    margin-right: 12px;
+    font-size: 12px;
+}
+
+/* Stunning Video Background CTA Section */
+.es-cta-section {
+    position: relative;
+    width: 100%;
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 100px 5%;
+    overflow: hidden;
+    border-top: 1px solid rgba(140, 193, 233, 0.2);
+    border-bottom: 1px solid rgba(140, 193, 233, 0.2);
+}
+
+.es-cta-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    transform: translate(-50%, -50%);
+    object-fit: cover;
+    z-index: 1;
+    opacity: 0.3;
+}
+
+.es-cta-shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(3, 7, 18, 0.286) 0%, rgba(4, 11, 22, 0.228) 100%);
+    z-index: 2;
+}
+
+.es-cta-content {
+    position: relative;
+    z-index: 3;
+    max-width: 750px;
+}
+
+.es-cta-content h2 {
+    font-family: 'Science Gothic', sans-serif;
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+    color: #ffffff;
+    text-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
+}
+
+.es-cta-content p {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.75);
+    margin-bottom: 35px;
+    font-weight: 300;
+    line-height: 1.6;
+}
+
+/* Professional Glowing Button */
+.es-hero-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 36px;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: #ffffff;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 25px rgba(99, 102, 241, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.es-hero-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: 0.5s;
+}
+
+.es-hero-btn:hover::before {
+    left: 100%;
+}
+
+.es-hero-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(99, 102, 241, 0.6);
+    background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+    color: #ffffff;
+}
+</style>
+
+<div class="es-services-wrapper">
+
+    <!-- Hero Section with Circuit Background and Heading Behind Background Effect -->
+    <section class="es-services-hero">
+        <div class="es-breadcrumb">
+            <a href="{{ url_for('public.index') }}" style="color: inherit; text-decoration: none;">Home</a> &bull; Services
+        </div>
+        <h1>Our Services</h1>
+        <p>Comprehensive climate monitoring, analysis, and prediction services powered by big data technology.</p>
+    </section>
+
+    <!-- Services Grid Container -->
+    <div class="es-container">
+        <div class="es-feature-grid">
+            
+            <!-- Card 1 -->
+            <div class="es-feature-card">
+                <div class="es-feature-icon"><i class="fas fa-satellite-dish"></i></div>
+                <h3>Climate Data Collection</h3>
+                <p>We collect climate data from 50+ weather stations, satellite feeds, and IoT sensors across multiple regions.
+                     Our data includes temperature, rainfall, humidity, wind speed, air quality, and more.</p>
+                <ul class="es-feature-list">
+                    <li><i class="fas fa-check"></i> Real-time weather data</li>
+                    <li><i class="fas fa-check"></i> Satellite imagery analysis</li>
+                    <li><i class="fas fa-check"></i> IoT sensor networks</li>
+                </ul>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="es-feature-card">
+                <div class="es-feature-icon"><i class="fas fa-server"></i></div>
+                <h3>Big Data Processing</h3>
+                <p>Using Hadoop HDFS for distributed storage and MapReduce for parallel processing, we handle petabytes of climate data efficiently.</p>
+                <ul class="es-feature-list">
+                    <li><i class="fas fa-check"></i> HDFS distributed storage</li>
+                    <li><i class="fas fa-check"></i> MapReduce processing</li>
+                    <li><i class="fas fa-check"></i> Scalable architecture</li>
+                </ul>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="es-feature-card">
+                <div class="es-feature-icon"><i class="fas fa-brain"></i></div>
+                <h3>ML Predictions</h3>
+                <p>Our 6 ML models predict temperature trends, rainfall patterns, anomaly detection, air quality, flood risk, and long-term climate changes with high accuracy.</p>
+                <ul class="es-feature-list">
+                    <li><i class="fas fa-check"></i> Temperature forecasting</li>
+                    <li><i class="fas fa-check"></i> Flood risk assessment</li>
+                    <li><i class="fas fa-check"></i> Air quality prediction</li>
+                </ul>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="es-feature-card">
+                <div class="es-feature-icon"><i class="fas fa-chart-line"></i></div>
+                <h3>Real-time Monitoring</h3>
+                <p>Live data streams from active sensors provide real-time monitoring capabilities with instant alert notifications when thresholds are exceeded.</p>
+                <ul class="es-feature-list">
+                    <li><i class="fas fa-check"></i> Active sensor telemetry</li>
+                    <li><i class="fas fa-check"></i> Instant threshold triggers</li>
+                    <li><i class="fas fa-check"></i> Live operational streams</li>
+                </ul>
+            </div>
+
+            <!-- Card 5 -->
+            <div class="es-feature-card">
+                <div class="es-feature-icon"><i class="fas fa-file-alt"></i></div>
+                <h3>Report Generation</h3>
+                <p>Automated and on-demand report generation for climate analysis, anomaly summaries, trend analysis, and compliance documentation.</p>
+                <ul class="es-feature-list">
+                    <li><i class="fas fa-check"></i> Automated trend logs</li>
+                    <li><i class="fas fa-check"></i> On-demand data exports</li>
+                    <li><i class="fas fa-check"></i> Compliance documentation</li>
+                </ul>
+            </div>
+
+            <!-- Card 6 -->
+            <div class="es-feature-card">
+                <div class="es-feature-icon"><i class="fas fa-bell"></i></div>
+                <h3>Alert System</h3>
+                <p>Configurable alert thresholds with automated notifications for extreme weather events, air quality warnings, and system anomalies.</p>
+                <ul class="es-feature-list">
+                    <li><i class="fas fa-check"></i> Extreme weather triggers</li>
+                    <li><i class="fas fa-check"></i> Air quality warnings</li>
+                    <li><i class="fas fa-check"></i> System anomaly alerts</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Call to Action Section with Background Video Integration -->
+    <section class="es-cta-section">
+        <video class="es-cta-video" id="authVideo" autoplay muted loop playsinline preload="none">
+            <source src="{{ url_for('static', filename='videos/loop.mp4') }}" type="video/mp4">
+            Your browser does not support HTML5 video.
+        </video>
+        <div class="es-cta-shade"></div>
+        
+        <div class="es-cta-content">
+            <h2>Ready to Get Started?</h2>
+            <p>Join our platform and gain access to powerful climate analytics tools.</p>
+            <a href="{{ url_for('auth.register') }}" class="es-hero-btn">
+                <i class="fas fa-user-plus"></i> Create Free Account
+            </a>
+        </div>
+    </section>
+
+</div>
+{% endblock %}

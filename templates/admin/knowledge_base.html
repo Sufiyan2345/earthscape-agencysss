@@ -1,0 +1,170 @@
+{% extends "admin/base.html" %}
+{% block page_title %}Knowledge Base / FAQ{% endblock %}
+{% block content %}
+<!-- Knowledge Base Stats -->
+<div class="grid grid-3" style="margin-bottom:20px;">
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-book"></i></div>
+        <div class="stat-info"><h4>Total Articles</h4><div class="stat-value">{{ articles|length }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-eye"></i></div>
+        <div class="stat-info"><h4>Categories</h4><div class="stat-value">{{ categories|length }}</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="fas fa-tags"></i></div>
+        <div class="stat-info"><h4>Total Views</h4><div class="stat-value">{{ articles|sum(attribute='view_count') }}</div></div>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <!-- Create Article -->
+    <div class="card">
+        <div class="card-header"><h3><i class="fas fa-plus-circle"></i> Create New Article</h3></div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('admin.create_knowledge_article') }}">
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" name="title" class="form-control" placeholder="Article title" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select name="category" class="form-control">
+                        <option value="general">General</option>
+                        <option value="getting_started">Getting Started</option>
+                        <option value="data_analysis">Data Analysis</option>
+                        <option value="alerts">Alerts & Notifications</option>
+                        <option value="troubleshooting">Troubleshooting</option>
+                        <option value="faq">FAQ</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tags <small style="color:var(--gray-400);">(comma-separated)</small></label>
+                    <input type="text" name="tags" class="form-control" placeholder="e.g. temperature, threshold, export">
+                </div>
+                <div class="form-group">
+                    <label>Content</label>
+                    <textarea name="content" class="form-control" rows="8" placeholder="Write the article content..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Publish Article</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Articles List -->
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-list"></i> Articles</h3>
+            <div class="card-actions">
+                <form method="GET" style="display:flex;gap:8px;">
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Search..." value="{{ search_query or '' }}" style="width:140px;">
+                    <select name="category" class="form-control form-control-sm" style="width:auto;">
+                        <option value="">All</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.category }}" {{ 'selected' if category_filter == cat.category }}>{{ cat.category|replace('_', ' ')|title }} ({{ cat.count }})</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-outline"><i class="fas fa-search"></i></button>
+                </form>
+            </div>
+        </div>
+        <div class="card-body">
+            {% for article in articles %}
+            <div style="padding:12px 0;border-bottom:1px solid var(--gray-100);">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                    <div style="flex:1;">
+                        <h4 style="margin:0 0 4px;font-size:15px;">{{ article.title }}</h4>
+                        <div style="display:flex;gap:8px;margin-bottom:6px;">
+                            <span class="badge badge-blue">{{ article.category|replace('_', ' ')|title }}</span>
+                            <span class="badge badge-gray"><i class="fas fa-eye"></i> {{ article.view_count }}</span>
+                            <span class="badge badge-{{ 'green' if article.is_published else 'red' }}">{{ 'Published' if article.is_published else 'Draft' }}</span>
+                        </div>
+                        <p style="font-size:13px;color:var(--gray-500);margin:0;">{{ article.content[:120] }}{% if article.content|length > 120 %}...{% endif %}</p>
+                        {% if article.tags %}
+                        <div style="margin-top:4px;font-size:11px;color:var(--gray-400);">
+                            <i class="fas fa-tags"></i> {{ article.tags }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div style="display:flex;gap:4px;flex-shrink:0;">
+                        <button type="button" class="btn btn-sm btn-outline edit-btn" data-id="{{ article.id }}" data-title="{{ article.title|e }}" data-category="{{ article.category }}" 
+                        data-tags="{{ article.tags|e }}" data-published="{{ article.is_published }}" data-content="{{ article.content[:500]|e }}"><i class="fas fa-edit"></i></button>
+                        <form method="POST" action="{{ url_for('admin.delete_knowledge_article', article_id=article.id) }}" style="display:inline;" onsubmit="return confirm('Delete article?')">
+                            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state"><i class="fas fa-book"></i><h4>No articles yet</h4><p>Create your first knowledge base article.</p></div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Edit Article Modal -->
+<div id="editModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div class="card" style="width:600px;max-height:80vh;overflow-y:auto;margin:20px;">
+        <div class="card-header">
+            <h3><i class="fas fa-edit"></i> Edit Article</h3>
+            <div class="card-actions">
+                <button type="button" class="btn btn-sm btn-outline" onclick="closeEditModal()"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="POST" id="editForm" action="">
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" name="title" id="editTitle" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select name="category" id="editCategory" class="form-control">
+                        <option value="general">General</option>
+                        <option value="getting_started">Getting Started</option>
+                        <option value="data_analysis">Data Analysis</option>
+                        <option value="alerts">Alerts & Notifications</option>
+                        <option value="troubleshooting">Troubleshooting</option>
+                        <option value="faq">FAQ</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tags</label>
+                    <input type="text" name="tags" id="editTags" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Content</label>
+                    <textarea name="content" id="editContent" class="form-control" rows="8" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" name="is_published" id="editPublished" checked> Published</label>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var editBtns = document.querySelectorAll('.edit-btn');
+    editBtns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var id = this.getAttribute('data-id');
+            document.getElementById('editTitle').value = this.getAttribute('data-title');
+            document.getElementById('editCategory').value = this.getAttribute('data-category');
+            document.getElementById('editTags').value = this.getAttribute('data-tags');
+            document.getElementById('editContent').value = this.getAttribute('data-content') || '';
+            document.getElementById('editPublished').checked = this.getAttribute('data-published') === '1';
+            document.getElementById('editForm').action = '/admin/knowledge/' + id + '/edit';
+            document.getElementById('editModal').style.display = 'flex';
+        });
+    });
+});
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+</script>
+{% endblock %}
