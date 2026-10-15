@@ -2,9 +2,10 @@ import os
 import sys
 import time
 import logging
-from flask import Flask, redirect, url_for, render_template, request
+from flask import Flask, abort, redirect, url_for, render_template, request
+from flask import send_file, send_from_directory
 from flask.json.provider import DefaultJSONProvider
-from flask_login import LoginManager, current_user
+from flask_login import LoginManager, current_user, login_required
 from bson import ObjectId
 from config import config_map
 from utils.database import init_db
@@ -129,6 +130,22 @@ def create_app(config_name='development'):
     app.register_blueprint(admin_bp)
     app.register_blueprint(analyst_bp)
     app.register_blueprint(public_bp)
+
+    @app.route('/static/uploads/profiles/<filename>')
+    @login_required
+    def stored_profile_image(filename):
+        from utils.profile_images import get_profile_image
+
+        image = get_profile_image(filename)
+        if image is not None:
+            from io import BytesIO
+            return send_file(BytesIO(image[0]), mimetype=image[1], max_age=0)
+        if os.environ.get('VERCEL'):
+            abort(404)
+        return send_from_directory(
+            os.path.join(app.root_path, 'static', 'uploads', 'profiles'),
+            filename,
+        )
 
     try:
         from utils.ingestion_backend import broker, handle_climate_event

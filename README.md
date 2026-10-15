@@ -109,6 +109,8 @@ other core app features remain available. Runtime uploads, datasets, and
 generated reports use `/tmp`, which is temporary serverless storage and is not
 shared between function instances. Use external object storage for files that
 must persist. Large uploads may also exceed Vercel's request limits.
+Profile photos and banners are stored in MongoDB so profile image uploads work
+with Vercel's read-only function filesystem.
 
 ### AI Climate Agent
 

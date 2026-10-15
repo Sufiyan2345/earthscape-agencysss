@@ -1,5 +1,3 @@
-import os
-from werkzeug.utils import secure_filename
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from analyst import analyst_bp
@@ -8,29 +6,16 @@ from models.feedback_model import Feedback
 from models.dataset_model import Dataset
 from models.prediction_model import Prediction
 from utils.database import get_collection, next_id
-
-PROFILE_UPLOAD_FOLDER = os.path.join('static', 'uploads', 'profiles')
-ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'}
-
-
-def _allowed_image(filename):
-    return '.' in filename and \
-        filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+from utils.profile_images import save_profile_image
 
 
 def _save_profile_image(file, prefix):
-    """Save an uploaded image under static/uploads/profiles and return its path."""
-    if not file or not file.filename:
-        return None
-    if not _allowed_image(file.filename):
-        flash('Unsupported image format. Allowed: PNG, JPG, JPEG, GIF, WEBP, BMP.', 'danger')
+    """Persist a profile image and return its legacy URL path."""
+    try:
+        return save_profile_image(file, prefix, current_user.id)
+    except ValueError as exc:
+        flash(str(exc), 'danger')
         return False
-    os.makedirs(PROFILE_UPLOAD_FOLDER, exist_ok=True)
-    ext = file.filename.rsplit('.', 1)[1].lower()
-    safe_name = '{}_{}.{}'.format(prefix, current_user.id, ext)
-    filepath = os.path.abspath(os.path.join(PROFILE_UPLOAD_FOLDER, safe_name))
-    file.save(filepath)
-    return 'uploads/profiles/' + safe_name
 
 
 @analyst_bp.route('/profile', methods=['GET', 'POST'])
