@@ -1,5 +1,5 @@
 from flask import render_template, request, redirect, url_for, flash, jsonify, send_file, session
-from public import public_bp
+from site_routes import public_bp
 from models.feedback_model import Feedback
 from models.knowledge_model import KnowledgeBase
 from models.climate_model import ClimateData

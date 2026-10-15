@@ -123,7 +123,7 @@ def create_app(config_name='development'):
     from auth import auth_bp
     from admin import admin_bp
     from analyst import analyst_bp
-    from public import public_bp
+    from site_routes import public_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(admin_bp)

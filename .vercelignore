@@ -14,6 +14,6 @@ data/mongomock_fallback.json
 uploads
 reports/generated_reports
 reports/charts
-static/uploads
+static/**
 test_*.py
 _test_*.py

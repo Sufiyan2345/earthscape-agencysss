@@ -82,8 +82,10 @@ python app.py
 
 ## Deploying to Vercel
 
-The root `index.py` exposes the Flask application to Vercel. Configure these
-production environment variables in the Vercel project before deployment:
+The root `index.py` exposes the Flask application to Vercel. Static assets are
+published from `public/static` and served by Vercel's CDN rather than included
+in the Flask function bundle. Configure these production environment variables
+in the Vercel project before deployment:
 
 - `MONGO_URI` — MongoDB connection string for the production database
 - `SECRET_KEY` — a unique, randomly generated Flask session key
